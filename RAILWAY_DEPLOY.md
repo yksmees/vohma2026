@@ -212,3 +212,21 @@ Ava lehel logimise aknas:
 Sisesta admin kasutajanimi ja parool ning vajuta `Loo admin`.
 
 See töötab ainult siis, kui andmebaasis pole veel ühtegi admin kasutajat. Kui admin on juba olemas, siis server tagastab teate `Admin on juba olemas`.
+
+
+## UEFA U17 testmängud
+
+Lisatud on kolm U17 testmängu, mida saab admin vaates nupuga `Lisa U17 testmängud` andmebaasi lisada:
+- U17-1: Belgium U17 vs France U17, 04.06.2026 14:30 Eesti aeg, Kadriorg Stadium
+- U17-2: Italy U17 vs Spain U17, 04.06.2026 20:00 Eesti aeg, Lilleküla Stadium
+- U17-F: Belgium/France U17 vs Italy/Spain U17, 07.06.2026 20:00 Eesti aeg, Lilleküla Stadium
+
+Need kasutavad `stage = 'UEFA U17 TEST'` ja negatiivseid `match_no` väärtuseid, et ilmuda ennustusvaate alguses. Hiljem saab need eemaldada admin nupuga `Eemalda U17 testmängud` või SQL failiga `sql/remove_u17_test_games.sql`.
+
+Kui soovid API-Footballi tulemuste sünkroniseerimist ka U17 mängudele, lisa Railway env muutuja:
+
+```txt
+API_FOOTBALL_EXTRA_LEAGUES=LEAGUE_ID:2026
+```
+
+`LEAGUE_ID` tuleb võtta API-Footballi leagues otsingust UEFA European Under-17 Championshipi jaoks. Kui seda pole lisatud, saab U17 tulemusi jätkuvalt adminis käsitsi sisestada.

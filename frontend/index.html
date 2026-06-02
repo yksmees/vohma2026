@@ -731,6 +731,7 @@
   <div class="sub" style="margin-top:8px">
     <b>API tervis</b> kontrollib, kas server vastab.<br>
     <b>Lae ametlik mängutabel</b> uuendab FIFA 2026 mängud andmebaasis.<br>
+    <b>Lisa U17 testmängud</b> lisab kolm UEFA U17 testmängu ennustusvaate algusesse. <b>Eemalda U17 testmängud</b> kustutab need hiljem koos nende ennustustega.<br>
     <b>Sünkroniseeri ajakava</b> uuendab mänguaegu olemasoleva ajakava järgi.<br>
     <b>Sünkroniseeri tulemused</b> tõmbab API-Footballist lõppenud mängude skoorid.<br>
     <b>Käsitsi tulemus</b> sisesta mängu numbri järgi, et testida punktiarvestust.<br>
@@ -773,6 +774,8 @@
         <div class="row" style="margin-top:10px">
           <button id="btnHealth">API tervis</button>
           <button id="btnSeed" class="primary">Lae ametlik mängutabel</button>
+          <button id="btnSeedU17" type="button">Lisa U17 testmängud</button>
+          <button id="btnRemoveU17" type="button">Eemalda U17 testmängud</button>
           <button id="btnSync">Sünkroniseeri ajakava</button>
           <button id="btnSyncResults">Sünkroniseeri tulemused</button>
         </div>
@@ -937,8 +940,17 @@ function parseEeDateTime(dateText, timeText){
   return new Date(Date.UTC(year, month - 1, day, hour - 3, minute, 0));
 }
 
+
+function displayMatchNo(m){
+  const n = Number(m?.match_no ?? m);
+  if (n === -3) return "U17-1";
+  if (n === -2) return "U17-2";
+  if (n === -1) return "U17-F";
+  return String(m?.match_no ?? m ?? "");
+}
+
 function formatMatchOption(m){
-  return `#${m.match_no} ${m.home} - ${m.away}`;
+  return `#${displayMatchNo(m)} ${m.home} - ${m.away}`;
 }
 
 function populateAdminMatchSelects(matches){
@@ -1025,7 +1037,7 @@ const locationAndTime = `${row.location || ""}${row.location && koTxt ? " • " 
 const colorClass = pointColorClass(row, pr);
 if (finished && colorClass) tr.className = `row-finished ${colorClass}`;
 tr.innerHTML = `
-  <td>${row.match_no}</td>
+  <td>${displayMatchNo(row)}</td>
   <td><span class="pill">${row.stage}</span></td>
   <td>${row.home}</td>
   <td>${row.away}</td>
@@ -1458,6 +1470,34 @@ async function loadPlayers(){
 $("btnHealth").onclick = async ()=>{
   try{ const r = await call("health",{method:"GET"}); setMsg($("adminMsg"), true, r.time); }
   catch(e){ setMsg($("adminMsg"), false, e.message); }
+};
+
+
+$("btnSeedU17").onclick = async ()=>{
+  if (!(me && me.is_admin)) return setMsg($("adminMsg"), false, "Ainult admin.");
+  try{
+    const r = await call("admin/seed/u17-test",{method:"POST"});
+    setMsg($("adminMsg"), true, `U17 testmängud lisatud või uuendatud: ${r.inserted_or_updated}`);
+    await loadMatchesAndPreds();
+    await loadAdminScreenshotBoard();
+  }catch(e){
+    setMsg($("adminMsg"), false, e.message);
+  }
+};
+
+$("btnRemoveU17").onclick = async ()=>{
+  if (!(me && me.is_admin)) return setMsg($("adminMsg"), false, "Ainult admin.");
+  if (!confirm("Kas eemaldan U17 testmängud ja nende ennustused?")) return;
+  try{
+    const r = await call("admin/remove/u17-test",{method:"POST"});
+    setMsg($("adminMsg"), true, `U17 testmängud eemaldatud: ${r.removed}`);
+    await loadMatchesAndPreds();
+    await loadLeaderboard();
+    await loadOthersView();
+    await loadAdminScreenshotBoard();
+  }catch(e){
+    setMsg($("adminMsg"), false, e.message);
+  }
 };
 
 $("btnSeed").onclick = async ()=>{
