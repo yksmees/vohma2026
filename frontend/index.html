@@ -138,22 +138,63 @@
       text-wrap:balance;
     }
 
+      /* VOHMA HEADER FINAL */
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:22px;
+      min-width:0;
+    }
+    .brand-logo-wrap{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:rgba(255,255,255,.94);
+      border:1px solid rgba(255,255,255,.55);
+      border-radius:18px;
+      padding:8px 12px;
+      box-shadow:0 14px 34px rgba(0,0,0,.28);
+      flex:0 0 auto;
+    }
+    .brand-logo-wrap img{
+      display:block;
+      width:clamp(120px, 15vw, 210px);
+      height:auto;
+      object-fit:contain;
+      background:transparent !important;
+      border-radius:0 !important;
+      box-shadow:none !important;
+    }
+    .brand-title{
+      font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      font-weight:900;
+      letter-spacing:.15px;
+      line-height:1.12;
+      font-size:clamp(22px, 2.7vw, 36px);
+      text-wrap:balance;
+      max-width:900px;
+    }
+    @media (max-width:700px){
+      .brand{gap:14px}
+      .brand-logo-wrap img{width:110px}
+      .brand-title{font-size:22px}
+    }
+
   </style>
 </head>
 <body>
   
   
   <header>
-    <div class="headerbar">
-      <div class="brand">
-        <div class="logo" aria-label="Samsung logo"><div class="brand-logo-wrap"><img src="assets/vohma-logo.png" alt="Samsung"></div></div>
-        <h1 class="brand-title">Võhma Lihakombinaadi ennustusvõistlus, MM 2026</h1>
-      </div>
-      <div id="headerUserBox" class="header-user hide">
+    <div class="brand">
+      <div class="brand-logo-wrap"><img src="assets/vohma-logo.png" alt="Võhma Lihakombinaadi logo" /></div>
+      <div class="brand-title">Võhma Lihakombinaadi ennustusvõistlus, MM 2026</div>
+    </div>
+    <div id="headerUserBox" class="header-user hide">
         <span id="headerWho" class="pill"></span>
         <button type="button" id="btnLogoutTop">Logi välja</button>
       </div>
-    </div>
   </header>
 
 
@@ -182,19 +223,7 @@
     <button type="button" id="btnRegister" class="primary">Loo konto</button>
   </div>
 </details>
-        
-<details id="setupAdminBox" style="margin-top:10px">
-  <summary style="cursor:pointer;color:var(--muted)">Esmane admini loomine</summary>
-  <div class="sub" style="margin-top:8px">
-    Kasuta seda ainult uue tühja andmebaasi puhul, kui adminiga sisse logides tuleb “Kasutajat ei leitud”.
-  </div>
-  <div class="row" style="margin-top:10px">
-    <input id="su" placeholder="admin kasutajanimi" value="admin" />
-    <input id="sp" placeholder="admin parool (min 6)" type="password" />
-    <button type="button" id="btnSetupAdmin" class="primary">Loo admin</button>
-  </div>
-</details>
-        <div id="loginMsg" class="msg"></div>
+<div id="loginMsg" class="msg"></div>
       </div>
       <div id="quickStartCard" class="card">
         <strong>Juhend</strong>
@@ -1036,27 +1065,6 @@ $("btnSeed").onclick = async ()=>{
   }
 };
 
-
-if ($("btnSetupAdmin")) $("btnSetupAdmin").onclick = async ()=>{
-  try{
-    const username = $("su").value.trim() || "admin";
-    const password = $("sp").value;
-    const r = await call("setup/admin", {
-      method:"POST",
-      body: JSON.stringify({
-        username,
-        password,
-        display_name: username
-      })
-    });
-    setMsg($("loginMsg"), true, `Admin loodud: ${r.admin.username}. Nüüd saad sisse logida.`);
-    $("u").value = r.admin.username;
-    $("p").value = "";
-    $("sp").value = "";
-  }catch(e){
-    setMsg($("loginMsg"), false, e.message);
-  }
-};
 
 $("btnLogin").onclick = async ()=>{
   try{
