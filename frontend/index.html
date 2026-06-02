@@ -258,6 +258,330 @@
       }
     }
 
+  
+    /* MOBILE FRIENDLY LAYOUT */
+    *{
+      box-sizing:border-box;
+    }
+
+    img{
+      max-width:100%;
+      height:auto;
+    }
+
+    .tabs{
+      max-width:100%;
+      overflow-x:auto;
+      overflow-y:hidden;
+      -webkit-overflow-scrolling:touch;
+      padding-bottom:4px;
+      scrollbar-width:thin;
+    }
+
+    .tabs .tab{
+      flex:0 0 auto;
+      white-space:nowrap;
+    }
+
+    .table-scroll,
+    #mTable,
+    #lbTable,
+    #pTable{
+      max-width:100%;
+    }
+
+    #mTable,
+    #lbTable,
+    #pTable{
+      display:block;
+      overflow-x:auto;
+      -webkit-overflow-scrolling:touch;
+      white-space:nowrap;
+    }
+
+    #mTable thead,
+    #mTable tbody,
+    #lbTable thead,
+    #lbTable tbody,
+    #pTable thead,
+    #pTable tbody{
+      display:table;
+      width:100%;
+      min-width:max-content;
+    }
+
+    .others-board-wrap,
+    .screenshot-board-wrap{
+      max-width:100%;
+      overflow-x:auto;
+      -webkit-overflow-scrolling:touch;
+    }
+
+    @media (max-width: 900px){
+      .wrap{
+        width:100%;
+        padding-left:14px;
+        padding-right:14px;
+      }
+
+      .grid.cols2,
+      .grid{
+        grid-template-columns:1fr !important;
+      }
+
+      .card{
+        padding:14px;
+      }
+
+      .row{
+        gap:8px;
+      }
+
+      #viewsCard > .row:first-child{
+        align-items:flex-start;
+      }
+
+      #viewsCard > .row:first-child > div:first-child{
+        min-width:0;
+        width:100%;
+      }
+
+      #btnReload{
+        width:auto;
+      }
+    }
+
+    @media (max-width: 760px){
+      body{
+        overflow-x:hidden;
+      }
+
+      header{
+        padding:12px 12px !important;
+      }
+
+      header .topbar{
+        align-items:flex-start !important;
+        gap:10px !important;
+      }
+
+      .vohma-brand-row{
+        gap:10px !important;
+        align-items:center !important;
+        min-width:0 !important;
+      }
+
+      .vohma-logo-panel{
+        width:92px !important;
+        max-width:92px !important;
+        padding:5px 6px !important;
+        border-radius:12px !important;
+      }
+
+      .vohma-title{
+        min-width:0 !important;
+        font-size:clamp(17px, 5.2vw, 24px) !important;
+        line-height:1.15 !important;
+      }
+
+      .header-user{
+        flex-direction:column;
+        align-items:flex-end;
+        gap:6px;
+      }
+
+      .header-user .pill{
+        max-width:130px;
+        overflow:hidden;
+        text-overflow:ellipsis;
+        white-space:nowrap;
+      }
+
+      .wrap{
+        padding:10px;
+      }
+
+      .card{
+        border-radius:16px;
+        padding:12px;
+      }
+
+      .row{
+        flex-wrap:wrap;
+      }
+
+      input,
+      select,
+      button,
+      textarea{
+        max-width:100%;
+        font-size:16px;
+      }
+
+      #loginCard .row,
+      #account .row,
+      #admin .row{
+        align-items:stretch;
+      }
+
+      #loginCard input,
+      #loginCard button,
+      #loginCard select,
+      #account input,
+      #account button{
+        width:100%;
+        flex:1 1 100%;
+      }
+
+      #admin input,
+      #admin select,
+      #admin button{
+        flex:1 1 100%;
+        width:100%;
+      }
+
+      #admin .small,
+      .small{
+        min-width:0;
+      }
+
+      .add-match-teams{
+        flex-direction:column;
+      }
+
+      .add-match-teams input{
+        width:100%;
+        min-width:0 !important;
+      }
+
+      .pred-cell{
+        min-width:190px;
+      }
+
+      .pred-controls{
+        display:flex;
+        flex-direction:column;
+        align-items:stretch;
+        gap:6px;
+      }
+
+      .pred-controls input,
+      .pred-controls button{
+        width:100%;
+      }
+
+      #mTable th,
+      #mTable td{
+        padding:8px 10px;
+        font-size:14px;
+      }
+
+      #lbTable th,
+      #lbTable td,
+      #pTable th,
+      #pTable td{
+        padding:8px 10px;
+        font-size:14px;
+      }
+
+      .others-board-table th,
+      .others-board-table td{
+        padding:6px 8px;
+        font-size:12px;
+      }
+
+      .others-board-table .sticky-col{
+        min-width:120px;
+        max-width:150px;
+        white-space:normal;
+      }
+
+      .screenshot-tools{
+        flex-direction:column;
+        align-items:stretch;
+      }
+
+      .screenshot-tools label,
+      .screenshot-tools select,
+      .screenshot-tools input,
+      .screenshot-tools button{
+        width:100%;
+      }
+
+      .screenshot-board th,
+      .screenshot-board td{
+        padding:4px 7px;
+        font-size:15px;
+      }
+
+      .screenshot-board th:first-child,
+      .screenshot-board td:first-child{
+        min-width:120px;
+        max-width:150px;
+        white-space:normal;
+      }
+
+      .screenshot-board .meta th,
+      .screenshot-board .teams th{
+        font-size:13px;
+      }
+    }
+
+    @media (max-width: 430px){
+      header .topbar{
+        flex-direction:column !important;
+        align-items:stretch !important;
+      }
+
+      .header-user{
+        width:100%;
+        flex-direction:row;
+        justify-content:space-between;
+        align-items:center;
+      }
+
+      .header-user .pill{
+        max-width:180px;
+      }
+
+      .vohma-brand-row{
+        width:100%;
+      }
+
+      .vohma-logo-panel{
+        width:78px !important;
+        max-width:78px !important;
+      }
+
+      .vohma-title{
+        font-size:17px !important;
+      }
+
+      .tabs{
+        display:flex;
+        gap:6px;
+      }
+
+      .tabs .tab{
+        padding:8px 11px;
+        font-size:14px;
+      }
+
+      #viewsCard > .row:first-child{
+        flex-direction:column;
+      }
+
+      #btnReload{
+        width:100%;
+      }
+
+      .sub,
+      .msg{
+        font-size:14px;
+        line-height:1.35;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -559,7 +883,8 @@ function setMsg(el, ok, text){
 }
 
 function setWho(){
-  const label = me ? `${me.display_name} (${me.username})${me.is_admin ? " admin" : ""}` : "väljas";
+  const shownName = me ? (me.display_name && me.display_name !== me.username ? `${me.display_name} (${me.username})` : me.username) : "väljas";
+  const label = me ? `${shownName}${me.is_admin ? " admin" : ""}` : "väljas";
   if ($("who")) $("who").textContent = label;
   if ($("headerWho")) $("headerWho").textContent = label;
   if ($("headerUserBox")) $("headerUserBox").classList.toggle("hide", !me);
