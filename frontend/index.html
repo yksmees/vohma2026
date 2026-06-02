@@ -15,7 +15,7 @@
     .headerbar{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
     .brand{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
     .header-user{display:flex;gap:10px;align-items:center}
-    .login-logo{display:block;max-width:260px;width:100%;height:auto;margin:0 auto 16px auto;border-radius:16px}
+    .login-logo{display:none}
     .pred-cell{text-align:center}
     .pred-controls{display:inline-flex;gap:8px;align-items:center;justify-content:center}
     .add-match-teams input{min-width:180px;flex:1}
@@ -93,6 +93,21 @@
     .others-list{display:flex;flex-direction:column;gap:2px;margin-top:4px}
     .score-badge{display:inline-block;min-width:24px;padding:2px 6px;border:1px solid var(--line);border-radius:999px;margin-left:6px}
 
+  
+    .brand-title{
+      font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      font-weight:800;
+      letter-spacing:.2px;
+      line-height:1.15;
+      font-size:clamp(20px, 2.4vw, 32px);
+    }
+    header img, .brand img{
+      background:transparent !important;
+      box-shadow:none !important;
+      border-radius:0 !important;
+      object-fit:contain;
+    }
+
   </style>
 </head>
 <body>
@@ -102,7 +117,7 @@
     <div class="headerbar">
       <div class="brand">
         <div class="logo" aria-label="Samsung logo"><img src="assets/vohma-logo.png" alt="Samsung"></div>
-        <h1>Võhma Lihakombinaadi ennustusvõistlus, MM 2026</h1>
+        <h1 class="brand-title">Võhma Lihakombinaadi ennustusvõistlus, MM 2026</h1>
       </div>
       <div id="headerUserBox" class="header-user hide">
         <span id="headerWho" class="pill"></span>
@@ -117,7 +132,6 @@
     
     <div class="grid cols2">
       <div id="loginCard" class="card">
-        <img class="login-logo" src="assets/vohma-logo.png" alt="Võhma Lihakombinaadi logo" />
         <div class="row" style="justify-content:space-between">
           <strong>Login</strong>
           <span id="who" class="pill">väljas</span>
