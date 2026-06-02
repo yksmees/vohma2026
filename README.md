@@ -423,3 +423,15 @@ Vaikimisi valitakse uusim lõppenud mäng.
 ## Admin screenshot vaade mitme mänguga
 Admin screenshot plokis saab nüüd valida ühe mängu või märkida `mitu mängu kõrvuti`.
 Mitme mängu vaates kuvatakse valitud arv viimaseid lõppenud mänge kõrvuti, vanem vasakul ja uuem paremal.
+
+
+## Kui adminiga sisse ei saa
+
+Kui login annab teate `Kasutajat ei leitud`, siis selles Supabase andmebaasis ei ole admin kasutajat olemas.
+
+Ava lehel logimise aknas:
+`Esmane admini loomine`
+
+Sisesta admin kasutajanimi ja parool ning vajuta `Loo admin`.
+
+See töötab ainult siis, kui andmebaasis pole veel ühtegi admin kasutajat. Kui admin on juba olemas, siis server tagastab teate `Admin on juba olemas`.

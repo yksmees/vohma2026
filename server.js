@@ -376,7 +376,7 @@ async function netlifyHandler(event) {
       const q = await sb.from("players").select("id,username,display_name,password_hash,is_admin").eq("username", username).limit(1);
       if (q.error) return json(500, { error: q.error.message });
       const u = (q.data || [])[0];
-      if (!u) return json(401, { error: "Kasutajat ei leitud." });
+      if (!u) return json(401, { error: "Kasutajat ei leitud. Kui see on uus andmebaas, loo esmalt admin konto." });
 
       const ok = await bcrypt.compare(password, u.password_hash);
       if (!ok) return json(401, { error: "Vale parool." });
