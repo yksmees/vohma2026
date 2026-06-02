@@ -582,6 +582,260 @@
       }
     }
 
+  
+    /* FIX: ennustuste tabel ei lõika Salvestatud/Salvesta nuppu ära */
+    .m-table-wrap{
+      width:100%;
+      max-width:100%;
+      overflow-x:auto;
+      overflow-y:visible;
+      -webkit-overflow-scrolling:touch;
+      padding-bottom:8px;
+    }
+
+    #mTable{
+      width:max-content;
+      min-width:100%;
+      table-layout:auto;
+    }
+
+    #mTable th,
+    #mTable td{
+      overflow:visible;
+    }
+
+    #mTable th:nth-child(6),
+    #mTable td:nth-child(6){
+      min-width:310px;
+      width:310px;
+      overflow:visible;
+    }
+
+    #mTable th:nth-child(7),
+    #mTable td:nth-child(7){
+      min-width:78px;
+      width:78px;
+    }
+
+    .pred-cell{
+      overflow:visible !important;
+    }
+
+    .pred-controls{
+      display:flex !important;
+      flex-direction:row !important;
+      align-items:center !important;
+      justify-content:flex-start !important;
+      gap:8px !important;
+      min-width:292px !important;
+      width:max-content !important;
+      overflow:visible !important;
+      white-space:nowrap !important;
+    }
+
+    .pred-controls input.small{
+      flex:0 0 86px !important;
+      width:86px !important;
+      min-width:86px !important;
+    }
+
+    .pred-controls button{
+      flex:0 0 auto !important;
+      min-width:108px !important;
+      white-space:nowrap !important;
+      overflow:visible !important;
+    }
+
+    @media (max-width:760px){
+      .m-table-wrap{
+        margin-left:-2px;
+        margin-right:-2px;
+      }
+
+      #mTable th,
+      #mTable td{
+        padding:8px 10px;
+        font-size:14px;
+      }
+
+      #mTable th:nth-child(6),
+      #mTable td:nth-child(6){
+        min-width:300px;
+        width:300px;
+      }
+
+      .pred-controls{
+        min-width:282px !important;
+      }
+
+      .pred-controls input.small{
+        flex-basis:78px !important;
+        width:78px !important;
+        min-width:78px !important;
+      }
+
+      .pred-controls button{
+        min-width:112px !important;
+      }
+    }
+
+  
+    /* MOBILE: ennustuste tabel kaardivaates, ilma paremale kerimiseta */
+    @media (max-width: 760px){
+      .m-table-wrap{
+        overflow-x:visible !important;
+        overflow-y:visible !important;
+        width:100% !important;
+        max-width:100% !important;
+        padding-bottom:0 !important;
+      }
+
+      #mTable{
+        display:block !important;
+        width:100% !important;
+        min-width:0 !important;
+        table-layout:auto !important;
+        white-space:normal !important;
+      }
+
+      #mTable thead{
+        display:none !important;
+      }
+
+      #mTable tbody{
+        display:block !important;
+        width:100% !important;
+        min-width:0 !important;
+      }
+
+      #mTable tr{
+        display:block !important;
+        width:100% !important;
+        margin:0 0 14px 0 !important;
+        padding:12px !important;
+        border:1px solid rgba(255,255,255,.12) !important;
+        border-radius:16px !important;
+        background:rgba(255,255,255,.035) !important;
+      }
+
+      #mTable td{
+        display:flex !important;
+        align-items:flex-start !important;
+        justify-content:space-between !important;
+        gap:12px !important;
+        width:100% !important;
+        min-width:0 !important;
+        max-width:100% !important;
+        padding:8px 0 !important;
+        border-bottom:1px solid rgba(255,255,255,.08) !important;
+        white-space:normal !important;
+        overflow:visible !important;
+      }
+
+      #mTable td:last-child{
+        border-bottom:0 !important;
+      }
+
+      #mTable td::before{
+        flex:0 0 118px;
+        max-width:118px;
+        color:var(--muted);
+        font-weight:800;
+        font-size:13px;
+        line-height:1.25;
+        text-align:left;
+      }
+
+      #mTable td:nth-child(1)::before{content:"Mängu nr";}
+      #mTable td:nth-child(2)::before{content:"Alagrupp";}
+      #mTable td:nth-child(3)::before{content:"Kodumeeskond";}
+      #mTable td:nth-child(4)::before{content:"Võõrsil";}
+      #mTable td:nth-child(5)::before{content:"Aeg ja koht";}
+      #mTable td:nth-child(6)::before{content:"Sinu ennustus";}
+      #mTable td:nth-child(7)::before{content:"Punktid";}
+
+      #mTable td:nth-child(6),
+      #mTable td:nth-child(7){
+        width:100% !important;
+        min-width:0 !important;
+      }
+
+      #mTable td:nth-child(1),
+      #mTable td:nth-child(2),
+      #mTable td:nth-child(3),
+      #mTable td:nth-child(4),
+      #mTable td:nth-child(5),
+      #mTable td:nth-child(7){
+        text-align:right;
+      }
+
+      #mTable td:nth-child(1) > *,
+      #mTable td:nth-child(2) > *,
+      #mTable td:nth-child(3) > *,
+      #mTable td:nth-child(4) > *,
+      #mTable td:nth-child(5) > *,
+      #mTable td:nth-child(7) > *{
+        text-align:right;
+      }
+
+      #mTable .pred-cell{
+        display:block !important;
+        width:100% !important;
+        min-width:0 !important;
+      }
+
+      #mTable .pred-cell::before{
+        display:block !important;
+        max-width:none !important;
+        margin-bottom:8px !important;
+      }
+
+      #mTable .pred-controls{
+        display:grid !important;
+        grid-template-columns:1fr 1fr !important;
+        gap:8px !important;
+        width:100% !important;
+        min-width:0 !important;
+        max-width:100% !important;
+        white-space:normal !important;
+      }
+
+      #mTable .pred-controls input.small{
+        width:100% !important;
+        min-width:0 !important;
+        flex:1 1 auto !important;
+      }
+
+      #mTable .pred-controls button{
+        grid-column:1 / -1 !important;
+        width:100% !important;
+        min-width:0 !important;
+        flex:1 1 auto !important;
+      }
+
+      #mTable .pill{
+        max-width:100%;
+        white-space:normal;
+        text-align:right;
+      }
+    }
+
+    @media (max-width: 430px){
+      #mTable tr{
+        padding:10px !important;
+      }
+
+      #mTable td{
+        gap:8px !important;
+      }
+
+      #mTable td::before{
+        flex-basis:104px;
+        max-width:104px;
+        font-size:12px;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -616,7 +870,7 @@
           <input id="u" placeholder="kasutaja" />
           <input id="p" placeholder="parool" type="password" />
           <button type="button" class="primary" id="btnLogin">Logi sisse</button>
-          <button type="button" id="btnLogout">Logi välja</button>
+          <button type="button" id="btnLogout" class="hide">Logi välja</button>
         </div>
 
 <details style="margin-top:10px">
@@ -662,6 +916,7 @@
       <div id="pred" style="margin-top:8px">
         <div class="sub">Sisesta oma ennustus. Ennustus lukustub 1 tund enne mängu algust. Punktid: 4 täpne skoor, 2 + õiged väravad kui tulemus on õige, 1 punkt iga õige väravate arvu eest ka vale tulemuse korral.</div>
         <div id="predMsg" class="msg"></div>
+        <div class="m-table-wrap">
         <table id="mTable">
           <thead>
             <tr>
@@ -892,6 +1147,7 @@ function setWho(){
   if ($("headerWho")) $("headerWho").textContent = label;
   if ($("headerUserBox")) $("headerUserBox").classList.toggle("hide", !me);
   if ($("loginCard")) $("loginCard").classList.toggle("hide", !!me);
+  if ($("btnLogout")) $("btnLogout").classList.toggle("hide", !me);
   if ($("quickStartCard")) $("quickStartCard").classList.toggle("hide", !!me);
   if ($("importTimesCard")) $("importTimesCard").classList.add("hide");
 }
