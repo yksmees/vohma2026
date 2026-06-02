@@ -836,6 +836,123 @@
       }
     }
 
+  
+    /* FIX: desktopis Salvesta nupp ei lõiku ära ja mobiilis lõppenud mängud peidus */
+    #pred{
+      max-width:100%;
+      overflow:visible;
+    }
+
+    #viewsCard{
+      overflow:visible;
+    }
+
+    .m-table-wrap{
+      width:100%;
+      max-width:100%;
+      overflow-x:auto !important;
+      overflow-y:visible !important;
+      -webkit-overflow-scrolling:touch;
+      padding-bottom:10px;
+    }
+
+    #mTable{
+      width:max-content !important;
+      min-width:1180px !important;
+      table-layout:auto !important;
+      border-collapse:collapse;
+    }
+
+    #mTable th,
+    #mTable td{
+      overflow:visible !important;
+      white-space:nowrap;
+    }
+
+    #mTable th:nth-child(6),
+    #mTable td:nth-child(6){
+      min-width:380px !important;
+      width:380px !important;
+      max-width:none !important;
+    }
+
+    #mTable th:nth-child(7),
+    #mTable td:nth-child(7){
+      min-width:90px !important;
+      width:90px !important;
+    }
+
+    #mTable .pred-cell{
+      overflow:visible !important;
+      max-width:none !important;
+    }
+
+    #mTable .pred-controls{
+      display:flex !important;
+      flex-direction:row !important;
+      align-items:center !important;
+      justify-content:flex-start !important;
+      gap:10px !important;
+      width:max-content !important;
+      min-width:360px !important;
+      max-width:none !important;
+      overflow:visible !important;
+      white-space:nowrap !important;
+    }
+
+    #mTable .pred-controls input.small{
+      flex:0 0 92px !important;
+      width:92px !important;
+      min-width:92px !important;
+      max-width:92px !important;
+    }
+
+    #mTable .pred-controls button{
+      flex:0 0 auto !important;
+      min-width:126px !important;
+      width:auto !important;
+      max-width:none !important;
+      white-space:nowrap !important;
+      overflow:visible !important;
+      text-overflow:clip !important;
+      padding-left:14px !important;
+      padding-right:14px !important;
+    }
+
+    @media (max-width:760px){
+      #mTable{
+        min-width:0 !important;
+        width:100% !important;
+      }
+
+      #mTable tr.match-finished{
+        display:none !important;
+      }
+
+      #mTable .pred-controls{
+        display:grid !important;
+        grid-template-columns:1fr 1fr !important;
+        min-width:0 !important;
+        width:100% !important;
+        max-width:100% !important;
+        gap:8px !important;
+      }
+
+      #mTable .pred-controls input.small{
+        width:100% !important;
+        min-width:0 !important;
+        max-width:none !important;
+        flex:1 1 auto !important;
+      }
+
+      #mTable .pred-controls button{
+        grid-column:1 / -1 !important;
+        width:100% !important;
+        min-width:0 !important;
+        max-width:none !important;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -1291,7 +1408,8 @@ const lockHint = locked ? "Lukus" : "";
 const finished = !!(row.is_finished || final);
 const locationAndTime = `${row.location || ""}${row.location && koTxt ? " • " : ""}${koTxt}`;
 const colorClass = pointColorClass(row, pr);
-if (finished && colorClass) tr.className = `row-finished ${colorClass}`;
+if (finished) tr.classList.add("match-finished");
+if (finished && colorClass) tr.classList.add("row-finished", colorClass);
 tr.innerHTML = `
   <td>${displayMatchNo(row)}</td>
   <td><span class="pill">${row.stage}</span></td>
