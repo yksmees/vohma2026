@@ -1480,6 +1480,19 @@
       overflow:hidden !important;
     }
 
+  
+    /* CLIENT LOCK TIMER */
+    .match-locked .pred-controls,
+    .match-locked .winner-pick{
+      opacity:.72;
+    }
+    .lock-note{
+      margin-top:7px;
+      color:var(--muted);
+      font-size:12px;
+      font-weight:800;
+    }
+
   </style>
 </head>
 <body>
@@ -1933,6 +1946,53 @@ function updateWinnerVisibility(mid){
   }
 }
 
+
+let predictionLockTimer = null;
+
+function updatePredictionLocks(){
+  const now = Date.now();
+
+  document.querySelectorAll("#mTable tbody tr[data-lock-at]").forEach(tr=>{
+    const lockAt = Number(tr.dataset.lockAt || 0);
+    if (!Number.isFinite(lockAt) || !lockAt) return;
+
+    if (now >= lockAt){
+      tr.classList.add("match-locked");
+
+      tr.querySelectorAll("input, button").forEach(el=>{
+        el.disabled = true;
+      });
+
+      const btn = tr.querySelector("button[data-save]");
+      if (btn){
+        btn.textContent = "Lukus";
+        btn.classList.remove("saved");
+      }
+
+      const predCell = tr.querySelector(".pred-cell");
+      if (predCell && !predCell.querySelector(".lock-note")){
+        const note = document.createElement("div");
+        note.className = "lock-note";
+        note.textContent = "Ennustus lukus";
+        predCell.appendChild(note);
+      }
+    }
+  });
+}
+
+function startPredictionLockTimer(){
+  if (predictionLockTimer) return;
+
+  updatePredictionLocks();
+
+  predictionLockTimer = setInterval(updatePredictionLocks, 30000);
+
+  document.addEventListener("visibilitychange", ()=>{
+    if (!document.hidden) updatePredictionLocks();
+  });
+}
+
+
 async function refreshMe(){
   if (!token){ me=null; setWho(); return; }
   try{
@@ -1995,6 +2055,10 @@ async function loadMatchesAndPreds(){
     for (const row of m.matches){
       const pr = map.get(row.id);
       const tr = document.createElement("tr");
+      if (row.kickoff_utc) {
+        const lockAt = new Date(row.kickoff_utc).getTime() - 60 * 60 * 1000;
+        if (Number.isFinite(lockAt)) tr.dataset.lockAt = String(lockAt);
+      }
       const final = (row.final_home===null || row.final_away===null) ? "" : `${row.final_home}:${row.final_away}`;
       const ko = row.kickoff_utc ? new Date(row.kickoff_utc) : null;
 const koTxt = ko ? new Intl.DateTimeFormat('et-EE',{timeZone:'Europe/Tallinn', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'}).format(ko) : "";
@@ -2074,6 +2138,8 @@ tbody.querySelectorAll(`input[name="winner_${mid}"]`).forEach(inp=>{
         }
       });
     });
+  updatePredictionLocks();
+  startPredictionLockTimer();
   }catch(e){
     setMsg($("predMsg"), false, e.message);
   }

@@ -28,3 +28,15 @@ Enne deployd või kohe pärast deployd käivita Supabase SQL Editoris:
 `sql/playoff_prediction_migration.sql`
 
 Pärast deployd vajuta admin vaates `Arvuta punktid ümber`, et olemasolevad ennustused saaksid uue punktisüsteemi järgi arvutatud.
+
+
+## Kliendipoolne lukustuse kontroll
+
+Brauser kontrollib iga 30 sekundi järel juba laetud mängude `kickoff_utc` põhjal, kas mäng on jõudnud lukku.
+
+See kontroll:
+- ei tee API-Footballi päringuid
+- ei tee Supabase päringuid
+- muudab lukustunud mängu väljad ja nupu kasutaja vaates halliks
+
+Serveripoolne lukustuse kontroll jääb alles ja on lõplik kontroll salvestamisel.
