@@ -1465,6 +1465,21 @@
       display:none !important;
     }
 
+  
+    /* FINAL FIX: edasipääseja valik ainult päriselt sisestatud viigi korral */
+    .winner-pick.hide,
+    [data-winner-box].hide{
+      display:none !important;
+      visibility:hidden !important;
+      height:0 !important;
+      min-height:0 !important;
+      max-height:0 !important;
+      margin:0 !important;
+      padding:0 !important;
+      border:0 !important;
+      overflow:hidden !important;
+    }
+
   </style>
 </head>
 <body>
@@ -1880,9 +1895,11 @@ function predictionWinnerHtml(row, pr, locked){
   if (!isPlayoffMatch(row)) return "";
 
   const selected = pr?.pred_winner || "";
+  const hasHome = pr && pr.pred_home !== null && pr.pred_home !== undefined && String(pr.pred_home).trim() !== "";
+  const hasAway = pr && pr.pred_away !== null && pr.pred_away !== undefined && String(pr.pred_away).trim() !== "";
   const ph = Number(pr?.pred_home);
   const pa = Number(pr?.pred_away);
-  const show = Number.isFinite(ph) && Number.isFinite(pa) && ph === pa;
+  const show = hasHome && hasAway && Number.isFinite(ph) && Number.isFinite(pa) && ph === pa;
 
   return `
     <div class="winner-pick${show ? "" : " hide"}" data-winner-box="${row.id}">
@@ -1899,9 +1916,15 @@ function updateWinnerVisibility(mid){
   const box = document.querySelector(`[data-winner-box="${mid}"]`);
   if (!hInput || !aInput || !box) return;
 
-  const ph = Number(hInput.value);
-  const pa = Number(aInput.value);
-  const show = Number.isFinite(ph) && Number.isFinite(pa) && ph === pa;
+  const hRaw = String(hInput.value || "").trim();
+  const aRaw = String(aInput.value || "").trim();
+
+  const hasHome = hRaw !== "";
+  const hasAway = aRaw !== "";
+  const ph = Number(hRaw);
+  const pa = Number(aRaw);
+
+  const show = hasHome && hasAway && Number.isFinite(ph) && Number.isFinite(pa) && ph === pa;
 
   box.classList.toggle("hide", !show);
 
