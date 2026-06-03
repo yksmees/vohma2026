@@ -1210,6 +1210,192 @@
       }
     }
 
+  
+    /* FINAL DESKTOP FIX: ennustuste tabel mahub ekraanile, salvestusnupp ei ole poolik */
+    @media (min-width:761px){
+      #viewsCard,
+      #pred{
+        overflow:visible !important;
+        max-width:100% !important;
+      }
+
+      .m-table-wrap{
+        width:100% !important;
+        max-width:100% !important;
+        overflow-x:visible !important;
+        overflow-y:visible !important;
+        padding-bottom:0 !important;
+      }
+
+      #mTable{
+        display:table !important;
+        width:100% !important;
+        min-width:0 !important;
+        max-width:100% !important;
+        table-layout:fixed !important;
+        border-collapse:collapse !important;
+        white-space:normal !important;
+      }
+
+      #mTable thead{
+        display:table-header-group !important;
+      }
+
+      #mTable tbody{
+        display:table-row-group !important;
+      }
+
+      #mTable tr{
+        display:table-row !important;
+      }
+
+      #mTable th,
+      #mTable td{
+        display:table-cell !important;
+        overflow:hidden !important;
+        white-space:normal !important;
+        word-break:normal !important;
+        overflow-wrap:anywhere !important;
+        padding-left:7px !important;
+        padding-right:7px !important;
+        vertical-align:middle !important;
+        font-size:13px !important;
+      }
+
+      #mTable th:nth-child(1),
+      #mTable td:nth-child(1){
+        width:48px !important;
+      }
+
+      #mTable th:nth-child(2),
+      #mTable td:nth-child(2){
+        width:108px !important;
+      }
+
+      #mTable th:nth-child(3),
+      #mTable td:nth-child(3){
+        width:130px !important;
+      }
+
+      #mTable th:nth-child(4),
+      #mTable td:nth-child(4){
+        width:130px !important;
+      }
+
+      #mTable th:nth-child(5),
+      #mTable td:nth-child(5){
+        width:auto !important;
+        min-width:0 !important;
+      }
+
+      #mTable th:nth-child(6),
+      #mTable td:nth-child(6){
+        width:260px !important;
+        min-width:260px !important;
+        max-width:260px !important;
+        overflow:visible !important;
+      }
+
+      #mTable th:nth-child(7),
+      #mTable td:nth-child(7){
+        width:64px !important;
+        min-width:64px !important;
+        max-width:64px !important;
+        text-align:right !important;
+      }
+
+      #mTable .pred-cell{
+        width:260px !important;
+        min-width:260px !important;
+        max-width:260px !important;
+        overflow:visible !important;
+      }
+
+      #mTable .pred-controls{
+        display:grid !important;
+        grid-template-columns:58px 58px 112px !important;
+        gap:7px !important;
+        align-items:center !important;
+        justify-content:start !important;
+        width:242px !important;
+        min-width:242px !important;
+        max-width:242px !important;
+        overflow:visible !important;
+        white-space:nowrap !important;
+      }
+
+      #mTable .pred-controls input.small{
+        width:58px !important;
+        min-width:58px !important;
+        max-width:58px !important;
+        height:42px !important;
+        padding-left:10px !important;
+        padding-right:10px !important;
+        box-sizing:border-box !important;
+      }
+
+      #mTable .pred-controls button{
+        width:112px !important;
+        min-width:112px !important;
+        max-width:112px !important;
+        height:42px !important;
+        padding-left:8px !important;
+        padding-right:8px !important;
+        box-sizing:border-box !important;
+        white-space:nowrap !important;
+        overflow:visible !important;
+        text-overflow:clip !important;
+      }
+    }
+
+    /* FINAL MOBILE FIX: mobiilis ei ole paremale kerimist ja salvestusnupp on täislaiuses */
+    @media (max-width:760px){
+      html,
+      body{
+        overflow-x:hidden !important;
+        max-width:100% !important;
+      }
+
+      #viewsCard,
+      #pred,
+      .m-table-wrap{
+        overflow-x:hidden !important;
+        max-width:100% !important;
+      }
+
+      #mTable,
+      #mTable tbody,
+      #mTable tr,
+      #mTable td{
+        max-width:100% !important;
+        min-width:0 !important;
+      }
+
+      #mTable .pred-controls{
+        display:grid !important;
+        grid-template-columns:1fr 1fr !important;
+        width:100% !important;
+        min-width:0 !important;
+        max-width:100% !important;
+        gap:8px !important;
+      }
+
+      #mTable .pred-controls input.small{
+        width:100% !important;
+        min-width:0 !important;
+        max-width:100% !important;
+      }
+
+      #mTable .pred-controls button{
+        grid-column:1 / -1 !important;
+        width:100% !important;
+        min-width:0 !important;
+        max-width:100% !important;
+        white-space:nowrap !important;
+        overflow:visible !important;
+      }
+    }
+
   </style>
 </head>
 <body>
