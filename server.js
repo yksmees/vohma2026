@@ -139,25 +139,57 @@ function userFrom(event) {
 }
 
 function outcome(h,a){ return h>a?1:h<a?-1:0; }
-function calcPoints(ph,pa,fh,fa){
+
+function normalizeWinner(value){
+  const v = String(value || "").trim().toLowerCase();
+  if (["home", "kodu", "h", "1"].includes(v)) return "home";
+  if (["away", "võõrsil", "a", "2"].includes(v)) return "away";
+  return null;
+}
+
+function isPlayoffMatch(match){
+  const n = Number(match?.match_no);
+  if (Number.isFinite(n) && n >= 73) return true;
+
+  const stage = String(match?.stage || "").trim().toLowerCase();
+  if (!stage) return false;
+  if (stage.startsWith("group")) return false;
+  if (stage.includes("u17 test")) return false;
+  return true;
+}
+
+function calcPoints(ph, pa, fh, fa, options = {}){
   if (fh===null || fa===null || fh===undefined || fa===undefined) return 0;
 
-  // Täpne skoor
-  if (ph===fh && pa===fa) return 4;
+  ph = Number(ph);
+  pa = Number(pa);
+  fh = Number(fh);
+  fa = Number(fa);
+  if (![ph, pa, fh, fa].every(Number.isFinite)) return 0;
 
-  const predictedOutcome = outcome(ph,pa);
-  const finalOutcome = outcome(fh,fa);
+  let points = 0;
 
-  const exactHome = ph === fh ? 1 : 0;
-  const exactAway = pa === fa ? 1 : 0;
+  if (outcome(ph, pa) === outcome(fh, fa)) points += 2;
+  if (ph === fh) points += 1;
+  if (pa === fa) points += 1;
 
-  // Sama tulemus (võitja/viik) + boonus õigete väravate eest
-  if (predictedOutcome === finalOutcome) {
-    return 2 + exactHome + exactAway;
+  const match = options.match || {};
+  const playoff = options.is_playoff === true || isPlayoffMatch(match);
+  const actualWinner = normalizeWinner(options.winner ?? match.winner);
+  const predictedWinner = normalizeWinner(options.pred_winner);
+
+  if (
+    playoff &&
+    fh === fa &&
+    ph === pa &&
+    actualWinner &&
+    predictedWinner &&
+    actualWinner === predictedWinner
+  ) {
+    points += 1;
   }
 
-  // Vale tulemus, aga õiged kodu- või võõrsilväravad annavad 1p
-  return exactHome + exactAway;
+  return points;
 }
 
 const API_FOOTBALL_BASE_URL = "https://v3.football.api-sports.io";
@@ -200,6 +232,37 @@ function isPlaceholderTeam(name){
 function apiFixtureFinished(fx){
   const short = fx?.fixture?.status?.short || "";
   return ["FT", "AET", "PEN", "AWD", "WO"].includes(short);
+}
+
+
+function apiFixtureWinner(fx){
+  if (fx?.teams?.home?.winner === true) return "home";
+  if (fx?.teams?.away?.winner === true) return "away";
+
+  const gh = Number(fx?.goals?.home);
+  const ga = Number(fx?.goals?.away);
+  if (Number.isFinite(gh) && Number.isFinite(ga) && gh !== ga) {
+    return gh > ga ? "home" : "away";
+  }
+
+  return null;
+}
+
+function apiNormalTimeScore(fx){
+  const fh = fx?.score?.fulltime?.home;
+  const fa = fx?.score?.fulltime?.away;
+
+  if (fh !== null && fa !== null && fh !== undefined && fa !== undefined) {
+    return { home: Number(fh), away: Number(fa) };
+  }
+
+  const gh = fx?.goals?.home;
+  const ga = fx?.goals?.away;
+  if (gh !== null && ga !== null && gh !== undefined && ga !== undefined) {
+    return { home: Number(gh), away: Number(ga) };
+  }
+
+  return null;
 }
 
 function scoreFixtureMatch(dbMatch, fx){
@@ -290,11 +353,23 @@ async function fetchApiFootballFixtures(){
   return { ok:true, fixtures: allFixtures };
 }
 
-async function recalcPointsForMatch(sb, matchId, fh, fa){
-  const preds = await sb.from("predictions").select("id,pred_home,pred_away").eq("match_id", matchId);
+async function recalcPointsForMatch(sb, matchId){
+  const matchRes = await sb.from("matches").select("*").eq("id", matchId).single();
+  if (matchRes.error || !matchRes.data) return;
+
+  const match = matchRes.data;
+  const fh = match.final_home;
+  const fa = match.final_away;
+  if (fh===null || fa===null || fh===undefined || fa===undefined) return;
+
+  const preds = await sb.from("predictions").select("id,pred_home,pred_away,pred_winner").eq("match_id", matchId);
   if (preds.error) return;
+
   for (const p of preds.data || []){
-    const pts = calcPoints(p.pred_home, p.pred_away, fh, fa);
+    const pts = calcPoints(p.pred_home, p.pred_away, fh, fa, {
+      match,
+      pred_winner: p.pred_winner
+    });
     await sb.from("predictions").update({ points: pts }).eq("id", p.id);
   }
 }
@@ -330,25 +405,31 @@ async function syncApiFootballResults(sb, { force=false } = {}){
       patch.api_football_fixture_id = fxId;
     }
 
-    if (apiFixtureFinished(fx)){
-      const homeGoals = fx?.goals?.home;
-      const awayGoals = fx?.goals?.away;
-      if (homeGoals !== null && awayGoals !== null && homeGoals !== undefined && awayGoals !== undefined){
+    
+if (apiFixtureFinished(fx)){
+      const score = apiNormalTimeScore(fx);
+      if (score && Number.isFinite(score.home) && Number.isFinite(score.away)){
+        const homeGoals = score.home;
+        const awayGoals = score.away;
+        const apiWinner = apiFixtureWinner(fx);
+
         const changed =
           match.final_home !== homeGoals ||
           match.final_away !== awayGoals ||
+          normalizeWinner(match.winner) !== apiWinner ||
           !match.is_finished;
 
         patch.final_home = homeGoals;
         patch.final_away = awayGoals;
         patch.is_finished = true;
+        if (apiWinner) patch.winner = apiWinner;
 
         if (Object.keys(patch).length){
           const upd = await sb.from("matches").update(patch).eq("id", match.id).select("*").single();
           if (!upd.error){
             updated += 1;
             if (changed){
-              await recalcPointsForMatch(sb, match.id, homeGoals, awayGoals);
+              await recalcPointsForMatch(sb, match.id);
             }
           }
           continue;
@@ -746,7 +827,8 @@ if (event.httpMethod === "PUT" && route.startsWith("admin/matches/by-no/")) {
   if (body.kickoff_utc !== undefined) patch.kickoff_utc = body.kickoff_utc || null;
   if (body.final_home !== undefined) patch.final_home = body.final_home === null ? null : Number(body.final_home);
   if (body.final_away !== undefined) patch.final_away = body.final_away === null ? null : Number(body.final_away);
-  if (body.final_home !== undefined || body.final_away !== undefined) patch.manual_result_override = true;
+  if (body.winner !== undefined) patch.winner = normalizeWinner(body.winner);
+  if (body.final_home !== undefined || body.final_away !== undefined || body.winner !== undefined) patch.manual_result_override = true;
   if (body.is_finished !== undefined) patch.is_finished = !!body.is_finished;
 
   const upd = await sb.from("matches").update(patch).eq("match_no", matchNo).select("*").single();
@@ -755,13 +837,7 @@ if (event.httpMethod === "PUT" && route.startsWith("admin/matches/by-no/")) {
   const fh = upd.data.final_home;
   const fa = upd.data.final_away;
   if (fh !== null && fa !== null && fh !== undefined && fa !== undefined) {
-    const preds = await sb.from("predictions").select("id,pred_home,pred_away").eq("match_id", upd.data.id);
-    if (!preds.error) {
-      for (const p of preds.data || []) {
-        const pts = calcPoints(p.pred_home, p.pred_away, fh, fa);
-        await sb.from("predictions").update({ points: pts }).eq("id", p.id);
-      }
-    }
+    await recalcPointsForMatch(sb, upd.data.id);
   }
 
   return json(200, { ok: true, match: upd.data });
@@ -783,20 +859,15 @@ if (event.httpMethod === "PUT" && route.startsWith("admin/matches/by-no/")) {
       if (!u || !u.is_admin) return json(403, { error: "Admini õigused puuduvad." });
       const id = Number(mu[1]);
       const body = JSON.parse(event.body || "{}");
-      if (body.final_home !== undefined || body.final_away !== undefined) body.manual_result_override = true;
+      if (body.winner !== undefined) body.winner = normalizeWinner(body.winner);
+      if (body.final_home !== undefined || body.final_away !== undefined || body.winner !== undefined) body.manual_result_override = true;
       const upd = await sb.from("matches").update(body).eq("id", id).select("*").single();
       if (upd.error) return json(500, { error: upd.error.message });
 
       const fh = upd.data.final_home;
       const fa = upd.data.final_away;
       if (fh !== null && fa !== null && fh !== undefined && fa !== undefined) {
-        const preds = await sb.from("predictions").select("id,pred_home,pred_away").eq("match_id", id);
-        if (!preds.error) {
-          for (const p of preds.data || []) {
-            const pts = calcPoints(p.pred_home, p.pred_away, fh, fa);
-            await sb.from("predictions").update({ points: pts }).eq("id", p.id);
-          }
-        }
+        await recalcPointsForMatch(sb, id);
       }
 
       return json(200, { ok: true, match: upd.data });
@@ -815,7 +886,7 @@ if (event.httpMethod === "PUT" && route.startsWith("admin/matches/by-no/")) {
     if (event.httpMethod === "GET" && route === "predictions") {
       const u = userFrom(event);
       if (!u) return json(401, { error: "Pole sisse logitud." });
-      const q = await sb.from("predictions").select("match_id,pred_home,pred_away,points").eq("player_id", u.sub);
+      const q = await sb.from("predictions").select("match_id,pred_home,pred_away,pred_winner,points").eq("player_id", u.sub);
       if (q.error) return json(500, { error: q.error.message });
       return json(200, { ok: true, predictions: q.data });
     }
@@ -840,7 +911,7 @@ if (event.httpMethod === "GET" && route === "predictions/public") {
 
   const predsRes = await sb
     .from("predictions")
-    .select("match_id,player_id,pred_home,pred_away")
+    .select("match_id,player_id,pred_home,pred_away,pred_winner")
     .in("match_id", openMatchIds);
 
   if (predsRes.error) return json(500, { error: predsRes.error.message });
@@ -858,7 +929,8 @@ if (event.httpMethod === "GET" && route === "predictions/public") {
       player_id: p.player_id,
       display_name: playerMap.get(p.player_id) || "Mängija",
       pred_home: p.pred_home,
-      pred_away: p.pred_away
+      pred_away: p.pred_away,
+      pred_winner: p.pred_winner
     });
   }
 
@@ -881,7 +953,7 @@ if (event.httpMethod === "GET" && route === "predictions/matrix") {
 
   const matchesRes = await sb
     .from("matches")
-    .select("id,match_no,stage,home,away,location,kickoff_utc,final_home,final_away,is_finished")
+    .select("id,match_no,stage,home,away,location,kickoff_utc,final_home,final_away,winner,is_finished")
     .order("match_no", { ascending: true });
 
   if (matchesRes.error) return json(500, { error: matchesRes.error.message });
@@ -902,7 +974,7 @@ if (event.httpMethod === "GET" && route === "predictions/matrix") {
   if (matchIds.length) {
     const predsRes = await sb
       .from("predictions")
-      .select("match_id,player_id,pred_home,pred_away,points")
+      .select("match_id,player_id,pred_home,pred_away,pred_winner,points")
       .in("match_id", matchIds);
 
     if (predsRes.error) return json(500, { error: predsRes.error.message });
@@ -924,10 +996,14 @@ if (event.httpMethod === "GET" && route === "predictions/matrix") {
   const match_id = Number(body.match_id);
   const pred_home = Number(body.pred_home);
   const pred_away = Number(body.pred_away);
+  const pred_winner = normalizeWinner(body.pred_winner);
 
-  // Lukustus: 1 tund enne mängu algust ei saa enam muuta (admin võib alati muuta)
+  if (!Number.isFinite(match_id) || !Number.isFinite(pred_home) || !Number.isFinite(pred_away)) {
+    return json(400, { error: "Sisesta numbrid." });
+  }
+
   const m = await sb.from("matches")
-    .select("final_home,final_away,kickoff_utc")
+    .select("id,match_no,stage,final_home,final_away,winner,kickoff_utc")
     .eq("id", match_id)
     .single();
 
@@ -942,16 +1018,51 @@ if (event.httpMethod === "GET" && route === "predictions/matrix") {
     }
   }
 
-  const points = calcPoints(pred_home, pred_away, m.data.final_home, m.data.final_away);
+  const playoff = isPlayoffMatch(m.data);
+  const needsWinner = playoff && pred_home === pred_away;
+
+  if (needsWinner && !pred_winner) {
+    return json(400, { error: "Viigilise play-off ennustuse korral vali ka edasipääseja." });
+  }
+
+  const savedWinner = needsWinner ? pred_winner : null;
+
+  const points = calcPoints(pred_home, pred_away, m.data.final_home, m.data.final_away, {
+    match: m.data,
+    pred_winner: savedWinner
+  });
 
   const up = await sb.from("predictions").upsert({
-    player_id: u.sub, match_id, pred_home, pred_away, points
-  }, { onConflict: "player_id,match_id" }).select("match_id,pred_home,pred_away,points").single();
+    player_id: u.sub,
+    match_id,
+    pred_home,
+    pred_away,
+    pred_winner: savedWinner,
+    points
+  }, { onConflict: "player_id,match_id" }).select("match_id,pred_home,pred_away,pred_winner,points").single();
 
   if (up.error) return json(500, { error: up.error.message });
   return json(200, { ok: true, prediction: up.data });
 }
 
+
+
+// Admin: recalculate all prediction points using the current scoring rules
+if (event.httpMethod === "POST" && route === "admin/recalc-points") {
+  const u = userFrom(event);
+  if (!u || !u.is_admin) return json(403, { error: "Admini õigused puuduvad." });
+
+  const matches = await sb.from("matches").select("id");
+  if (matches.error) return json(500, { error: matches.error.message });
+
+  let updated_matches = 0;
+  for (const m of matches.data || []) {
+    await recalcPointsForMatch(sb, m.id);
+    updated_matches += 1;
+  }
+
+  return json(200, { ok: true, updated_matches });
+}
 
 // Leaderboard
 if (event.httpMethod === "GET" && route === "leaderboard") {

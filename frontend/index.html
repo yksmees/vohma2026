@@ -1396,6 +1396,68 @@
       }
     }
 
+  
+/* PLAYOFF WINNER PICK */
+.pred-note{
+  font-size:12px;
+  color:var(--muted);
+  font-weight:800;
+  margin-bottom:5px;
+}
+.winner-pick{
+  margin-top:8px;
+  padding:8px;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:12px;
+  background:rgba(255,255,255,.035);
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  white-space:normal;
+}
+.winner-title{
+  font-size:12px;
+  color:var(--muted);
+  font-weight:800;
+}
+.winner-pick label{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  font-size:13px;
+  line-height:1.2;
+}
+.winner-pick input{
+  width:auto !important;
+  min-width:0 !important;
+}
+
+@media (min-width:761px){
+  #mTable th:nth-child(6),
+  #mTable td:nth-child(6),
+  #mTable .pred-cell{
+    width:300px !important;
+    min-width:300px !important;
+    max-width:300px !important;
+  }
+  #mTable .pred-controls{
+    grid-template-columns:54px 54px 104px !important;
+    width:226px !important;
+    min-width:226px !important;
+    max-width:226px !important;
+  }
+  #mTable .pred-controls input.small{
+    width:54px !important;
+    min-width:54px !important;
+    max-width:54px !important;
+  }
+  #mTable .pred-controls button{
+    width:104px !important;
+    min-width:104px !important;
+    max-width:104px !important;
+  }
+}
+
   </style>
 </head>
 <body>
@@ -1449,7 +1511,7 @@
         <div class="msg" style="margin-top:8px">
           1) Logi sisse või loo uus konto<br>
           2) Ennusta mängude skoore<br>
-          Punktid: täpne skoor 4p, õige tulemus + koduväravad 3p, õige tulemus 2p, õiged võõrsilväravad 1p
+          Punktid: õige võitja või viik 2p, õige kodutiimi väravad 1p, õige võõrsiltiimi väravad 1p. Täpne skoor kokku 4p. Play-offis ennustatakse 90 minuti skoori; viigi korral vali ka edasipääseja, õige valik annab +1p.
         </div>
         <div id="quickMsg" class="msg"></div>
       </div>
@@ -1474,7 +1536,7 @@
       </div>
 
       <div id="pred" style="margin-top:8px">
-        <div class="sub">Sisesta oma ennustus. Ennustus lukustub 1 tund enne mängu algust. Punktid: 4 täpne skoor, 2 + õiged väravad kui tulemus on õige, 1 punkt iga õige väravate arvu eest ka vale tulemuse korral.</div>
+        <div class="sub">Sisesta oma ennustus. Ennustus lukustub 1 tund enne mängu algust. Punktid: õige võitja või viik 2p, õige kodutiimi väravad 1p, õige võõrsiltiimi väravad 1p. Täpne skoor kokku 4p. Play-offis ennustatakse 90 minuti skoori; viigi korral vali ka edasipääseja, õige valik annab +1p.</div>
         <div id="predMsg" class="msg"></div>
         <div class="m-table-wrap">
         <table id="mTable">
@@ -1595,6 +1657,7 @@
           <button id="btnRemoveU17" type="button">Eemalda U17 testmängud</button>
           <button id="btnSync">Sünkroniseeri ajakava</button>
           <button id="btnSyncResults">Sünkroniseeri tulemused</button>
+          <button id="btnRecalcPoints" type="button">Arvuta punktid ümber</button>
         </div>
 
 
@@ -1622,8 +1685,13 @@
             <div class="sub" style="margin-top:6px">Sisesta mängu number (#). Tulemus arvutab punktid ümber. Mänguaeg salvesta Eesti aja järgi, et kontrollida 1 tunni lukku.</div>
             <div class="row" style="margin-top:10px">
               <input id="mid" class="small" placeholder="mängu #" />
-              <input id="fh" class="small" placeholder="kodu" />
-              <input id="fa" class="small" placeholder="võõrsil" />
+              <input id="fh" class="small" placeholder="90 min kodu" />
+              <input id="fa" class="small" placeholder="90 min võõrsil" />
+              <select id="fw">
+                <option value="">Edasipääseja puudub</option>
+                <option value="home">Kodu edasi</option>
+                <option value="away">Võõrsil edasi</option>
+              </select>
               <button id="btnSetFinal" class="primary">Salvesta tulemus</button>
             </div>
             <div class="row" style="margin-top:10px">
@@ -1783,6 +1851,49 @@ function populateAdminMatchSelects(matches){
   if (current) delSelect.value = current;
 }
 
+
+function isPlayoffMatch(row){
+  const n = Number(row?.match_no);
+  if (Number.isFinite(n) && n >= 73) return true;
+
+  const stage = String(row?.stage || "").trim().toLowerCase();
+  if (!stage) return false;
+  if (stage.startsWith("group")) return false;
+  if (stage.includes("u17 test")) return false;
+  return true;
+}
+
+function winnerLabel(row, winner){
+  if (winner === "home") return row?.home || "Kodumeeskond";
+  if (winner === "away") return row?.away || "Võõrsilmeeskond";
+  return "";
+}
+
+function predictionWinnerHtml(row, pr, locked){
+  if (!isPlayoffMatch(row)) return "";
+
+  const selected = pr?.pred_winner || "";
+  return `
+    <div class="winner-pick" data-winner-box="${row.id}">
+      <div class="winner-title">Kui 90 min jääb viiki, vali edasipääseja:</div>
+      <label><input type="radio" name="winner_${row.id}" value="home" ${selected === "home" ? "checked" : ""} ${locked ? "disabled" : ""}> ${row.home}</label>
+      <label><input type="radio" name="winner_${row.id}" value="away" ${selected === "away" ? "checked" : ""} ${locked ? "disabled" : ""}> ${row.away}</label>
+    </div>
+  `;
+}
+
+function updateWinnerVisibility(mid){
+  const hInput = document.querySelector(`input[data-mid="${mid}"][data-side="h"]`);
+  const aInput = document.querySelector(`input[data-mid="${mid}"][data-side="a"]`);
+  const box = document.querySelector(`[data-winner-box="${mid}"]`);
+  if (!hInput || !aInput || !box) return;
+
+  const ph = Number(hInput.value);
+  const pa = Number(aInput.value);
+  const show = Number.isFinite(ph) && Number.isFinite(pa) && ph === pa;
+  box.classList.toggle("hide", !show);
+}
+
 async function refreshMe(){
   if (!token){ me=null; setWho(); return; }
   try{
@@ -1862,11 +1973,13 @@ tr.innerHTML = `
   <td>${row.away}</td>
   <td>${locationAndTime} ${lockHint ? `<span class="pill">${lockHint}</span>` : ""}</td>
   <td class="pred-cell">
+    <div class="pred-note">${isPlayoffMatch(row) ? "90 min skoor" : ""}</div>
     <div class="pred-controls">
       <input class="small" data-mid="${row.id}" data-side="h" value="${pr?pr.pred_home:""}" placeholder="0" ${locked ? "disabled" : ""}>
       <input class="small" data-mid="${row.id}" data-side="a" value="${pr?pr.pred_away:""}" placeholder="0" ${locked ? "disabled" : ""}>
       <button type="button" class="${pr ? "saved" : ""}" data-save="${row.id}" ${locked ? "disabled" : ""}>${pr ? "Salvestatud" : "Salvesta"}</button>
     </div>
+    ${predictionWinnerHtml(row, pr, locked)}
   </td>
   <td class="right">${pr?pr.points:0}</td>
 `;
@@ -1877,13 +1990,23 @@ tr.innerHTML = `
       const hInput = tbody.querySelector(`input[data-mid="${mid}"][data-side="h"]`);
       const aInput = tbody.querySelector(`input[data-mid="${mid}"][data-side="a"]`);
 
-      [hInput, aInput].forEach(inp=>{
-        if (!inp) return;
-        inp.addEventListener("input", ()=>{
-          btn.classList.remove("saved");
-          btn.textContent = "Salvesta";
-        });
-      });
+updateWinnerVisibility(mid);
+
+[hInput, aInput].forEach(inp=>{
+  if (!inp) return;
+  inp.addEventListener("input", ()=>{
+    btn.classList.remove("saved");
+    btn.textContent = "Salvesta";
+    updateWinnerVisibility(mid);
+  });
+});
+
+tbody.querySelectorAll(`input[name="winner_${mid}"]`).forEach(inp=>{
+  inp.addEventListener("change", ()=>{
+    btn.classList.remove("saved");
+    btn.textContent = "Salvesta";
+  });
+});
 
       btn.addEventListener("click", async (e)=>{
         e.preventDefault();
@@ -1893,8 +2016,12 @@ tr.innerHTML = `
         const a = aInput.value;
         const ph = Number(h), pa = Number(a);
         if (!Number.isFinite(ph) || !Number.isFinite(pa)) return setMsg($("predMsg"), false, "Sisesta numbrid.");
+        const winnerInput = tbody.querySelector(`input[name="winner_${mid}"]:checked`);
+        const pred_winner = winnerInput ? winnerInput.value : null;
+        const winnerBox = tbody.querySelector(`[data-winner-box="${mid}"]`);
+        if (winnerBox && !winnerBox.classList.contains("hide") && !pred_winner) return setMsg($("predMsg"), false, "Vali edasipääseja.");
         try{
-          const resp = await call("predictions",{method:"POST", body: JSON.stringify({match_id: mid, pred_home: ph, pred_away: pa})});
+          const resp = await call("predictions",{method:"POST", body: JSON.stringify({match_id: mid, pred_home: ph, pred_away: pa, pred_winner})});
           setMsg($("predMsg"), true, "Salvestatud.");
           btn.classList.add("saved");
           btn.textContent = "Salvestatud";
@@ -1988,25 +2115,30 @@ async function loadOthersView(){
 }
 
 
-function boardColorClass(match, pr){
+function scoreColorClass(match, pr, prefix = "color"){
   if (!match || !pr) return "";
   const fh = Number(match.final_home);
   const fa = Number(match.final_away);
   const ph = Number(pr.pred_home);
   const pa = Number(pr.pred_away);
 
-  if (![fh, fa, ph, pa].every(Number.isFinite)) return "color-red";
-
-  if (ph === fh && pa === fa) return "color-green";
+  if (![fh, fa, ph, pa].every(Number.isFinite)) return `${prefix}-red`;
 
   const predictedOutcome = ph > pa ? 1 : ph < pa ? -1 : 0;
   const finalOutcome = fh > fa ? 1 : fh < fa ? -1 : 0;
+  const correctOutcome = predictedOutcome === finalOutcome;
+  const exactHome = ph === fh;
+  const exactAway = pa === fa;
 
-  if (predictedOutcome === finalOutcome && ph === fh) return "color-blue";
-  if (predictedOutcome === finalOutcome) return "color-yellow";
-  if (pa === fa) return "color-orange";
+  if (correctOutcome && exactHome && exactAway) return `${prefix}-green`;
+  if (correctOutcome && (exactHome || exactAway)) return `${prefix}-blue`;
+  if (correctOutcome) return `${prefix}-yellow`;
+  if (exactHome || exactAway) return `${prefix}-orange`;
+  return `${prefix}-red`;
+}
 
-  return "color-red";
+function boardColorClass(match, pr){
+  return scoreColorClass(match, pr, "color");
 }
 
 function buildOthersMatrix(thead, tbody, matches, players, predMap){
@@ -2075,32 +2207,7 @@ function formatShortDateTime(iso){
 }
 
 function screenshotScoreClass(match, pr){
-  if (!match || !pr) return "";
-
-  const fh = Number(match.final_home);
-  const fa = Number(match.final_away);
-  const ph = Number(pr.pred_home);
-  const pa = Number(pr.pred_away);
-
-  if (![fh, fa, ph, pa].every(Number.isFinite)) return "score-red";
-
-  // Roheline: täpne skoor
-  if (ph === fh && pa === fa) return "score-green";
-
-  const predictedOutcome = ph > pa ? 1 : ph < pa ? -1 : 0;
-  const finalOutcome = fh > fa ? 1 : fh < fa ? -1 : 0;
-
-  // Sinine: õige võitja + õige koduväravate arv
-  if (predictedOutcome === finalOutcome && ph === fh) return "score-blue";
-
-  // Kollane: õige võitja või õige viik
-  if (predictedOutcome === finalOutcome) return "score-yellow";
-
-  // Oranž: õige võõrsilväravate arv
-  if (pa === fa) return "score-orange";
-
-  // Punane: kõik vale
-  return "score-red";
+  return scoreColorClass(match, pr, "score");
 }
 
 function populateScreenshotMatchSelect(matches){
@@ -2401,6 +2508,21 @@ $("btnAddPlayer").onclick = async ()=>{
 
 
 
+
+$("btnRecalcPoints").onclick = async ()=>{
+  if (!(me && me.is_admin)) return setMsg($("adminMsg"), false, "Ainult admin.");
+  try{
+    const r = await call("admin/recalc-points",{method:"POST"});
+    setMsg($("adminMsg"), true, `Punktid ümber arvutatud. Mänge: ${r.updated_matches}`);
+    await loadMatchesAndPreds();
+    await loadLeaderboard();
+    await loadOthersView();
+    await loadAdminScreenshotBoard();
+  }catch(e){
+    setMsg($("adminMsg"), false, e.message);
+  }
+};
+
 $("btnSyncResults").onclick = async ()=>{
   if (!(me && me.is_admin)) return setMsg($("adminMsg"), false, "Ainult admin.");
   try{
@@ -2551,8 +2673,9 @@ $("btnSetFinal").onclick = async ()=>{
     const matchNo = Number($("mid").value);
     const fh = Number($("fh").value);
     const fa = Number($("fa").value);
+    const winner = $("fw") ? $("fw").value : "";
     if (!matchNo || !Number.isFinite(fh) || !Number.isFinite(fa)) return setMsg($("adminMsg"), false, "Sisesta mängu # ja numbrid.");
-    await call(`admin/matches/by-no/${matchNo}`,{method:"PUT", body: JSON.stringify({final_home: fh, final_away: fa, is_finished: true})});
+    await call(`admin/matches/by-no/${matchNo}`,{method:"PUT", body: JSON.stringify({final_home: fh, final_away: fa, winner, is_finished: true})});
     setMsg($("adminMsg"), true, "Tulemus salvestatud.");
     await loadMatchesAndPreds();
     await loadLeaderboard();
