@@ -1511,7 +1511,7 @@
         <div class="msg" style="margin-top:8px">
           1) Logi sisse või loo uus konto<br>
           2) Ennusta mängude skoore<br>
-          Punktid: õige võitja või viik 2p, õige kodutiimi väravad 1p, õige võõrsiltiimi väravad 1p. Täpne skoor kokku 4p. Play-offis ennustatakse 90 minuti skoori; viigi korral vali ka edasipääseja, õige valik annab +1p.
+          Punktid: õige võitja või viik 2p, õige kodutiimi väravad 1p, õige võõrsiltiimi väravad 1p. Täpne skoor kokku 4p. Play-offis ennustatakse 90 minuti skoori; edasipääseja valik ilmub ainult viigilise ennustuse korral ja õige valik annab +1p.
         </div>
         <div id="quickMsg" class="msg"></div>
       </div>
@@ -1536,7 +1536,7 @@
       </div>
 
       <div id="pred" style="margin-top:8px">
-        <div class="sub">Sisesta oma ennustus. Ennustus lukustub 1 tund enne mängu algust. Punktid: õige võitja või viik 2p, õige kodutiimi väravad 1p, õige võõrsiltiimi väravad 1p. Täpne skoor kokku 4p. Play-offis ennustatakse 90 minuti skoori; viigi korral vali ka edasipääseja, õige valik annab +1p.</div>
+        <div class="sub">Sisesta oma ennustus. Ennustus lukustub 1 tund enne mängu algust. Punktid: õige võitja või viik 2p, õige kodutiimi väravad 1p, õige võõrsiltiimi väravad 1p. Täpne skoor kokku 4p. Play-offis ennustatakse 90 minuti skoori; edasipääseja valik ilmub ainult viigilise ennustuse korral ja õige valik annab +1p.</div>
         <div id="predMsg" class="msg"></div>
         <div class="m-table-wrap">
         <table id="mTable">
@@ -1873,8 +1873,12 @@ function predictionWinnerHtml(row, pr, locked){
   if (!isPlayoffMatch(row)) return "";
 
   const selected = pr?.pred_winner || "";
+  const ph = Number(pr?.pred_home);
+  const pa = Number(pr?.pred_away);
+  const show = Number.isFinite(ph) && Number.isFinite(pa) && ph === pa;
+
   return `
-    <div class="winner-pick" data-winner-box="${row.id}">
+    <div class="winner-pick ${show ? "" : "hide"}" data-winner-box="${row.id}">
       <div class="winner-title">Kui 90 min jääb viiki, vali edasipääseja:</div>
       <label><input type="radio" name="winner_${row.id}" value="home" ${selected === "home" ? "checked" : ""} ${locked ? "disabled" : ""}> ${row.home}</label>
       <label><input type="radio" name="winner_${row.id}" value="away" ${selected === "away" ? "checked" : ""} ${locked ? "disabled" : ""}> ${row.away}</label>
