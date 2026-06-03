@@ -1480,6 +1480,28 @@
       overflow:hidden !important;
     }
 
+  
+    /* MOBILE FINISHED MATCHES TOGGLE */
+    .mobile-finished-toggle{
+      display:none;
+      margin:8px 0 12px 0;
+      width:100%;
+    }
+
+    @media (max-width:760px){
+      .mobile-finished-toggle{
+        display:block;
+      }
+
+      body:not(.show-mobile-finished) #mTable tr.match-finished{
+        display:none !important;
+      }
+
+      body.show-mobile-finished #mTable tr.match-finished{
+        display:block !important;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -1560,6 +1582,7 @@
       <div id="pred" style="margin-top:8px">
         <div class="sub">Sisesta oma ennustus. Ennustus lukustub 1 tund enne mängu algust. Punktid: õige võitja või viik 2p, õige kodutiimi väravad 1p, õige võõrsiltiimi väravad 1p. Täpne skoor kokku 4p. Play-offis ennustatakse 90 minuti skoori; edasipääseja valik ilmub ainult viigilise ennustuse korral ja õige valik annab +1p.</div>
         <div id="predMsg" class="msg"></div>
+        <button id="btnToggleFinishedMobile" type="button" class="mobile-finished-toggle">Näita lõppenud mänge</button>
         <div class="m-table-wrap">
         <table id="mTable">
           <thead>
@@ -1937,6 +1960,37 @@ function updateWinnerVisibility(mid){
   }
 }
 
+
+let showFinishedMobile = false;
+
+function updateFinishedMobileToggle(){
+  const btn = $("btnToggleFinishedMobile");
+  if (!btn) return;
+
+  const finishedCount = document.querySelectorAll("#mTable tr.match-finished").length;
+  btn.classList.toggle("hide", finishedCount === 0);
+
+  if (finishedCount > 0) {
+    btn.textContent = showFinishedMobile
+      ? `Peida lõppenud mängud (${finishedCount})`
+      : `Näita lõppenud mänge (${finishedCount})`;
+  }
+
+  document.body.classList.toggle("show-mobile-finished", showFinishedMobile);
+}
+
+function bindFinishedMobileToggle(){
+  const btn = $("btnToggleFinishedMobile");
+  if (!btn || btn.dataset.bound === "1") return;
+
+  btn.dataset.bound = "1";
+  btn.addEventListener("click", ()=>{
+    showFinishedMobile = !showFinishedMobile;
+    updateFinishedMobileToggle();
+  });
+}
+
+
 let predictionLockTimer = null;
 
 function updatePredictionLocks(){
@@ -2130,6 +2184,8 @@ tbody.querySelectorAll(`input[name="winner_${mid}"]`).forEach(inp=>{
     });
   updatePredictionLocks();
   startPredictionLockTimer();
+  bindFinishedMobileToggle();
+  updateFinishedMobileToggle();
   }catch(e){
     setMsg($("predMsg"), false, e.message);
   }

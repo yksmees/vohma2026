@@ -47,3 +47,12 @@ Serveripoolne lukustuse kontroll jääb alles ja on lõplik kontroll salvestamis
 U17 testmängud kasutavad samuti play-off edasipääseja valiku loogikat, et saaks testida viigilise 90 minuti ennustust.
 
 Kui U17 testmängul sisestatakse ennustuseks viik, ilmub edasipääseja valik. Õige edasipääseja annab testimisel sama loogika järgi +1 punkti.
+
+
+## Mobiilivaates lõppenud mängud
+
+Mobiilivaates on lõppenud mängud ennustusvaates vaikimisi peidus, et kasutaja ei peaks pikalt allapoole kerima.
+
+Nupuga `Näita lõppenud mänge` saab need vajadusel nähtavaks teha. Uus vajutus peidab need uuesti.
+
+See töötab ainult juba laetud mängude põhjal brauseris ega tee API-Footballi või Supabase päringuid juurde.
