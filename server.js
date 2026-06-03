@@ -149,11 +149,15 @@ function normalizeWinner(value){
 
 function isPlayoffMatch(match){
   const n = Number(match?.match_no);
+
+  // U17 testmängud kasutavad negatiivseid mängunumbreid ja on testimiseks play-off loogikaga.
+  if (Number.isFinite(n) && n < 0) return true;
+
   if (Number.isFinite(n) && n >= 73) return true;
 
   const stage = String(match?.stage || "").trim().toLowerCase();
   if (!stage) return false;
-  if (stage.includes("u17 test")) return true;
+  if (stage.includes("u17")) return true;
   if (stage.startsWith("group")) return false;
   return true;
 }

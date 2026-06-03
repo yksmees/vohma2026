@@ -1480,19 +1480,6 @@
       overflow:hidden !important;
     }
 
-  
-    /* CLIENT LOCK TIMER */
-    .match-locked .pred-controls,
-    .match-locked .winner-pick{
-      opacity:.72;
-    }
-    .lock-note{
-      margin-top:7px;
-      color:var(--muted);
-      font-size:12px;
-      font-weight:800;
-    }
-
   </style>
 </head>
 <body>
@@ -1889,11 +1876,15 @@ function populateAdminMatchSelects(matches){
 
 function isPlayoffMatch(row){
   const n = Number(row?.match_no);
+
+  // U17 testmängud kasutavad negatiivseid mängunumbreid ja on testimiseks play-off loogikaga.
+  if (Number.isFinite(n) && n < 0) return true;
+
   if (Number.isFinite(n) && n >= 73) return true;
 
   const stage = String(row?.stage || "").trim().toLowerCase();
   if (!stage) return false;
-  if (stage.includes("u17 test")) return true;
+  if (stage.includes("u17")) return true;
   if (stage.startsWith("group")) return false;
   return true;
 }
@@ -1945,7 +1936,6 @@ function updateWinnerVisibility(mid){
     box.querySelectorAll("input[type='radio']").forEach(r => { r.checked = false; });
   }
 }
-
 
 let predictionLockTimer = null;
 
