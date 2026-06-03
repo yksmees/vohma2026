@@ -2170,9 +2170,11 @@ async function loadAll(){
   document.getElementById('viewsCard').classList.toggle('hide', !me);
   await loadMatchesAndPreds();
   await loadLeaderboard();
+  await loadBonusQuestions();
   await loadOthersView();
   await loadPlayers();
   await loadAdminScreenshotBoard();
+  await loadAdminBonus();
   toggleAdminTab();
   const activeTab = document.querySelector(".tab.active")?.getAttribute("data-tab") || "pred";
   updateImportTimesVisibility(activeTab);
@@ -2407,6 +2409,23 @@ async function loadBonusQuestions(){
 
     if ($("btnSaveBonus")) $("btnSaveBonus").disabled = locked || !(r.questions || []).length;
   }catch(e){
+    const fallbackQuestions = BONUS_QUESTIONS_FALLBACK.map((question_text, index) => ({
+      id: `fallback_${index + 1}`,
+      question_text,
+      points: 3,
+      sort_order: index + 1,
+      fallback: true
+    }));
+
+    list.innerHTML = fallbackQuestions.map(q=>`
+      <div class="bonus-question-card">
+        <label>${q.question_text}</label>
+        <input value="" placeholder="Sisesta vastus" disabled>
+        <div class="sub" style="margin-top:6px">Küsimuste salvestamiseks käivita Supabase SQL Editoris sql/bonus_questions_migration.sql.</div>
+      </div>
+    `).join("");
+
+    if ($("btnSaveBonus")) $("btnSaveBonus").disabled = true;
     setMsg($("bonusMsg"), false, e.message);
   }
 }
@@ -3205,6 +3224,8 @@ document.querySelectorAll(".tab").forEach(t=>{
     const name = t.getAttribute("data-tab");
     ["pred","lb","bonus","others","account","admin"].forEach(id=>{ const el=$(id); if (el) el.classList.add("hide"); });
     const target = $(name); if (target) target.classList.remove("hide");
+    if (name === "bonus") loadBonusQuestions();
+    if (name === "admin") loadAdminBonus();
     updateImportTimesVisibility(name);
   });
 });
