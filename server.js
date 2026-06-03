@@ -206,7 +206,11 @@ const BONUS_QUESTIONS_SEED = [
 ];
 
 async function ensureBonusQuestions(sb){
-  const existing = await sb.from("bonus_questions").select("id").limit(1);
+  const existing = await sb
+    .from("bonus_questions")
+    .select("id,question_text,sort_order")
+    .order("sort_order", { ascending: true });
+
   if (existing.error) {
     if (String(existing.error.message || "").toLowerCase().includes("does not exist")) {
       throw new Error("Puudub bonus_questions tabel. Käivita sql/bonus_questions_migration.sql");
@@ -214,16 +218,22 @@ async function ensureBonusQuestions(sb){
     throw new Error(existing.error.message);
   }
 
-  if ((existing.data || []).length) return;
+  const current = existing.data || [];
+  const currentTexts = new Set(current.map(q => String(q.question_text || "").trim()));
+  const currentOrders = new Set(current.map(q => Number(q.sort_order)));
 
-  const rows = BONUS_QUESTIONS_SEED.map((question_text, index) => ({
-    question_text,
-    sort_order: index + 1,
-    points: 3,
-    active: true
-  }));
+  const missing = BONUS_QUESTIONS_SEED
+    .map((question_text, index) => ({
+      question_text,
+      sort_order: index + 1,
+      points: 3,
+      active: true
+    }))
+    .filter(q => !currentTexts.has(q.question_text) && !currentOrders.has(q.sort_order));
 
-  const ins = await sb.from("bonus_questions").insert(rows);
+  if (!missing.length) return;
+
+  const ins = await sb.from("bonus_questions").insert(missing);
   if (ins.error) throw new Error(ins.error.message);
 }
 
@@ -1202,6 +1212,28 @@ if (event.httpMethod === "POST" && route === "bonus/answers") {
   if (up.error) return json(500, { error: up.error.message });
 
   return json(200, { ok: true, answers: up.data || [] });
+}
+
+
+// Lisa vaikimisi lisaküsimused admini nupuga
+if (event.httpMethod === "POST" && route === "admin/bonus/seed") {
+  const u = userFrom(event);
+  if (!u || !u.is_admin) return json(403, { error: "Admini õigused puuduvad." });
+
+  try{
+    await ensureBonusQuestions(sb);
+  }catch(e){
+    return json(500, { error: e.message });
+  }
+
+  const questions = await sb
+    .from("bonus_questions")
+    .select("id,question_text,correct_answer,points,sort_order,active")
+    .order("sort_order", { ascending: true });
+
+  if (questions.error) return json(500, { error: questions.error.message });
+
+  return json(200, { ok: true, questions: questions.data || [] });
 }
 
 // Lisaküsimused adminile

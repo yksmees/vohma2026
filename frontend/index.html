@@ -1684,7 +1684,7 @@
 
 
 
-<div id="account class="hide" style="margin-top:8px">
+<div id="account" class="hide" style="margin-top:8px">
   <div class="sub">Siin saad muuta enda parooli pärast sisselogimist.</div>
   <div class="card" style="margin-top:10px">
     <strong>Muuda parooli</strong>
@@ -1777,6 +1777,7 @@
     Siin saad muuta küsimusi, sisestada ametliku vastuse ning märkida kasutajate vastused õigeks või valeks. Õige vastus annab play-off edetabelisse 3 punkti.
   </div>
   <div id="adminBonusMsg" class="msg"></div>
+          <button id="btnSeedBonusQuestions" type="button" style="margin-top:8px">Lisa vaikimisi lisaküsimused</button>
 
   <div class="table-wrap" style="margin-top:10px">
     <table id="adminBonusQuestionsTable">
@@ -2307,6 +2308,17 @@ tbody.querySelectorAll(`input[name="winner_${mid}"]`).forEach(inp=>{
 
 
 
+
+const BONUS_QUESTIONS_FALLBACK = [
+  "🏆 Milline koondis tuleb maailmameistriks?",
+  "⚽ Kes on turniiri suurim väravakütt?",
+  "🇦🇷 Mitu väravat lööb oma viimasel suurturniiril Messi?",
+  "🇵🇹 Mitu väravat lööb oma viimasel suurturniiril Ronaldo?",
+  "👑 Kes võidab meie alagrupiturniiri ennustuse?",
+  "🥄 Kes jääb meie alagrupiturniiri ennustuses viimaseks?"
+];
+
+
 let adminBonusData = null;
 
 function renderLeaderboardTable(tbody, rows, type){
@@ -2369,19 +2381,31 @@ async function loadBonusQuestions(){
 
     $("bonusLockMsg").textContent = formatBonusLock(r);
 
-    list.innerHTML = (r.questions || []).map(q=>{
+    const questions = (r.questions || []).length
+      ? (r.questions || [])
+      : BONUS_QUESTIONS_FALLBACK.map((question_text, index) => ({
+          id: `fallback_${index + 1}`,
+          question_text,
+          points: 3,
+          sort_order: index + 1,
+          fallback: true
+        }));
+
+    list.innerHTML = questions.map(q=>{
       const a = answers.get(String(q.id));
       const value = a?.answer_text || "";
+      const disabled = locked || q.fallback;
       return `
         <div class="bonus-question-card ${locked ? "locked" : ""}">
           <label for="bonus_${q.id}">${q.question_text}</label>
-          <input id="bonus_${q.id}" data-bonus-answer="${q.id}" value="${escapeHtml(value)}" placeholder="Sisesta vastus" ${locked ? "disabled" : ""}>
+          <input id="bonus_${q.id}" data-bonus-answer="${q.id}" value="${escapeHtml(value)}" placeholder="Sisesta vastus" ${disabled ? "disabled" : ""}>
+          ${q.fallback ? `<div class="sub" style="margin-top:6px">Küsimused vajavad andmebaasi lisamist. Käivita sql/bonus_questions_migration.sql ja ava vaade uuesti.</div>` : ""}
           ${locked ? `<div class="sub" style="margin-top:6px">Lukus</div>` : ""}
         </div>
       `;
     }).join("");
 
-    if ($("btnSaveBonus")) $("btnSaveBonus").disabled = locked;
+    if ($("btnSaveBonus")) $("btnSaveBonus").disabled = locked || !(r.questions || []).length;
   }catch(e){
     setMsg($("bonusMsg"), false, e.message);
   }

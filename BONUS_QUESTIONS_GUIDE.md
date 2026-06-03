@@ -19,3 +19,5 @@ Admin saab:
 Käivita Supabase SQL Editoris:
 
 `sql/bonus_questions_migration.sql`
+
+Kui kasutaja vaates küsimused ei ilmu, käivita `sql/bonus_questions_migration.sql`. Admin vaates saab lisaks vajutada `Lisa vaikimisi lisaküsimused`.
