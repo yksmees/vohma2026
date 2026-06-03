@@ -196,6 +196,85 @@ function calcPoints(ph, pa, fh, fa, options = {}){
   return points;
 }
 
+const BONUS_QUESTIONS_SEED = [
+  "🏆 Milline koondis tuleb maailmameistriks?",
+  "⚽ Kes on turniiri suurim väravakütt?",
+  "🇦🇷 Mitu väravat lööb oma viimasel suurturniiril Messi?",
+  "🇵🇹 Mitu väravat lööb oma viimasel suurturniiril Ronaldo?",
+  "👑 Kes võidab meie alagrupiturniiri ennustuse?",
+  "🥄 Kes jääb meie alagrupiturniiri ennustuses viimaseks?"
+];
+
+async function ensureBonusQuestions(sb){
+  const existing = await sb.from("bonus_questions").select("id").limit(1);
+  if (existing.error) {
+    if (String(existing.error.message || "").toLowerCase().includes("does not exist")) {
+      throw new Error("Puudub bonus_questions tabel. Käivita sql/bonus_questions_migration.sql");
+    }
+    throw new Error(existing.error.message);
+  }
+
+  if ((existing.data || []).length) return;
+
+  const rows = BONUS_QUESTIONS_SEED.map((question_text, index) => ({
+    question_text,
+    sort_order: index + 1,
+    points: 3,
+    active: true
+  }));
+
+  const ins = await sb.from("bonus_questions").insert(rows);
+  if (ins.error) throw new Error(ins.error.message);
+}
+
+async function getBonusLockInfo(sb){
+  const first = await sb
+    .from("matches")
+    .select("kickoff_utc,match_no")
+    .gt("match_no", 0)
+    .not("kickoff_utc", "is", null)
+    .order("kickoff_utc", { ascending: true })
+    .limit(1);
+
+  if (first.error) throw new Error(first.error.message);
+
+  const kickoff = first.data?.[0]?.kickoff_utc || null;
+  const kickoffMs = kickoff ? new Date(kickoff).getTime() : null;
+  const lockAtMs = Number.isFinite(kickoffMs) ? kickoffMs - 60 * 60 * 1000 : null;
+  const locked = Number.isFinite(lockAtMs) ? Date.now() >= lockAtMs : false;
+
+  return {
+    first_kickoff_utc: kickoff,
+    lock_at_utc: Number.isFinite(lockAtMs) ? new Date(lockAtMs).toISOString() : null,
+    locked
+  };
+}
+
+function isGroupMatchForLeaderboard(match){
+  const n = Number(match?.match_no);
+  return Number.isFinite(n) && n >= 1 && n <= 72;
+}
+
+function isPlayoffMatchForLeaderboard(match){
+  return isPlayoffMatch(match) && !isGroupMatchForLeaderboard(match);
+}
+
+function addRankMovement(current, previous){
+  const previousRank = new Map();
+  previous.forEach((row, index) => previousRank.set(row.player_id, index + 1));
+
+  return current.map((row, index) => {
+    const rank = index + 1;
+    const prev = previousRank.get(row.player_id) || rank;
+    return {
+      ...row,
+      rank,
+      previous_rank: prev,
+      movement: prev - rank
+    };
+  });
+}
+
 const API_FOOTBALL_BASE_URL = "https://v3.football.api-sports.io";
 const API_FOOTBALL_LEAGUE_ID = 1;
 const API_FOOTBALL_SEASON = 2026;
@@ -1051,6 +1130,175 @@ if (event.httpMethod === "GET" && route === "predictions/matrix") {
 
 
 
+
+// Lisaküsimused kasutajale
+if (event.httpMethod === "GET" && route === "bonus/questions") {
+  const u = userFrom(event);
+  if (!u) return json(401, { error: "Pole sisse logitud." });
+
+  try{
+    await ensureBonusQuestions(sb);
+  }catch(e){
+    return json(500, { error: e.message });
+  }
+
+  const lock = await getBonusLockInfo(sb);
+
+  const questions = await sb
+    .from("bonus_questions")
+    .select("id,question_text,points,sort_order,active")
+    .eq("active", true)
+    .order("sort_order", { ascending: true });
+
+  if (questions.error) return json(500, { error: questions.error.message });
+
+  const answers = await sb
+    .from("bonus_answers")
+    .select("question_id,answer_text,is_correct,points")
+    .eq("player_id", u.sub);
+
+  if (answers.error) return json(500, { error: answers.error.message });
+
+  return json(200, {
+    ok: true,
+    ...lock,
+    questions: questions.data || [],
+    answers: answers.data || []
+  });
+}
+
+// Salvesta kasutaja lisaküsimuste vastused
+if (event.httpMethod === "POST" && route === "bonus/answers") {
+  const u = userFrom(event);
+  if (!u) return json(401, { error: "Pole sisse logitud." });
+
+  const lock = await getBonusLockInfo(sb);
+  if (lock.locked && !u.is_admin) {
+    return json(403, { error: "Lisaküsimused on lukus." });
+  }
+
+  const body = JSON.parse(event.body || "{}");
+  const answers = Array.isArray(body.answers) ? body.answers : [];
+
+  if (!answers.length) return json(400, { error: "Vastuseid ei leitud." });
+
+  const rows = answers
+    .map(a => ({
+      player_id: u.sub,
+      question_id: Number(a.question_id),
+      answer_text: String(a.answer_text || "").trim(),
+      is_correct: false,
+      points: 0
+    }))
+    .filter(a => Number.isFinite(a.question_id));
+
+  if (!rows.length) return json(400, { error: "Vastuseid ei leitud." });
+
+  const up = await sb
+    .from("bonus_answers")
+    .upsert(rows, { onConflict: "player_id,question_id" })
+    .select("question_id,answer_text,is_correct,points");
+
+  if (up.error) return json(500, { error: up.error.message });
+
+  return json(200, { ok: true, answers: up.data || [] });
+}
+
+// Lisaküsimused adminile
+if (event.httpMethod === "GET" && route === "admin/bonus") {
+  const u = userFrom(event);
+  if (!u || !u.is_admin) return json(403, { error: "Admini õigused puuduvad." });
+
+  try{
+    await ensureBonusQuestions(sb);
+  }catch(e){
+    return json(500, { error: e.message });
+  }
+
+  const questions = await sb
+    .from("bonus_questions")
+    .select("id,question_text,correct_answer,points,sort_order,active")
+    .order("sort_order", { ascending: true });
+
+  const players = await sb
+    .from("players")
+    .select("id,display_name,is_admin")
+    .order("display_name", { ascending: true });
+
+  const answers = await sb
+    .from("bonus_answers")
+    .select("player_id,question_id,answer_text,is_correct,points");
+
+  if (questions.error || players.error || answers.error) {
+    return json(500, { error: (questions.error || players.error || answers.error).message });
+  }
+
+  return json(200, {
+    ok: true,
+    questions: questions.data || [],
+    players: (players.data || []).filter(p => !p.is_admin),
+    answers: answers.data || []
+  });
+}
+
+// Muuda lisaküsimust adminis
+{
+  const m = route.match(/^admin\/bonus\/questions\/(\d+)$/);
+  if (m && event.httpMethod === "PUT") {
+    const u = userFrom(event);
+    if (!u || !u.is_admin) return json(403, { error: "Admini õigused puuduvad." });
+
+    const id = Number(m[1]);
+    const body = JSON.parse(event.body || "{}");
+    const patch = {};
+
+    if (body.question_text !== undefined) patch.question_text = String(body.question_text || "").trim();
+    if (body.correct_answer !== undefined) patch.correct_answer = String(body.correct_answer || "").trim();
+    if (body.points !== undefined) patch.points = Number(body.points) || 3;
+    if (body.active !== undefined) patch.active = !!body.active;
+    if (body.sort_order !== undefined) patch.sort_order = Number(body.sort_order) || 0;
+
+    if (!Object.keys(patch).length) return json(400, { error: "Muudatus puudub." });
+
+    const upd = await sb.from("bonus_questions").update(patch).eq("id", id).select("*").single();
+    if (upd.error) return json(500, { error: upd.error.message });
+
+    return json(200, { ok: true, question: upd.data });
+  }
+}
+
+// Märgi kasutaja lisavastus õigeks või valeks
+if (event.httpMethod === "PUT" && route === "admin/bonus/answers") {
+  const u = userFrom(event);
+  if (!u || !u.is_admin) return json(403, { error: "Admini õigused puuduvad." });
+
+  const body = JSON.parse(event.body || "{}");
+  const player_id = String(body.player_id || "");
+  const question_id = Number(body.question_id);
+  const is_correct = !!body.is_correct;
+
+  if (!player_id || !Number.isFinite(question_id)) {
+    return json(400, { error: "Puudub mängija või küsimus." });
+  }
+
+  const q = await sb.from("bonus_questions").select("points").eq("id", question_id).single();
+  if (q.error) return json(500, { error: q.error.message });
+
+  const points = is_correct ? (Number(q.data?.points) || 3) : 0;
+
+  const upd = await sb
+    .from("bonus_answers")
+    .update({ is_correct, points })
+    .eq("player_id", player_id)
+    .eq("question_id", question_id)
+    .select("player_id,question_id,answer_text,is_correct,points")
+    .single();
+
+  if (upd.error) return json(500, { error: upd.error.message });
+
+  return json(200, { ok: true, answer: upd.data });
+}
+
 // Admin: recalculate all prediction points using the current scoring rules
 if (event.httpMethod === "POST" && route === "admin/recalc-points") {
   const u = userFrom(event);
@@ -1068,19 +1316,29 @@ if (event.httpMethod === "POST" && route === "admin/recalc-points") {
   return json(200, { ok: true, updated_matches });
 }
 
+
 // Leaderboard
 if (event.httpMethod === "GET" && route === "leaderboard") {
   const players = await sb.from("players").select("id,display_name,is_admin");
   const preds = await sb.from("predictions").select("player_id,match_id,points");
-  const matches = await sb.from("matches").select("id,match_no,is_finished,final_home,final_away").order("match_no", { ascending: true });
+  const matches = await sb.from("matches").select("id,match_no,stage,is_finished,final_home,final_away").order("match_no", { ascending: true });
+  const bonus = await sb.from("bonus_answers").select("player_id,points");
 
-  if (players.error || preds.error || matches.error) {
-    return json(500, { error: (players.error || preds.error || matches.error).message });
+  if (players.error || preds.error || matches.error || bonus.error) {
+    return json(500, { error: (players.error || preds.error || matches.error || bonus.error).message });
   }
 
   const allPlayers = (players.data || []).filter(p => !p.is_admin);
   const allPreds = preds.data || [];
-  const finishedMatches = (matches.data || []).filter(m =>
+  const allMatches = matches.data || [];
+  const bonusMap = new Map();
+
+  for (const b of bonus.data || []) {
+    bonusMap.set(b.player_id, (bonusMap.get(b.player_id) || 0) + (Number(b.points) || 0));
+  }
+
+  const matchMap = new Map(allMatches.map(m => [m.id, m]));
+  const finishedMatches = allMatches.filter(m =>
     m.is_finished ||
     (
       m.final_home !== null &&
@@ -1090,22 +1348,46 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
     )
   ).sort((a,b)=>a.match_no-b.match_no);
 
-  const latestFinished = finishedMatches.length ? finishedMatches[finishedMatches.length - 1] : null;
+  const groupFinished = finishedMatches.filter(isGroupMatchForLeaderboard);
+  const playoffFinished = finishedMatches.filter(isPlayoffMatchForLeaderboard);
 
-  function makeRows(excludeMatchId = null) {
+  const latestGroup = groupFinished.length ? groupFinished[groupFinished.length - 1] : null;
+  const latestPlayoff = playoffFinished.length ? playoffFinished[playoffFinished.length - 1] : null;
+
+  function makeRows(kind, excludeMatchId = null) {
     const map = new Map();
+
     for (const p of allPlayers) {
       map.set(p.id, {
         player_id: p.id,
         display_name: p.display_name,
-        points: 0
+        points: 0,
+        match_points: 0,
+        bonus_points: kind === "playoff" ? (bonusMap.get(p.id) || 0) : 0
       });
     }
 
     for (const pr of allPreds) {
       if (excludeMatchId && pr.match_id === excludeMatchId) continue;
+
+      const match = matchMap.get(pr.match_id);
+      if (!match) continue;
+
+      const include =
+        kind === "group"
+          ? isGroupMatchForLeaderboard(match)
+          : isPlayoffMatchForLeaderboard(match);
+
+      if (!include) continue;
+
       const row = map.get(pr.player_id);
-      if (row) row.points += (pr.points || 0);
+      if (row) {
+        row.match_points += (Number(pr.points) || 0);
+      }
+    }
+
+    for (const row of map.values()) {
+      row.points = row.match_points + (kind === "playoff" ? row.bonus_points : 0);
     }
 
     return Array.from(map.values()).sort((a,b) => {
@@ -1114,25 +1396,23 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
     });
   }
 
-  const current = makeRows(null);
-  const previous = latestFinished ? makeRows(latestFinished.id) : current;
+  const groupCurrent = makeRows("group", null);
+  const groupPrevious = latestGroup ? makeRows("group", latestGroup.id) : groupCurrent;
 
-  const previousRank = new Map();
-  previous.forEach((row, index) => previousRank.set(row.player_id, index + 1));
+  const playoffCurrent = makeRows("playoff", null);
+  const playoffPrevious = latestPlayoff ? makeRows("playoff", latestPlayoff.id) : playoffCurrent;
 
-  const leaderboard = current.map((row, index) => {
-    const rank = index + 1;
-    const prev = previousRank.get(row.player_id) || rank;
-    return {
-      ...row,
-      rank,
-      previous_rank: prev,
-      movement: prev - rank
-    };
+  const group_leaderboard = addRankMovement(groupCurrent, groupPrevious);
+  const playoff_leaderboard = addRankMovement(playoffCurrent, playoffPrevious);
+
+  return json(200, {
+    ok: true,
+    leaderboard: group_leaderboard,
+    group_leaderboard,
+    playoff_leaderboard
   });
-
-  return json(200, { ok: true, leaderboard });
 }
+
 
 // Admin players CRUD
     if (event.httpMethod === "GET" && route === "admin/players") {

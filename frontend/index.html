@@ -1502,6 +1502,56 @@
       }
     }
 
+  
+/* BONUS QUESTIONS */
+.bonus-list{
+  display:grid;
+  gap:10px;
+  margin-top:10px;
+}
+.bonus-question-card{
+  padding:12px;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:16px;
+  background:rgba(255,255,255,.035);
+}
+.bonus-question-card label{
+  display:block;
+  font-weight:800;
+  margin-bottom:8px;
+}
+.bonus-question-card input{
+  width:100%;
+}
+.bonus-question-card.locked{
+  opacity:.75;
+}
+#adminBonusQuestionsTable input,
+#adminBonusAnswersTable input{
+  width:100%;
+  min-width:180px;
+}
+#bonusScreenshotTable td,
+#bonusScreenshotTable th{
+  font-size:14px;
+  vertical-align:top;
+}
+
+@media (max-width:760px){
+  #lb .grid.cols2{
+    grid-template-columns:1fr !important;
+  }
+
+  #lbGroupTable,
+  #lbPlayoffTable,
+  #adminBonusQuestionsTable,
+  #adminBonusAnswersTable{
+    display:block;
+    overflow-x:auto;
+    max-width:100%;
+  }
+}
+
   </style>
 </head>
 <body>
@@ -1569,6 +1619,7 @@
           <div class="tabs">
             <button class="tab active" data-tab="pred">Ennustused</button>
             <button class="tab" data-tab="lb">Edetabel</button>
+            <button class="tab" data-tab="bonus">Lisaküsimused</button>
             <button class="tab" data-tab="others">Teiste ennustused</button>
             <button class="tab" data-tab="account">Minu konto</button>
             <button class="tab" data-tab="admin">Admin</button>
@@ -1598,17 +1649,42 @@
 
       </div>
 
-      <div id="lb" class="hide" style="margin-top:8px">
-        <div class="sub">Punktisumma kõigi mängude peale.</div>
-        <div id="lbMsg" class="msg"></div>
-        <table id="lbTable">
-          <thead><tr><th>Koht</th><th>Mängija</th><th class="right">Punktid</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
+      
+<div id="lb" class="hide" style="margin-top:8px">
+  <div class="sub">Ennustusvõistlusel on kaks eraldi edetabelit: alagrupiturniir ja play-off. Lisaküsimuste punktid lisatakse ainult play-off edetabelisse.</div>
+  <div id="lbMsg" class="msg"></div>
+
+  <div class="grid cols2" style="margin-top:10px">
+    <div class="card">
+      <strong>Alagrupiturniiri edetabel</strong>
+      <table id="lbGroupTable">
+        <thead><tr><th>Koht</th><th>Mängija</th><th class="right">Punktid</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <strong>Play-off edetabel</strong>
+      <div class="sub" style="margin-top:6px">Sisaldab play-off mängude punkte ja lisaküsimuste punkte.</div>
+      <table id="lbPlayoffTable">
+        <thead><tr><th>Koht</th><th>Mängija</th><th class="right">Mängud</th><th class="right">Lisa</th><th class="right">Kokku</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div id="bonus" class="hide" style="margin-top:8px">
+  <div class="sub">Lisaküsimuste punktid lähevad ainult play-off edetabelisse. Iga õigesti vastatud küsimus annab 3 punkti. Vastused lukustuvad 1 tund enne esimese MM mängu algust.</div>
+  <div id="bonusLockMsg" class="msg"></div>
+  <div id="bonusList" class="bonus-list"></div>
+  <button id="btnSaveBonus" type="button" class="primary" style="margin-top:10px">Salvesta lisaküsimused</button>
+  <div id="bonusMsg" class="msg"></div>
+</div>
 
 
-<div id="account" class="hide" style="margin-top:8px">
+
+<div id="account class="hide" style="margin-top:8px">
   <div class="sub">Siin saad muuta enda parooli pärast sisselogimist.</div>
   <div class="card" style="margin-top:10px">
     <strong>Muuda parooli</strong>
@@ -1689,6 +1765,44 @@
 <div id="screenshotMsg" class="msg"></div>
   <div class="screenshot-board-wrap">
     <table id="screenshotBoard" class="screenshot-board">
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+
+<div class="card" id="adminBonusCard" style="margin-top:10px">
+  <strong>Lisaküsimused admin</strong>
+  <div class="sub" style="margin-top:8px">
+    Siin saad muuta küsimusi, sisestada ametliku vastuse ning märkida kasutajate vastused õigeks või valeks. Õige vastus annab play-off edetabelisse 3 punkti.
+  </div>
+  <div id="adminBonusMsg" class="msg"></div>
+
+  <div class="table-wrap" style="margin-top:10px">
+    <table id="adminBonusQuestionsTable">
+      <thead>
+        <tr><th>#</th><th>Küsimus</th><th>Õige vastus</th><th class="right">Punktid</th><th class="right">Tegevus</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="sub" style="margin-top:14px">Kasutajate vastused</div>
+  <div class="table-wrap">
+    <table id="adminBonusAnswersTable">
+      <thead>
+        <tr><th>Mängija</th><th>Küsimus</th><th>Vastus</th><th class="right">Õige?</th><th class="right">Punktid</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card" id="bonusScreenshotCard" style="margin-top:10px">
+  <strong>Lisaküsimused screenshotiks</strong>
+  <div class="sub" style="margin-top:8px">Eraldi kompaktne tabel lisaküsimuste vastuste screenshotiks.</div>
+  <div class="screenshot-board-wrap">
+    <table id="bonusScreenshotTable" class="screenshot-board">
       <tbody></tbody>
     </table>
   </div>
@@ -2192,29 +2306,251 @@ tbody.querySelectorAll(`input[name="winner_${mid}"]`).forEach(inp=>{
 }
 
 
-async function loadLeaderboard(){
-  const tbody = $("lbTable").querySelector("tbody");
+
+let adminBonusData = null;
+
+function renderLeaderboardTable(tbody, rows, type){
   tbody.innerHTML = "";
+  rows.forEach((row, idx)=>{
+    const tr = document.createElement("tr");
+    const isFirst = idx === 0;
+    const isLast = rows.length > 1 && idx === rows.length - 1;
+    const move = Number(row.movement || 0);
+    const moveHtml = move > 0
+      ? `<span class="rank-move rank-up">▲</span>`
+      : move < 0
+        ? `<span class="rank-move rank-down">▼</span>`
+        : "";
+    const crown = isFirst ? `<span class="rank-crown">👑</span>` : "";
+    const frog = isLast ? `<span class="rank-frog">🐸</span>` : "";
+
+    if (type === "playoff"){
+      tr.innerHTML = `<td>${idx + 1}.</td><td>${row.display_name}${moveHtml}${crown}${frog}</td><td class="right">${row.match_points || 0}</td><td class="right">${row.bonus_points || 0}</td><td class="right">${row.points || 0}</td>`;
+    } else {
+      tr.innerHTML = `<td>${idx + 1}.</td><td>${row.display_name}${moveHtml}${crown}${frog}</td><td class="right">${row.points || 0}</td>`;
+    }
+
+    tbody.appendChild(tr);
+  });
+}
+
+function bonusAnswerMap(answers){
+  const map = new Map();
+  for (const a of answers || []) map.set(String(a.question_id), a);
+  return map;
+}
+
+function formatBonusLock(r){
+  if (!r.lock_at_utc) return "";
+  const d = new Date(r.lock_at_utc);
+  const txt = new Intl.DateTimeFormat('et-EE', {
+    timeZone:'Europe/Tallinn',
+    year:'numeric',
+    month:'2-digit',
+    day:'2-digit',
+    hour:'2-digit',
+    minute:'2-digit'
+  }).format(d);
+  return r.locked ? `Lisaküsimused on lukus alates ${txt}.` : `Lisaküsimused lukustuvad ${txt}.`;
+}
+
+async function loadBonusQuestions(){
+  const list = $("bonusList");
+  if (!list || !token) return;
+
+  list.innerHTML = "";
+  $("bonusMsg").textContent = "";
+  $("bonusLockMsg").textContent = "";
+
+  try{
+    const r = await call("bonus/questions", {method:"GET"});
+    const answers = bonusAnswerMap(r.answers || []);
+    const locked = !!r.locked;
+
+    $("bonusLockMsg").textContent = formatBonusLock(r);
+
+    list.innerHTML = (r.questions || []).map(q=>{
+      const a = answers.get(String(q.id));
+      const value = a?.answer_text || "";
+      return `
+        <div class="bonus-question-card ${locked ? "locked" : ""}">
+          <label for="bonus_${q.id}">${q.question_text}</label>
+          <input id="bonus_${q.id}" data-bonus-answer="${q.id}" value="${escapeHtml(value)}" placeholder="Sisesta vastus" ${locked ? "disabled" : ""}>
+          ${locked ? `<div class="sub" style="margin-top:6px">Lukus</div>` : ""}
+        </div>
+      `;
+    }).join("");
+
+    if ($("btnSaveBonus")) $("btnSaveBonus").disabled = locked;
+  }catch(e){
+    setMsg($("bonusMsg"), false, e.message);
+  }
+}
+
+function escapeHtml(s){
+  return String(s ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+async function saveBonusAnswers(){
+  const inputs = Array.from(document.querySelectorAll("[data-bonus-answer]"));
+  const answers = inputs.map(inp => ({
+    question_id: Number(inp.dataset.bonusAnswer),
+    answer_text: inp.value
+  }));
+
+  try{
+    await call("bonus/answers", {method:"POST", body: JSON.stringify({answers})});
+    setMsg($("bonusMsg"), true, "Lisaküsimused salvestatud.");
+    await loadBonusQuestions();
+  }catch(e){
+    setMsg($("bonusMsg"), false, e.message);
+  }
+}
+
+function shortQuestion(q, idx){
+  return `K${idx + 1}`;
+}
+
+function renderBonusScreenshot(data){
+  const table = $("bonusScreenshotTable");
+  if (!table) return;
+
+  const tbody = table.querySelector("tbody");
+  const questions = data.questions || [];
+  const players = data.players || [];
+  const answers = data.answers || [];
+  const answerMap = new Map();
+
+  for (const a of answers) answerMap.set(`${a.player_id}:${a.question_id}`, a);
+
+  const rows = [];
+  rows.push(`<tr class="teams"><th>Kasutaja</th>${questions.map((q,i)=>`<th title="${escapeHtml(q.question_text)}">${shortQuestion(q,i)}</th>`).join("")}<th>Punktid</th></tr>`);
+  rows.push(`<tr class="correct"><th>Õige vastus</th>${questions.map(q=>`<td>${escapeHtml(q.correct_answer || "")}</td>`).join("")}<td></td></tr>`);
+
+  for (const p of players){
+    let pts = 0;
+    let row = `<tr><th>${escapeHtml(p.display_name)}</th>`;
+    for (const q of questions){
+      const a = answerMap.get(`${p.id}:${q.id}`);
+      pts += Number(a?.points || 0);
+      const mark = a?.is_correct ? " ✓" : "";
+      row += `<td>${escapeHtml(a?.answer_text || "")}${mark}</td>`;
+    }
+    row += `<td>${pts}</td></tr>`;
+    rows.push(row);
+  }
+
+  tbody.innerHTML = rows.join("");
+}
+
+async function loadAdminBonus(){
+  if (!(me && me.is_admin)) return;
+
+  const qBody = $("adminBonusQuestionsTable")?.querySelector("tbody");
+  const aBody = $("adminBonusAnswersTable")?.querySelector("tbody");
+  if (!qBody || !aBody) return;
+
+  qBody.innerHTML = "";
+  aBody.innerHTML = "";
+  $("adminBonusMsg").textContent = "";
+
+  try{
+    const data = await call("admin/bonus", {method:"GET"});
+    adminBonusData = data;
+
+    const questions = data.questions || [];
+    const players = data.players || [];
+    const answers = data.answers || [];
+
+    qBody.innerHTML = questions.map((q, idx)=>`
+      <tr>
+        <td>${idx + 1}</td>
+        <td><input data-bonus-q-text="${q.id}" value="${escapeHtml(q.question_text)}"></td>
+        <td><input data-bonus-q-correct="${q.id}" value="${escapeHtml(q.correct_answer || "")}" placeholder="Õige vastus"></td>
+        <td class="right"><input class="small" data-bonus-q-points="${q.id}" value="${q.points || 3}"></td>
+        <td class="right"><button type="button" data-save-bonus-q="${q.id}">Salvesta</button></td>
+      </tr>
+    `).join("");
+
+    const questionById = new Map(questions.map((q,i)=>[q.id, {...q, idx:i}]));
+    const playerById = new Map(players.map(p=>[p.id,p]));
+    const sortedAnswers = answers.slice().sort((a,b)=>{
+      const pa = playerById.get(a.player_id)?.display_name || "";
+      const pb = playerById.get(b.player_id)?.display_name || "";
+      const pc = String(pa).localeCompare(String(pb), "et");
+      if (pc) return pc;
+      return (questionById.get(a.question_id)?.sort_order || 0) - (questionById.get(b.question_id)?.sort_order || 0);
+    });
+
+    aBody.innerHTML = sortedAnswers.map(a=>{
+      const p = playerById.get(a.player_id);
+      const q = questionById.get(a.question_id);
+      return `
+        <tr>
+          <td>${escapeHtml(p?.display_name || "")}</td>
+          <td>${escapeHtml(q?.question_text || "")}</td>
+          <td>${escapeHtml(a.answer_text || "")}</td>
+          <td class="right"><input type="checkbox" data-bonus-correct="${a.player_id}:${a.question_id}" ${a.is_correct ? "checked" : ""}></td>
+          <td class="right">${a.points || 0}</td>
+        </tr>
+      `;
+    }).join("");
+
+    qBody.querySelectorAll("[data-save-bonus-q]").forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        const id = btn.dataset.saveBonusQ;
+        const question_text = qBody.querySelector(`[data-bonus-q-text="${id}"]`)?.value || "";
+        const correct_answer = qBody.querySelector(`[data-bonus-q-correct="${id}"]`)?.value || "";
+        const points = Number(qBody.querySelector(`[data-bonus-q-points="${id}"]`)?.value || 3);
+
+        try{
+          await call(`admin/bonus/questions/${id}`, {method:"PUT", body: JSON.stringify({question_text, correct_answer, points})});
+          setMsg($("adminBonusMsg"), true, "Küsimus salvestatud.");
+          await loadAdminBonus();
+        }catch(e){
+          setMsg($("adminBonusMsg"), false, e.message);
+        }
+      });
+    });
+
+    aBody.querySelectorAll("[data-bonus-correct]").forEach(inp=>{
+      inp.addEventListener("change", async ()=>{
+        const [player_id, question_id] = inp.dataset.bonusCorrect.split(":");
+
+        try{
+          await call("admin/bonus/answers", {method:"PUT", body: JSON.stringify({player_id, question_id:Number(question_id), is_correct: inp.checked})});
+          setMsg($("adminBonusMsg"), true, "Vastus uuendatud.");
+          await loadAdminBonus();
+          await loadLeaderboard();
+        }catch(e){
+          setMsg($("adminBonusMsg"), false, e.message);
+        }
+      });
+    });
+
+    renderBonusScreenshot(data);
+  }catch(e){
+    setMsg($("adminBonusMsg"), false, e.message);
+  }
+}
+
+
+
+async function loadLeaderboard(){
+  const groupBody = $("lbGroupTable")?.querySelector("tbody");
+  const playoffBody = $("lbPlayoffTable")?.querySelector("tbody");
+  if (groupBody) groupBody.innerHTML = "";
+  if (playoffBody) playoffBody.innerHTML = "";
   $("lbMsg").textContent = "";
+
   try{
     const r = await call("leaderboard",{method:"GET"});
-    const rows = r.leaderboard || [];
-    rows.forEach((row, idx)=>{
-      const tr = document.createElement("tr");
-      const isFirst = idx === 0;
-      const isLast = rows.length > 1 && idx === rows.length - 1;
-      const move = Number(row.movement || 0);
-      const moveHtml = move > 0
-        ? `<span class="rank-move rank-up">▲</span>`
-        : move < 0
-          ? `<span class="rank-move rank-down">▼</span>`
-          : "";
-      const crown = isFirst ? `<span class="rank-crown">👑</span>` : "";
-      const frog = isLast ? `<span class="rank-frog">🐸</span>` : "";
-
-      tr.innerHTML = `<td>${idx + 1}.</td><td>${row.display_name}${moveHtml}${crown}${frog}</td><td class="right">${row.points}</td>`;
-      tbody.appendChild(tr);
-    });
+    renderLeaderboardTable(groupBody, r.group_leaderboard || r.leaderboard || [], "group");
+    renderLeaderboardTable(playoffBody, r.playoff_leaderboard || [], "playoff");
   }catch(e){
     setMsg($("lbMsg"), false, e.message);
   }
@@ -2843,7 +3179,7 @@ document.querySelectorAll(".tab").forEach(t=>{
     document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
     t.classList.add("active");
     const name = t.getAttribute("data-tab");
-    ["pred","lb","others","account","admin"].forEach(id=>{ const el=$(id); if (el) el.classList.add("hide"); });
+    ["pred","lb","bonus","others","account","admin"].forEach(id=>{ const el=$(id); if (el) el.classList.add("hide"); });
     const target = $(name); if (target) target.classList.remove("hide");
     updateImportTimesVisibility(name);
   });
