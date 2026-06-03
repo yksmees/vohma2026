@@ -153,8 +153,8 @@ function isPlayoffMatch(match){
 
   const stage = String(match?.stage || "").trim().toLowerCase();
   if (!stage) return false;
+  if (stage.includes("u17 test")) return true;
   if (stage.startsWith("group")) return false;
-  if (stage.includes("u17 test")) return false;
   return true;
 }
 

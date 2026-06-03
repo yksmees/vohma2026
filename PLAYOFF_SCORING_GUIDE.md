@@ -40,3 +40,10 @@ See kontroll:
 - muudab lukustunud mängu väljad ja nupu kasutaja vaates halliks
 
 Serveripoolne lukustuse kontroll jääb alles ja on lõplik kontroll salvestamisel.
+
+
+## U17 testmängud
+
+U17 testmängud kasutavad samuti play-off edasipääseja valiku loogikat, et saaks testida viigilise 90 minuti ennustust.
+
+Kui U17 testmängul sisestatakse ennustuseks viik, ilmub edasipääseja valik. Õige edasipääseja annab testimisel sama loogika järgi +1 punkti.
