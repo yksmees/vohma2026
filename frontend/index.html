@@ -2730,10 +2730,20 @@ document.querySelectorAll(".tab").forEach(t=>{
 });
 
 
-if ($("screenshotMatchSelect")) $("screenshotMatchSelect").addEventListener("change", renderScreenshotBoard);
-if ($("screenshotMode")) $("screenshotMode").addEventListener("change", renderScreenshotBoard);
-if ($("screenshotCount")) $("screenshotCount").addEventListener("input", renderScreenshotBoard);
-if ($("btnRefreshScreenshotBoard")) $("btnRefreshScreenshotBoard").onclick = loadAdminScreenshotBoard;
+
+function renderScreenshotBoard(){
+  if (typeof renderAdminScreenshotBoard === "function") return renderAdminScreenshotBoard();
+  if (typeof loadAdminScreenshotBoard === "function") return loadAdminScreenshotBoard();
+}
+
+if (typeof renderScreenshotBoard === "function") {
+  if ($("screenshotMatchSelect")) $("screenshotMatchSelect").addEventListener("change", renderScreenshotBoard);
+  if ($("screenshotMode")) $("screenshotMode").addEventListener("change", renderScreenshotBoard);
+  if ($("screenshotCount")) $("screenshotCount").addEventListener("input", renderScreenshotBoard);
+}
+if ($("btnRefreshScreenshotBoard") && typeof loadAdminScreenshotBoard === "function") {
+  $("btnRefreshScreenshotBoard").onclick = loadAdminScreenshotBoard;
+}
 
 loadAll();
 </script>
