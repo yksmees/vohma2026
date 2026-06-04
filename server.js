@@ -293,15 +293,36 @@ const API_FOOTBALL_BASE_URL = "https://v3.football.api-sports.io";
 const API_FOOTBALL_LEAGUE_ID = 1;
 const API_FOOTBALL_SEASON = 2026;
 const API_FOOTBALL_SYNC_COOLDOWN_MS = 30 * 60 * 1000;
-const API_FOOTBALL_EXTRA_LEAGUES = (process.env.API_FOOTBALL_EXTRA_LEAGUES || "")
+
+// U17 testmängude jaoks lisame UEFA U17 liiga automaatselt.
+// Kasutaja võib Railway variables all lisaks panna API_FOOTBALL_EXTRA_LEAGUES=886:2025,886:2026
+const API_FOOTBALL_DEFAULT_EXTRA_LEAGUES = [
+  { league: 886, season: 2025 },
+  { league: 886, season: 2026 }
+];
+
+const API_FOOTBALL_ENV_EXTRA_LEAGUES = (process.env.API_FOOTBALL_EXTRA_LEAGUES || "")
   .split(",")
   .map(x => x.trim())
   .filter(Boolean)
   .map(x => {
-    const [league, season] = x.split(":").map(v => String(v || "").trim());
-    return { league, season: season || API_FOOTBALL_SEASON };
+    const [leagueRaw, seasonRaw] = x.split(":").map(v => String(v || "").trim());
+    const league = Number(leagueRaw);
+    const season = Number(seasonRaw || API_FOOTBALL_SEASON);
+    return {
+      league: Number.isFinite(league) ? league : null,
+      season: Number.isFinite(season) ? season : API_FOOTBALL_SEASON
+    };
   })
   .filter(x => x.league);
+
+const API_FOOTBALL_EXTRA_LEAGUES = Array.from(
+  new Map(
+    [...API_FOOTBALL_DEFAULT_EXTRA_LEAGUES, ...API_FOOTBALL_ENV_EXTRA_LEAGUES]
+      .map(x => [`${x.league}:${x.season}`, x])
+  ).values()
+);
+
 let lastApiFootballSyncAt = 0;
 
 function normalizeTeamName(name){
@@ -435,9 +456,12 @@ async function fetchApiFootballFixtures(matchDates = []){
 
   const allFixtures = [];
   const errors = [];
+  const requested = [];
   const seenFixtureIds = new Set();
 
   async function addFixturesFromUrl(url, label){
+    requested.push(label);
+
     const resp = await fetch(url, {
       headers: {
         "x-apisports-key": apiKey,
@@ -447,11 +471,20 @@ async function fetchApiFootballFixtures(matchDates = []){
 
     if (!resp.ok){
       const txt = await resp.text().catch(() => "");
-      errors.push(`${label}: ${resp.status} ${txt.slice(0,120)}`);
+      errors.push(`${label}: HTTP ${resp.status} ${txt.slice(0,180)}`);
       return;
     }
 
     const data = await resp.json();
+
+    const apiErrors = data?.errors;
+    if (apiErrors && (
+      (Array.isArray(apiErrors) && apiErrors.length) ||
+      (!Array.isArray(apiErrors) && Object.keys(apiErrors).length)
+    )) {
+      errors.push(`${label}: ${JSON.stringify(apiErrors).slice(0,240)}`);
+    }
+
     if (Array.isArray(data?.response)) {
       for (const fx of data.response) {
         const id = Number(fx?.fixture?.id);
@@ -465,22 +498,22 @@ async function fetchApiFootballFixtures(matchDates = []){
   for (const src of sources){
     await addFixturesFromUrl(
       `${API_FOOTBALL_BASE_URL}/fixtures?league=${src.league}&season=${src.season}`,
-      `league ${src.league}`
+      `league ${src.league} season ${src.season}`
     );
   }
 
-  for (const date of uniqueList(matchDates).slice(0, 7)){
+  for (const date of uniqueList(matchDates).slice(0, 10)){
     await addFixturesFromUrl(
-      `${API_FOOTBALL_BASE_URL}/fixtures?date=${date}`,
+      `${API_FOOTBALL_BASE_URL}/fixtures?date=${date}&timezone=Europe/Tallinn`,
       `date ${date}`
     );
   }
 
   if (!allFixtures.length && errors.length){
-    return { ok:false, error:`API-Football viga: ${errors.join("; ")}`, fixtures:[] };
+    return { ok:false, error:`API-Football viga: ${errors.join("; ")}`, fixtures:[], requested };
   }
 
-  return { ok:true, fixtures: allFixtures, errors };
+  return { ok:true, fixtures: allFixtures, errors, requested };
 }
 
 async function recalcPointsForMatch(sb, matchId){
@@ -609,6 +642,7 @@ async function syncApiFootballResults(sb, { force=false } = {}){
     finished_found,
     skipped_manual,
     update_errors,
+    requested: fetched.requested || [],
     updated_matches: updated_matches.slice(0, 20),
     unmatched: unmatched.slice(0, 20),
     update_error_examples: update_error_examples.slice(0, 10),
@@ -804,7 +838,7 @@ if (event.httpMethod === "GET" && route === "me") {
         .sort((a,b) => b.score - a.score)
         .slice(0, 10);
 
-      return json(200, { ok:true, match: matchRes.data, candidates });
+      return json(200, { ok:true, match: matchRes.data, requested: fetched.requested || [], api_errors: fetched.errors || [], candidates });
     }
 
     // Admin sync results from API-Football

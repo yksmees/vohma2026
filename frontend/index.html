@@ -3848,9 +3848,11 @@ if ($("btnSyncResults")) $("btnSyncResults").onclick = async (e)=>{
       `fixtureid ${r.fixtures ?? 0}`,
       r.matched !== undefined ? `seotud ${r.matched}` : "",
       r.finished_found !== undefined ? `lõppenud ${r.finished_found}` : "",
+      r.requested && r.requested.length ? `päringud: ${r.requested.join(", ")}` : "",
       r.update_errors ? `salvestusvigu ${r.update_errors}` : "",
       (r.updated_matches && r.updated_matches.length) ? `uuendatud: ${r.updated_matches.join("; ")}` : "",
       (r.unmatched && r.unmatched.length) ? `sidumata: ${r.unmatched.join("; ")}` : "",
+      (r.api_errors && r.api_errors.length) ? `API teated: ${r.api_errors.join("; ")}` : "",
       (r.update_error_examples && r.update_error_examples.length) ? `vead: ${r.update_error_examples.join("; ")}` : ""
     ].filter(Boolean);
 
@@ -3869,7 +3871,6 @@ if ($("btnSyncResults")) $("btnSyncResults").onclick = async (e)=>{
     }
   }
 };
-
 
 $("btnReload").onclick = loadAll;
 
