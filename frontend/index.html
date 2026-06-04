@@ -1645,6 +1645,41 @@
       flex:1 1 220px;
     }
 
+  
+    /* BONUS SCREENSHOT READABILITY */
+    #bonusScreenshotTable .bonus-question-text,
+    .bonus-admin-matrix .bonus-question-text{
+      background:rgba(15,23,42,.98) !important;
+      color:#ffffff !important;
+      font-family:Arial, Helvetica, sans-serif !important;
+      font-size:15px !important;
+      font-weight:900 !important;
+      line-height:1.32 !important;
+      letter-spacing:.01em;
+      text-shadow:0 1px 2px rgba(0,0,0,.65);
+      border-color:rgba(255,255,255,.24) !important;
+    }
+
+    #bonusScreenshotTable .correct-answer-cell,
+    .bonus-admin-matrix .correct-answer-cell{
+      background:rgba(250,204,21,.18) !important;
+      color:#ffffff !important;
+      font-family:Arial, Helvetica, sans-serif !important;
+      font-weight:900 !important;
+      line-height:1.3 !important;
+      text-shadow:0 1px 2px rgba(0,0,0,.55);
+      border-color:rgba(250,204,21,.45) !important;
+      min-width:170px;
+    }
+
+    #bonusScreenshotTable .teams th{
+      background:rgba(30,41,59,.98) !important;
+      color:#ffffff !important;
+      font-family:Arial, Helvetica, sans-serif !important;
+      font-weight:900 !important;
+      text-shadow:0 1px 2px rgba(0,0,0,.55);
+    }
+
   </style>
 </head>
 <body>
@@ -2990,6 +3025,23 @@ function shortQuestion(q, idx){
   return `K${idx + 1}`;
 }
 
+
+function getBonusCorrectAnswerText(question, players, answerMap){
+  const explicit = String(question?.correct_answer || "").trim();
+  if (explicit) return explicit;
+
+  const correctAnswers = [];
+  for (const p of players || []) {
+    const a = answerMap.get(`${p.id}:${question.id}`);
+    const txt = String(a?.answer_text || "").trim();
+    if (a?.is_correct && txt && !correctAnswers.includes(txt)) {
+      correctAnswers.push(txt);
+    }
+  }
+
+  return correctAnswers.join(", ");
+}
+
 function renderBonusScreenshot(data){
   const table = $("bonusScreenshotTable");
   if (!table) return;
@@ -3017,7 +3069,8 @@ function renderBonusScreenshot(data){
       return `<td class="${cls}">${escapeHtml(a?.answer_text || "")}${mark}</td>`;
     }).join("");
 
-    return `<tr><th>${idx + 1}. ${escapeHtml(q.question_text || "")}</th><td class="correct-answer-cell">${escapeHtml(q.correct_answer || "")}</td>${cells}</tr>`;
+    const correctText = getBonusCorrectAnswerText(q, players, answerMap);
+    return `<tr><th class="bonus-question-text">${idx + 1}. ${escapeHtml(q.question_text || "")}</th><td class="correct-answer-cell">${escapeHtml(correctText)}</td>${cells}</tr>`;
   }).join("");
 
   const totalRow = `<tr class="bonus-total-row"><th>Kokku</th><td></td>${players.map(p=>`<td><strong>${totals.get(p.id) || 0}p</strong></td>`).join("")}</tr>`;
@@ -3071,7 +3124,8 @@ function renderAdminBonusAnswers(){
       `;
     }).join("");
 
-    return `<tr><th>${idx + 1}. ${escapeHtml(q.question_text || "")}</th><td class="correct-answer-cell">${escapeHtml(q.correct_answer || "")}</td>${cells}</tr>`;
+    const correctText = getBonusCorrectAnswerText(q, players, answerMap);
+    return `<tr><th class="bonus-question-text">${idx + 1}. ${escapeHtml(q.question_text || "")}</th><td class="correct-answer-cell">${escapeHtml(correctText)}</td>${cells}</tr>`;
   }).join("");
 
   const totalRow = `<tr class="bonus-total-row"><th>Kokku</th><td></td>${players.map(p=>`<td><strong>${totals.get(p.id) || 0}p</strong></td>`).join("")}</tr>`;
