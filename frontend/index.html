@@ -2090,7 +2090,7 @@
           <button id="btnSeedU17" type="button">Lisa U17 testmängud</button>
           <button id="btnRemoveU17" type="button">Eemalda U17 testmängud</button>
           <button id="btnSync">Sünkroniseeri ajakava</button>
-          <button id="btnSyncResults">Sünkroniseeri tulemused</button>
+          <button id="btnSyncResults" type="button">Sünkroniseeri tulemused</button>
           <button id="btnRecalcPoints" type="button">Arvuta punktid ümber</button>
         </div>
 
@@ -3827,6 +3827,49 @@ $("btnSetFinal").onclick = async ()=>{
     setMsg($("adminMsg"), false, e.message);
   }
 };
+
+
+if ($("btnSyncResults")) $("btnSyncResults").onclick = async (e)=>{
+  if (e) e.preventDefault();
+  if (!(me && me.is_admin)) return setMsg($("adminMsg"), false, "Ainult admin.");
+
+  const btn = $("btnSyncResults");
+
+  try{
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Sünkroniseerin...";
+    }
+
+    const r = await call("admin/sync/results", {method:"POST"});
+
+    const parts = [
+      `uuendatud ${r.updated ?? 0}`,
+      `fixtureid ${r.fixtures ?? 0}`,
+      r.matched !== undefined ? `seotud ${r.matched}` : "",
+      r.finished_found !== undefined ? `lõppenud ${r.finished_found}` : "",
+      r.update_errors ? `salvestusvigu ${r.update_errors}` : "",
+      (r.updated_matches && r.updated_matches.length) ? `uuendatud: ${r.updated_matches.join("; ")}` : "",
+      (r.unmatched && r.unmatched.length) ? `sidumata: ${r.unmatched.join("; ")}` : "",
+      (r.update_error_examples && r.update_error_examples.length) ? `vead: ${r.update_error_examples.join("; ")}` : ""
+    ].filter(Boolean);
+
+    setMsg($("adminMsg"), true, `Tulemused sünkroniseeritud: ${parts.join(" • ")}`);
+
+    await loadMatchesAndPreds();
+    await loadLeaderboard();
+    await loadOthersView();
+    if (typeof loadAdminScreenshotBoard === "function") await loadAdminScreenshotBoard();
+  }catch(err){
+    setMsg($("adminMsg"), false, err.message);
+  }finally{
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "Sünkroniseeri tulemused";
+    }
+  }
+};
+
 
 $("btnReload").onclick = loadAll;
 

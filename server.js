@@ -535,7 +535,10 @@ async function syncApiFootballResults(sb, { force=false } = {}){
   let matched = 0;
   let finished_found = 0;
   let skipped_manual = 0;
+  let update_errors = 0;
   const unmatched = [];
+  const updated_matches = [];
+  const update_error_examples = [];
 
   for (const match of matchesRes.data || []){
     if (match.manual_result_override) {
@@ -554,14 +557,15 @@ async function syncApiFootballResults(sb, { force=false } = {}){
 
     matched += 1;
 
-    const patch = {};
+    // Optional fixture-id salvestus eraldi. Kui veerg puudub, ei tohi see skoori salvestamist katki teha.
     const fxId = Number(fx?.fixture?.id);
     if (fxId && Number(match.api_football_fixture_id) !== fxId){
-      patch.api_football_fixture_id = fxId;
+      await sb.from("matches").update({ api_football_fixture_id: fxId }).eq("id", match.id).catch(() => null);
     }
 
     if (apiFixtureFinished(fx)){
       finished_found += 1;
+
       const score = apiNormalTimeScore(fx);
       if (score && Number.isFinite(score.home) && Number.isFinite(score.away)){
         const homeGoals = score.home;
@@ -574,24 +578,26 @@ async function syncApiFootballResults(sb, { force=false } = {}){
           normalizeWinner(match.winner) !== apiWinner ||
           !match.is_finished;
 
-        patch.final_home = homeGoals;
-        patch.final_away = awayGoals;
-        patch.is_finished = true;
-        if (apiWinner) patch.winner = apiWinner;
+        const resultPatch = {
+          final_home: homeGoals,
+          final_away: awayGoals,
+          is_finished: true
+        };
+        if (apiWinner) resultPatch.winner = apiWinner;
 
-        if (Object.keys(patch).length){
-          const upd = await sb.from("matches").update(patch).eq("id", match.id).select("*").single();
-          if (!upd.error){
-            updated += 1;
-            if (changed){
-              await recalcPointsForMatch(sb, match.id);
-            }
+        const upd = await sb.from("matches").update(resultPatch).eq("id", match.id).select("*").single();
+
+        if (!upd.error){
+          updated += 1;
+          updated_matches.push(`#${match.match_no} ${match.home} - ${match.away} ${homeGoals}:${awayGoals}`);
+          if (changed){
+            await recalcPointsForMatch(sb, match.id);
           }
-          continue;
+        } else {
+          update_errors += 1;
+          update_error_examples.push(`#${match.match_no} ${upd.error.message}`);
         }
       }
-    } else if (Object.keys(patch).length){
-      await sb.from("matches").update(patch).eq("id", match.id);
     }
   }
 
@@ -602,7 +608,10 @@ async function syncApiFootballResults(sb, { force=false } = {}){
     matched,
     finished_found,
     skipped_manual,
+    update_errors,
+    updated_matches: updated_matches.slice(0, 20),
     unmatched: unmatched.slice(0, 20),
+    update_error_examples: update_error_examples.slice(0, 10),
     api_errors: fetched.errors || []
   };
 }
@@ -765,13 +774,46 @@ if (event.httpMethod === "GET" && route === "me") {
       return json(200, { ok: true, matches: m.data });
     }
 
+
+    // Admin API-Football debug: shows candidate fixtures for a match number
+    if (event.httpMethod === "GET" && route === "admin/debug/api-football") {
+      const u = userFrom(event);
+      if (!u || !u.is_admin) return json(403, { error: "Admini õigused puuduvad." });
+
+      const no = Number(event.queryStringParameters?.match_no || 0);
+      if (!no) return json(400, { error: "Lisa query: ?match_no=..." });
+
+      const matchRes = await sb.from("matches").select("*").eq("match_no", no).single();
+      if (matchRes.error) return json(500, { error: matchRes.error.message });
+
+      const date = isoDateOnly(matchRes.data.kickoff_utc);
+      const fetched = await fetchApiFootballFixtures(date ? [date] : []);
+      if (!fetched.ok) return json(500, { error: fetched.error || "API-Football viga" });
+
+      const candidates = (fetched.fixtures || [])
+        .map(fx => ({
+          fixture_id: fx?.fixture?.id,
+          date: fx?.fixture?.date,
+          status: fx?.fixture?.status?.short,
+          home: fx?.teams?.home?.name,
+          away: fx?.teams?.away?.name,
+          goals: `${fx?.goals?.home ?? ""}:${fx?.goals?.away ?? ""}`,
+          fulltime: `${fx?.score?.fulltime?.home ?? ""}:${fx?.score?.fulltime?.away ?? ""}`,
+          score: scoreFixtureMatch(matchRes.data, fx)
+        }))
+        .sort((a,b) => b.score - a.score)
+        .slice(0, 10);
+
+      return json(200, { ok:true, match: matchRes.data, candidates });
+    }
+
     // Admin sync results from API-Football
     if (event.httpMethod === "POST" && route === "admin/sync/results") {
       const u = userFrom(event);
       if (!u || !u.is_admin) return json(403, { error: "Admini õigused puuduvad." });
       const sync = await syncApiFootballResults(sb, { force:true });
       if (!sync.ok) return json(500, { error: sync.error || "Tulemuste sünkroniseerimine ebaõnnestus." });
-      return json(200, { ok:true, updated: sync.updated || 0, fixtures: sync.fixtures || 0, skipped: !!sync.skipped, reason: sync.reason || "" });
+      return json(200, { ok:true, ...sync });
     }
 
 
