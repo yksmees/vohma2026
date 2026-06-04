@@ -1779,6 +1779,38 @@
       }
     }
 
+  
+    /* PLAYOFF WINNER SELECTION FIX */
+    .winner-option{
+      display:flex;
+      align-items:center;
+      gap:7px;
+      width:max-content;
+      max-width:100%;
+      margin-top:6px;
+      padding:6px 10px;
+      border:1px solid rgba(255,255,255,.14);
+      border-radius:999px;
+      background:rgba(255,255,255,.05);
+      font-weight:800;
+    }
+
+    .winner-option.selected{
+      background:rgba(34,197,94,.22);
+      border-color:rgba(34,197,94,.75);
+      color:#ffffff;
+      box-shadow:0 0 0 1px rgba(34,197,94,.18) inset;
+    }
+
+    .winner-option input[type="radio"]:checked + span{
+      font-weight:950;
+    }
+
+    .winner-option input[type="radio"]:disabled:checked{
+      accent-color:#22c55e;
+      opacity:1;
+    }
+
   </style>
 </head>
 <body>
@@ -2285,13 +2317,20 @@ function predictionWinnerHtml(row, pr, locked){
   const hasAway = pr && pr.pred_away !== null && pr.pred_away !== undefined && String(pr.pred_away).trim() !== "";
   const ph = Number(pr?.pred_home);
   const pa = Number(pr?.pred_away);
-  const show = hasHome && hasAway && Number.isFinite(ph) && Number.isFinite(pa) && ph === pa;
+  const savedDraw = hasHome && hasAway && Number.isFinite(ph) && Number.isFinite(pa) && ph === pa;
+  const show = savedDraw || !!selected;
 
   return `
-    <div class="winner-pick${show ? "" : " hide"}" data-winner-box="${row.id}">
+    <div class="winner-pick${show ? "" : " hide"}" data-winner-box="${row.id}" data-saved-winner="${selected}">
       <div class="winner-title">Kui 90 min jääb viiki, vali edasipääseja:</div>
-      <label><input type="radio" name="winner_${row.id}" value="home" ${selected === "home" ? "checked" : ""} ${locked ? "disabled" : ""}> ${row.home}</label>
-      <label><input type="radio" name="winner_${row.id}" value="away" ${selected === "away" ? "checked" : ""} ${locked ? "disabled" : ""}> ${row.away}</label>
+      <label class="winner-option ${selected === "home" ? "selected" : ""}">
+        <input type="radio" name="winner_${row.id}" value="home" ${selected === "home" ? "checked" : ""} ${locked ? "disabled" : ""}>
+        <span>${row.home}</span>
+      </label>
+      <label class="winner-option ${selected === "away" ? "selected" : ""}">
+        <input type="radio" name="winner_${row.id}" value="away" ${selected === "away" ? "checked" : ""} ${locked ? "disabled" : ""}>
+        <span>${row.away}</span>
+      </label>
     </div>
   `;
 }
@@ -2310,15 +2349,22 @@ function updateWinnerVisibility(mid){
   const ph = Number(hRaw);
   const pa = Number(aRaw);
 
-  const show = hasHome && hasAway && Number.isFinite(ph) && Number.isFinite(pa) && ph === pa;
+  const drawNow = hasHome && hasAway && Number.isFinite(ph) && Number.isFinite(pa) && ph === pa;
+  const hasSavedWinner = !!String(box.dataset.savedWinner || "").trim();
+  const show = drawNow || hasSavedWinner;
 
   box.classList.toggle("hide", !show);
 
   if (!show) {
     box.querySelectorAll("input[type='radio']").forEach(r => { r.checked = false; });
+    box.dataset.savedWinner = "";
   }
-}
 
+  box.querySelectorAll(".winner-option").forEach(label=>{
+    const radio = label.querySelector("input[type='radio']");
+    label.classList.toggle("selected", !!radio?.checked);
+  });
+}
 
 let showFinishedMobile = false;
 
@@ -2714,6 +2760,14 @@ tbody.querySelectorAll(`input[name="winner_${mid}"]`).forEach(inp=>{
   inp.addEventListener("change", ()=>{
     btn.classList.remove("saved");
     btn.textContent = "Salvesta";
+    const box = tbody.querySelector(`[data-winner-box="${mid}"]`);
+    if (box) {
+      box.dataset.savedWinner = inp.checked ? inp.value : "";
+      box.querySelectorAll(".winner-option").forEach(label=>{
+        const radio = label.querySelector("input[type='radio']");
+        label.classList.toggle("selected", !!radio?.checked);
+      });
+    }
   });
 });
 

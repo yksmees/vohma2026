@@ -411,7 +411,20 @@ function chooseFixtureForMatch(dbMatch, fixtures){
   return bestScore >= 4 ? best : null;
 }
 
-async function fetchApiFootballFixtures(){
+
+function isoDateOnly(value){
+  if (!value) return "";
+  const d = new Date(value);
+  if (!Number.isFinite(d.getTime())) return "";
+  return d.toISOString().slice(0,10);
+}
+
+function uniqueList(items){
+  return Array.from(new Set((items || []).filter(Boolean)));
+}
+
+
+async function fetchApiFootballFixtures(matchDates = []){
   const apiKey = process.env.API_FOOTBALL_KEY || "";
   if (!apiKey) return { ok:false, error:"API_FOOTBALL_KEY puudu", fixtures:[] };
 
@@ -422,9 +435,10 @@ async function fetchApiFootballFixtures(){
 
   const allFixtures = [];
   const errors = [];
+  const seenFixtureIds = new Set();
 
-  for (const src of sources){
-    const resp = await fetch(`${API_FOOTBALL_BASE_URL}/fixtures?league=${src.league}&season=${src.season}`, {
+  async function addFixturesFromUrl(url, label){
+    const resp = await fetch(url, {
       headers: {
         "x-apisports-key": apiKey,
         "Accept": "application/json"
@@ -433,21 +447,40 @@ async function fetchApiFootballFixtures(){
 
     if (!resp.ok){
       const txt = await resp.text().catch(() => "");
-      errors.push(`league ${src.league}: ${resp.status} ${txt.slice(0,120)}`);
-      continue;
+      errors.push(`${label}: ${resp.status} ${txt.slice(0,120)}`);
+      return;
     }
 
     const data = await resp.json();
     if (Array.isArray(data?.response)) {
-      allFixtures.push(...data.response);
+      for (const fx of data.response) {
+        const id = Number(fx?.fixture?.id);
+        if (id && seenFixtureIds.has(id)) continue;
+        if (id) seenFixtureIds.add(id);
+        allFixtures.push(fx);
+      }
     }
+  }
+
+  for (const src of sources){
+    await addFixturesFromUrl(
+      `${API_FOOTBALL_BASE_URL}/fixtures?league=${src.league}&season=${src.season}`,
+      `league ${src.league}`
+    );
+  }
+
+  for (const date of uniqueList(matchDates).slice(0, 7)){
+    await addFixturesFromUrl(
+      `${API_FOOTBALL_BASE_URL}/fixtures?date=${date}`,
+      `date ${date}`
+    );
   }
 
   if (!allFixtures.length && errors.length){
     return { ok:false, error:`API-Football viga: ${errors.join("; ")}`, fixtures:[] };
   }
 
-  return { ok:true, fixtures: allFixtures };
+  return { ok:true, fixtures: allFixtures, errors };
 }
 
 async function recalcPointsForMatch(sb, matchId){
@@ -478,23 +511,48 @@ async function syncApiFootballResults(sb, { force=false } = {}){
   }
   lastApiFootballSyncAt = now;
 
-  const fetched = await fetchApiFootballFixtures();
-  if (!fetched.ok){
-    return { ok:false, updated:0, error:fetched.error || "API-Football päring ebaõnnestus" };
-  }
-
-  const fixtures = fetched.fixtures || [];
   const matchesRes = await sb.from("matches").select("*").order("match_no", { ascending: true });
   if (matchesRes.error){
     return { ok:false, updated:0, error:matchesRes.error.message };
   }
 
+  const matchDates = (matchesRes.data || [])
+    .filter(m => !m.manual_result_override)
+    .filter(m => {
+      if (!m.kickoff_utc) return false;
+      const t = new Date(m.kickoff_utc).getTime();
+      return Number.isFinite(t) && t <= Date.now() + 24 * 60 * 60 * 1000;
+    })
+    .map(m => isoDateOnly(m.kickoff_utc));
+
+  const fetched = await fetchApiFootballFixtures(matchDates);
+  if (!fetched.ok){
+    return { ok:false, updated:0, error:fetched.error || "API-Football päring ebaõnnestus" };
+  }
+
+  const fixtures = fetched.fixtures || [];
   let updated = 0;
+  let matched = 0;
+  let finished_found = 0;
+  let skipped_manual = 0;
+  const unmatched = [];
+
   for (const match of matchesRes.data || []){
-    if (match.manual_result_override) continue;
+    if (match.manual_result_override) {
+      skipped_manual += 1;
+      continue;
+    }
 
     const fx = chooseFixtureForMatch(match, fixtures);
-    if (!fx) continue;
+    if (!fx) {
+      const t = match.kickoff_utc ? new Date(match.kickoff_utc).getTime() : null;
+      if (Number.isFinite(t) && t <= Date.now()) {
+        unmatched.push(`#${match.match_no} ${match.home} - ${match.away}`);
+      }
+      continue;
+    }
+
+    matched += 1;
 
     const patch = {};
     const fxId = Number(fx?.fixture?.id);
@@ -502,8 +560,8 @@ async function syncApiFootballResults(sb, { force=false } = {}){
       patch.api_football_fixture_id = fxId;
     }
 
-    
-if (apiFixtureFinished(fx)){
+    if (apiFixtureFinished(fx)){
+      finished_found += 1;
       const score = apiNormalTimeScore(fx);
       if (score && Number.isFinite(score.home) && Number.isFinite(score.away)){
         const homeGoals = score.home;
@@ -511,8 +569,8 @@ if (apiFixtureFinished(fx)){
         const apiWinner = apiFixtureWinner(fx);
 
         const changed =
-          match.final_home !== homeGoals ||
-          match.final_away !== awayGoals ||
+          Number(match.final_home) !== homeGoals ||
+          Number(match.final_away) !== awayGoals ||
           normalizeWinner(match.winner) !== apiWinner ||
           !match.is_finished;
 
@@ -537,9 +595,17 @@ if (apiFixtureFinished(fx)){
     }
   }
 
-  return { ok:true, updated, fixtures: fixtures.length };
+  return {
+    ok:true,
+    updated,
+    fixtures: fixtures.length,
+    matched,
+    finished_found,
+    skipped_manual,
+    unmatched: unmatched.slice(0, 20),
+    api_errors: fetched.errors || []
+  };
 }
-
 
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
