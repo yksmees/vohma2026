@@ -84,3 +84,5 @@ Kui kasutaja vaates küsimused ei ilmu, käivita `sql/bonus_questions_migration.
 Admin saab lisaküsimuste vaates uusi küsimusi juurde lisada ning olemasolevaid küsimusi, õigeid vastuseid ja punkte muuta.
 
 Admin vaates saab tulemusi sisestada ka korraga plokina: iga rida kujul `mängu_nr skoor`, näiteks `-3 1:2`. Play-off viigi puhul lisa `home` või `away`, näiteks `-2 0:0 home`.
+
+Admin vaates saab ühe mängu tulemuse sisestada dropdownist mängu valides. Dropdownis on eespool juba lukus või alanud mängud, millel tulemus puudub.

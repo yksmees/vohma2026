@@ -1821,6 +1821,20 @@
       line-height:1.45;
     }
 
+  
+    /* MANUAL RESULT DROPDOWN */
+    .result-dropdown-row select{
+      flex:1 1 520px;
+      min-width:260px;
+    }
+
+    @media (max-width:760px){
+      .result-dropdown-row select,
+      .result-dropdown-row button{
+        width:100%;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -2003,7 +2017,7 @@
     <b>Lisa U17 testmängud</b> lisab kolm UEFA U17 testmängu ennustusvaate algusesse. <b>Eemalda U17 testmängud</b> kustutab need hiljem koos nende ennustustega.<br>
     <b>Sünkroniseeri ajakava</b> uuendab mänguaegu olemasoleva ajakava järgi.<br>
     <b>Sünkroniseeri tulemused</b> tõmbab API-Footballist lõppenud mängude skoorid.<br>
-    <b>Käsitsi tulemus</b> sisesta ühe mängu tulemus mängu numbri järgi. <b>Impordi tulemused korraga</b> võimaldab mitu tulemust korraga kleepida kujul <code>mängu_nr skoor</code>, näiteks <code>-3 1:2</code> või play-off viigi puhul <code>-2 0:0 home</code>.<br>
+    <b>Käsitsi tulemus</b> vali mäng dropdownist või sisesta mängu number käsitsi. <b>Impordi tulemused korraga</b> võimaldab mitu tulemust korraga kleepida kujul <code>mängu_nr skoor</code>, näiteks <code>-3 1:2</code> või play-off viigi puhul <code>-2 0:0 home</code>.<br>
     <b>Käsitsi mänguaeg</b> sisesta kuupäev kujul DD:MM:YY ja kellaaeg HH:MM Eesti aja järgi, et testida 1 tunni lukku.<br>
     <b>Kustuta mäng</b> vali mäng dropdown-listist. See kustutab ka selle mängu ennustused.<br>
     <b>Lisa uus mäng</b> sisesta mängu nr, meeskonnad, kuupäev DD:MM:YY, kellaaeg HH:MM ja asukoht. Etappi eraldi sisestama ei pea.<br>
@@ -2127,6 +2141,10 @@
           <div class="card">
             <strong>Käsitsi kontroll: tulemus ja mänguaeg</strong>
             <div class="sub" style="margin-top:6px">Sisesta mängu number (#). Tulemus arvutab punktid ümber. Mänguaeg salvesta Eesti aja järgi, et kontrollida 1 tunni lukku.</div>
+            <div class="row result-dropdown-row" style="margin-top:10px">
+              <select id="resultMatchSelect"></select>
+              <button id="btnRefreshResultMatchDropdown" type="button">Uuenda nimekirja</button>
+            </div>
             <div class="row" style="margin-top:10px">
               <input id="mid" class="small" placeholder="mängu #" />
               <input id="fh" class="small" placeholder="90 min kodu" />
@@ -2295,6 +2313,114 @@ function displayMatchNo(m){
 function formatMatchOption(m){
   return `#${displayMatchNo(m)} ${m.home} - ${m.away}`;
 }
+
+
+function resultMatchSort(a,b){
+  const now = Date.now();
+
+  const status = (m)=>{
+    const hasFinal = m.final_home !== null && m.final_home !== undefined && m.final_away !== null && m.final_away !== undefined;
+    if (hasFinal || m.is_finished) return 3;
+
+    const kickoff = m.kickoff_utc ? new Date(m.kickoff_utc).getTime() : null;
+    if (Number.isFinite(kickoff) && now >= kickoff - 60 * 60 * 1000) return 0;
+    if (Number.isFinite(kickoff)) return 1;
+    return 2;
+  };
+
+  const sa = status(a);
+  const sb = status(b);
+  if (sa !== sb) return sa - sb;
+
+  const ta = a.kickoff_utc ? new Date(a.kickoff_utc).getTime() : 0;
+  const tb = b.kickoff_utc ? new Date(b.kickoff_utc).getTime() : 0;
+
+  if (sa === 0) return tb - ta;       // juba lukus mängud: värskem ees
+  if (sa === 1) return ta - tb;       // tulevased mängud: lähim ees
+  if (tb !== ta) return tb - ta;
+
+  return (Number(a.match_no) || 0) - (Number(b.match_no) || 0);
+}
+
+function resultMatchLabel(m){
+  const hasFinal = m.final_home !== null && m.final_home !== undefined && m.final_away !== null && m.final_away !== undefined;
+  const ko = m.kickoff_utc ? new Date(m.kickoff_utc) : null;
+  const koTxt = ko ? new Intl.DateTimeFormat('et-EE',{timeZone:'Europe/Tallinn', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'}).format(ko) : "";
+  const lockAt = ko ? ko.getTime() - 60 * 60 * 1000 : null;
+  const locked = Number.isFinite(lockAt) && Date.now() >= lockAt;
+
+  const state = hasFinal || m.is_finished
+    ? `tulemus ${m.final_home ?? ""}:${m.final_away ?? ""}`
+    : locked
+      ? "lukus / sisesta tulemus"
+      : "tulemas";
+
+  return `#${displayMatchNo(m)} ${m.home} - ${m.away}${koTxt ? " • " + koTxt : ""} • ${state}`;
+}
+
+function updateResultWinnerOptions(match){
+  const fw = $("fw");
+  if (!fw) return;
+
+  const current = fw.value;
+  fw.innerHTML = `
+    <option value="">Edasipääseja puudub</option>
+    <option value="home">${match?.home ? escapeHtml(match.home) + " edasi" : "Kodu edasi"}</option>
+    <option value="away">${match?.away ? escapeHtml(match.away) + " edasi" : "Võõrsil edasi"}</option>
+  `;
+  if (current) fw.value = current;
+}
+
+function fillResultFieldsFromSelectedMatch(){
+  const select = $("resultMatchSelect");
+  if (!select || !select.value) return;
+
+  const opt = select.selectedOptions?.[0];
+  if (!opt) return;
+
+  const matchNo = opt.dataset.matchNo || "";
+  const home = opt.dataset.home || "";
+  const away = opt.dataset.away || "";
+  const finalHome = opt.dataset.finalHome || "";
+  const finalAway = opt.dataset.finalAway || "";
+  const winner = opt.dataset.winner || "";
+
+  if ($("mid")) $("mid").value = matchNo;
+  if ($("fh")) $("fh").value = finalHome;
+  if ($("fa")) $("fa").value = finalAway;
+
+  updateResultWinnerOptions({home, away});
+
+  if ($("fw")) $("fw").value = winner;
+}
+
+function populateResultMatchSelects(matches){
+  const select = $("resultMatchSelect");
+  if (!select) return;
+
+  const current = select.value;
+  const sorted = (matches || []).slice().sort(resultMatchSort);
+
+  select.innerHTML = `<option value="">Vali mäng tulemuse sisestamiseks</option>` + sorted.map(m=>{
+    const finalHome = m.final_home ?? "";
+    const finalAway = m.final_away ?? "";
+    const winner = m.winner || "";
+
+    return `<option value="${m.id}" data-match-no="${m.match_no}" data-home="${escapeHtml(m.home || "")}" data-away="${escapeHtml(m.away || "")}" data-final-home="${finalHome}" data-final-away="${finalAway}" data-winner="${winner}">
+      ${escapeHtml(resultMatchLabel(m))}
+    </option>`;
+  }).join("");
+
+  if (current && sorted.some(m => String(m.id) === String(current))) {
+    select.value = current;
+  }
+
+  if (select.dataset.boundResultSelect !== "1") {
+    select.dataset.boundResultSelect = "1";
+    select.addEventListener("change", fillResultFieldsFromSelectedMatch);
+  }
+}
+
 
 function populateAdminMatchSelects(matches){
   const delSelect = $("delMatchSelect");
@@ -2724,6 +2850,7 @@ async function loadMatchesAndPreds(){
     const map = new Map((p.predictions||[]).map(x=>[x.match_id, x]));
     const publicMap = pub.predictions_by_match || {};
     populateAdminMatchSelects(m.matches || []);
+    populateResultMatchSelects(m.matches || []);
     for (const row of m.matches){
       const pr = map.get(row.id);
       const tr = document.createElement("tr");
@@ -3735,6 +3862,20 @@ if ($("btnAddBonusQuestion")) $("btnAddBonusQuestion").onclick = async (e)=>{
 };
 
 
+
+if ($("btnRefreshResultMatchDropdown")) $("btnRefreshResultMatchDropdown").onclick = async (e)=>{
+  if (e) e.preventDefault();
+  try{
+    const m = await call("matches",{method:"GET"});
+    populateResultMatchSelects(m.matches || []);
+    fillResultFieldsFromSelectedMatch();
+    setMsg($("adminMsg"), true, "Tulemuste mänguvalik uuendatud.");
+  }catch(err){
+    setMsg($("adminMsg"), false, err.message);
+  }
+};
+
+
 if ($("btnRefreshMatchDropdown")) $("btnRefreshMatchDropdown").onclick = async ()=>{
   try{
     const m = await call("matches",{method:"GET"});
@@ -3893,8 +4034,14 @@ $("btnSetFinal").onclick = async ()=>{
     if (!matchNo || !Number.isFinite(fh) || !Number.isFinite(fa)) return setMsg($("adminMsg"), false, "Sisesta mängu # ja numbrid.");
     await call(`admin/matches/by-no/${matchNo}`,{method:"PUT", body: JSON.stringify({final_home: fh, final_away: fa, winner, is_finished: true})});
     setMsg($("adminMsg"), true, "Tulemus salvestatud.");
+    const selectedResultMatch = $("resultMatchSelect")?.value || "";
     await loadMatchesAndPreds();
+    if ($("resultMatchSelect") && selectedResultMatch) {
+      $("resultMatchSelect").value = selectedResultMatch;
+      fillResultFieldsFromSelectedMatch();
+    }
     await loadLeaderboard();
+    await loadOthersView();
     await loadAdminScreenshotBoard();
   }catch(e){
     setMsg($("adminMsg"), false, e.message);
