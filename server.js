@@ -1308,6 +1308,46 @@ if (event.httpMethod === "GET" && route === "admin/bonus") {
   });
 }
 
+
+// Lisa uus lisaküsimus adminis
+if (event.httpMethod === "POST" && route === "admin/bonus/questions") {
+  const u = userFrom(event);
+  if (!u || !u.is_admin) return json(403, { error: "Admini õigused puuduvad." });
+
+  const body = JSON.parse(event.body || "{}");
+  const question_text = String(body.question_text || "").trim();
+  const correct_answer = String(body.correct_answer || "").trim();
+  const points = Number(body.points) || 3;
+
+  if (!question_text) return json(400, { error: "Sisesta küsimuse tekst." });
+
+  const maxOrder = await sb
+    .from("bonus_questions")
+    .select("sort_order")
+    .order("sort_order", { ascending: false })
+    .limit(1);
+
+  if (maxOrder.error) return json(500, { error: maxOrder.error.message });
+
+  const sort_order = (Number(maxOrder.data?.[0]?.sort_order) || 0) + 1;
+
+  const ins = await sb
+    .from("bonus_questions")
+    .insert({
+      question_text,
+      correct_answer,
+      points,
+      sort_order,
+      active: true
+    })
+    .select("id,question_text,correct_answer,points,sort_order,active")
+    .single();
+
+  if (ins.error) return json(500, { error: ins.error.message });
+
+  return json(200, { ok: true, question: ins.data });
+}
+
 // Muuda lisaküsimust adminis
 {
   const m = route.match(/^admin\/bonus\/questions\/(\d+)$/);

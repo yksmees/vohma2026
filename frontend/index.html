@@ -1633,6 +1633,18 @@
       background:rgba(255,255,255,.08);
     }
 
+  
+    /* BONUS ADD QUESTION */
+    .bonus-add-question-card input{
+      min-width:180px;
+    }
+    #newBonusQuestionText{
+      flex:2 1 280px;
+    }
+    #newBonusCorrectAnswer{
+      flex:1 1 220px;
+    }
+
   </style>
 </head>
 <body>
@@ -1859,6 +1871,17 @@
   </div>
   <div id="adminBonusMsg" class="msg"></div>
           <button id="btnSeedBonusQuestions" type="button" style="margin-top:8px">Lisa vaikimisi lisaküsimused</button>
+
+          <div class="card bonus-add-question-card" style="margin-top:10px">
+            <strong>Lisa uus lisaküsimus</strong>
+            <div class="row" style="margin-top:10px">
+              <input id="newBonusQuestionText" placeholder="Küsimus" />
+              <input id="newBonusCorrectAnswer" placeholder="Õige vastus (võib hiljem lisada)" />
+              <input id="newBonusPoints" class="small" value="3" placeholder="punktid" />
+              <button id="btnAddBonusQuestion" type="button" class="primary">Lisa küsimus</button>
+            </div>
+          </div>
+
 
   <div class="table-wrap" style="margin-top:10px">
     <table id="adminBonusQuestionsTable">
