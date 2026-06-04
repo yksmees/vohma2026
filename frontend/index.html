@@ -1990,7 +1990,7 @@
   <strong>Lisaküsimused screenshotiks</strong>
   <div class="sub" style="margin-top:8px">Eraldi kompaktne tabel lisaküsimuste vastuste screenshotiks.</div>
           <div class="row" style="margin-top:10px">
-            <button id="btnExportBonusJpg" type="button" class="primary">Ekspordi JPG</button>
+            <button id="btnExportBonusJpg" type="button" class="primary" onclick="handleBonusExportClick(event)">Ekspordi JPG</button>
           </div>
   <div class="screenshot-board-wrap">
     <table id="bonusScreenshotTable" class="screenshot-board">
@@ -3223,6 +3223,47 @@ function renderAdminBonusAnswers(){
 }
 
 
+
+async function handleBonusExportClick(e){
+  if (e) e.preventDefault();
+
+  const btn = $("btnExportBonusJpg");
+
+  if (!(me && me.is_admin)) {
+    return setMsg($("adminBonusMsg"), false, "Ainult admin.");
+  }
+
+  try{
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Ekspordin...";
+    }
+
+    const fresh = await call("admin/bonus", {method:"GET"});
+    adminBonusData = fresh;
+
+    if (typeof renderAdminBonusAnswers === "function") renderAdminBonusAnswers();
+    if (typeof renderBonusScreenshot === "function") renderBonusScreenshot(fresh);
+
+    exportBonusScreenshotJpg();
+  }catch(err){
+    setMsg($("adminBonusMsg"), false, err.message);
+  }finally{
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "Ekspordi JPG";
+    }
+  }
+}
+
+function bindBonusExportButton(){
+  const btn = $("btnExportBonusJpg");
+  if (!btn || btn.dataset.boundExport === "1") return;
+
+  btn.dataset.boundExport = "1";
+  btn.addEventListener("click", handleBonusExportClick);
+}
+
 function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight, maxLines = 6){
   const words = String(text || "").split(/\s+/).filter(Boolean);
   const lines = [];
@@ -3392,15 +3433,29 @@ function exportBonusScreenshotJpg(){
     x += userCol;
   });
 
-  const link = document.createElement("a");
   const stamp = new Date().toISOString().slice(0,10);
-  link.download = `lisakusimused_${stamp}.jpg`;
-  link.href = canvas.toDataURL("image/jpeg", 0.95);
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
+  const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
+  const filename = `lisakusimused_${stamp}.jpg`;
 
-  setMsg($("adminBonusMsg"), true, "JPG eksporditud.");
+  try{
+    const link = document.createElement("a");
+    link.download = filename;
+    link.href = dataUrl;
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    setMsg($("adminBonusMsg"), true, "JPG eksporditud.");
+  }catch(err){
+    const w = window.open();
+    if (w) {
+      w.document.write(`<title>${filename}</title><img src="${dataUrl}" style="max-width:100%;height:auto">`);
+      setMsg($("adminBonusMsg"), true, "JPG avati uues aknas. Salvesta pilt sealt.");
+    } else {
+      setMsg($("adminBonusMsg"), false, "Brauser blokeeris ekspordi. Luba hüpikaknad või proovi uuesti.");
+    }
+  }
 }
 
 async function loadAdminBonus(){
@@ -3473,6 +3528,7 @@ async function loadAdminBonus(){
 
     renderAdminBonusAnswers();
     renderBonusScreenshot(data);
+    bindBonusExportButton();
   }catch(err){
     setMsg($("adminBonusMsg"), false, err.message);
   }
@@ -3665,6 +3721,7 @@ if ($("btnRefreshScreenshotBoard") && typeof loadAdminScreenshotBoard === "funct
   $("btnRefreshScreenshotBoard").onclick = loadAdminScreenshotBoard;
 }
 
+bindBonusExportButton();
 bindAuthButtons();
 bindLogoutButtons();
 loadAll();
