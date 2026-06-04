@@ -28,12 +28,12 @@ insert into public.bonus_questions (sort_order, question_text, points, active)
 select *
 from (
   values
-    (1, '🏆 Milline koondis tuleb maailmameistriks?', 3, true),
-    (2, '⚽ Kes on turniiri suurim väravakütt?', 3, true),
-    (3, '🇦🇷 Mitu väravat lööb oma viimasel suurturniiril Messi?', 3, true),
-    (4, '🇵🇹 Mitu väravat lööb oma viimasel suurturniiril Ronaldo?', 3, true),
-    (5, '👑 Kes võidab meie alagrupiturniiri ennustuse?', 3, true),
-    (6, '🥄 Kes jääb meie alagrupiturniiri ennustuses viimaseks?', 3, true)
+    (1, 'Milline koondis tuleb maailmameistriks?', 3, true),
+    (2, 'Kes on turniiri suurim väravakütt?', 3, true),
+    (3, 'Mitu väravat lööb oma viimasel suurturniiril Messi?', 3, true),
+    (4, 'Mitu väravat lööb oma viimasel suurturniiril Ronaldo?', 3, true),
+    (5, 'Kes võidab meie alagrupiturniiri ennustuse?', 3, true),
+    (6, 'Kes jääb meie alagrupiturniiri ennustuses viimaseks?', 3, true)
 ) as v(sort_order, question_text, points, active)
 where not exists (
   select 1
@@ -48,3 +48,15 @@ for each row execute function public.set_updated_at();
 drop trigger if exists trg_bonus_answers_updated on public.bonus_answers;
 create trigger trg_bonus_answers_updated before update on public.bonus_answers
 for each row execute function public.set_updated_at();
+
+update public.bonus_questions
+set question_text = case sort_order
+  when 1 then 'Milline koondis tuleb maailmameistriks?'
+  when 2 then 'Kes on turniiri suurim väravakütt?'
+  when 3 then 'Mitu väravat lööb oma viimasel suurturniiril Messi?'
+  when 4 then 'Mitu väravat lööb oma viimasel suurturniiril Ronaldo?'
+  when 5 then 'Kes võidab meie alagrupiturniiri ennustuse?'
+  when 6 then 'Kes jääb meie alagrupiturniiri ennustuses viimaseks?'
+  else question_text
+end
+where sort_order between 1 and 6;

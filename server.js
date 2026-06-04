@@ -197,12 +197,12 @@ function calcPoints(ph, pa, fh, fa, options = {}){
 }
 
 const BONUS_QUESTIONS_SEED = [
-  "🏆 Milline koondis tuleb maailmameistriks?",
-  "⚽ Kes on turniiri suurim väravakütt?",
-  "🇦🇷 Mitu väravat lööb oma viimasel suurturniiril Messi?",
-  "🇵🇹 Mitu väravat lööb oma viimasel suurturniiril Ronaldo?",
-  "👑 Kes võidab meie alagrupiturniiri ennustuse?",
-  "🥄 Kes jääb meie alagrupiturniiri ennustuses viimaseks?"
+  "Milline koondis tuleb maailmameistriks?",
+  "Kes on turniiri suurim väravakütt?",
+  "Mitu väravat lööb oma viimasel suurturniiril Messi?",
+  "Mitu väravat lööb oma viimasel suurturniiril Ronaldo?",
+  "Kes võidab meie alagrupiturniiri ennustuse?",
+  "Kes jääb meie alagrupiturniiri ennustuses viimaseks?"
 ];
 
 async function ensureBonusQuestions(sb){
@@ -219,22 +219,26 @@ async function ensureBonusQuestions(sb){
   }
 
   const current = existing.data || [];
-  const currentTexts = new Set(current.map(q => String(q.question_text || "").trim()));
-  const currentOrders = new Set(current.map(q => Number(q.sort_order)));
 
-  const missing = BONUS_QUESTIONS_SEED
-    .map((question_text, index) => ({
-      question_text,
-      sort_order: index + 1,
-      points: 3,
-      active: true
-    }))
-    .filter(q => !currentTexts.has(q.question_text) && !currentOrders.has(q.sort_order));
+  for (let i = 0; i < BONUS_QUESTIONS_SEED.length; i++) {
+    const sort_order = i + 1;
+    const question_text = BONUS_QUESTIONS_SEED[i];
+    const row = current.find(q => Number(q.sort_order) === sort_order);
 
-  if (!missing.length) return;
-
-  const ins = await sb.from("bonus_questions").insert(missing);
-  if (ins.error) throw new Error(ins.error.message);
+    if (row) {
+      if (String(row.question_text || "").trim() !== question_text) {
+        await sb.from("bonus_questions").update({ question_text }).eq("id", row.id);
+      }
+    } else {
+      const ins = await sb.from("bonus_questions").insert({
+        question_text,
+        sort_order,
+        points: 3,
+        active: true
+      });
+      if (ins.error) throw new Error(ins.error.message);
+    }
+  }
 }
 
 async function getBonusLockInfo(sb){
@@ -1316,13 +1320,27 @@ if (event.httpMethod === "PUT" && route === "admin/bonus/answers") {
   const q = await sb.from("bonus_questions").select("points").eq("id", question_id).single();
   if (q.error) return json(500, { error: q.error.message });
 
+  const current = await sb
+    .from("bonus_answers")
+    .select("answer_text")
+    .eq("player_id", player_id)
+    .eq("question_id", question_id)
+    .maybeSingle();
+
+  if (current.error) return json(500, { error: current.error.message });
+
+  const answer_text = current.data?.answer_text || "";
   const points = is_correct ? (Number(q.data?.points) || 3) : 0;
 
   const upd = await sb
     .from("bonus_answers")
-    .update({ is_correct, points })
-    .eq("player_id", player_id)
-    .eq("question_id", question_id)
+    .upsert({
+      player_id,
+      question_id,
+      answer_text,
+      is_correct,
+      points
+    }, { onConflict: "player_id,question_id" })
     .select("player_id,question_id,answer_text,is_correct,points")
     .single();
 

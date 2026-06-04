@@ -1552,6 +1552,13 @@
   }
 }
 
+  
+    /* BONUS ADMIN FIX */
+    #btnSaveBonus.saved,
+    #adminBonusQuestionsTable button.saved{
+      filter:saturate(1.2);
+    }
+
   </style>
 </head>
 <body>
@@ -2312,12 +2319,12 @@ tbody.querySelectorAll(`input[name="winner_${mid}"]`).forEach(inp=>{
 
 
 const BONUS_QUESTIONS_FALLBACK = [
-  "🏆 Milline koondis tuleb maailmameistriks?",
-  "⚽ Kes on turniiri suurim väravakütt?",
-  "🇦🇷 Mitu väravat lööb oma viimasel suurturniiril Messi?",
-  "🇵🇹 Mitu väravat lööb oma viimasel suurturniiril Ronaldo?",
-  "👑 Kes võidab meie alagrupiturniiri ennustuse?",
-  "🥄 Kes jääb meie alagrupiturniiri ennustuses viimaseks?"
+  "Milline koondis tuleb maailmameistriks?",
+  "Kes on turniiri suurim väravakütt?",
+  "Mitu väravat lööb oma viimasel suurturniiril Messi?",
+  "Mitu väravat lööb oma viimasel suurturniiril Ronaldo?",
+  "Kes võidab meie alagrupiturniiri ennustuse?",
+  "Kes jääb meie alagrupiturniiri ennustuses viimaseks?"
 ];
 
 
@@ -2439,6 +2446,7 @@ function escapeHtml(s){
 }
 
 async function saveBonusAnswers(){
+  const btn = $("btnSaveBonus");
   const inputs = Array.from(document.querySelectorAll("[data-bonus-answer]"));
   const answers = inputs.map(inp => ({
     question_id: Number(inp.dataset.bonusAnswer),
@@ -2446,10 +2454,32 @@ async function saveBonusAnswers(){
   }));
 
   try{
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Salvestan...";
+      btn.classList.remove("saved");
+    }
+
     await call("bonus/answers", {method:"POST", body: JSON.stringify({answers})});
-    setMsg($("bonusMsg"), true, "Lisaküsimused salvestatud.");
+
+    setMsg($("bonusMsg"), true, "Lisaküsimuste vastused on salvestatud.");
+
+    if (btn) {
+      btn.classList.add("saved");
+      btn.textContent = "Vastused salvestatud";
+      setTimeout(()=>{
+        btn.textContent = "Salvesta lisaküsimused";
+        btn.classList.remove("saved");
+        btn.disabled = false;
+      }, 1800);
+    }
+
     await loadBonusQuestions();
   }catch(e){
+    if (btn) {
+      btn.textContent = "Salvesta lisaküsimused";
+      btn.disabled = false;
+    }
     setMsg($("bonusMsg"), false, e.message);
   }
 }
@@ -2508,6 +2538,8 @@ async function loadAdminBonus(){
     const questions = data.questions || [];
     const players = data.players || [];
     const answers = data.answers || [];
+    const answerMap = new Map();
+    for (const a of answers) answerMap.set(`${a.player_id}:${a.question_id}`, a);
 
     qBody.innerHTML = questions.map((q, idx)=>`
       <tr>
@@ -2519,49 +2551,60 @@ async function loadAdminBonus(){
       </tr>
     `).join("");
 
-    const questionById = new Map(questions.map((q,i)=>[q.id, {...q, idx:i}]));
-    const playerById = new Map(players.map(p=>[p.id,p]));
-    const sortedAnswers = answers.slice().sort((a,b)=>{
-      const pa = playerById.get(a.player_id)?.display_name || "";
-      const pb = playerById.get(b.player_id)?.display_name || "";
-      const pc = String(pa).localeCompare(String(pb), "et");
-      if (pc) return pc;
-      return (questionById.get(a.question_id)?.sort_order || 0) - (questionById.get(b.question_id)?.sort_order || 0);
-    });
+    const rows = [];
+    for (const p of players) {
+      for (const q of questions) {
+        const a = answerMap.get(`${p.id}:${q.id}`) || {
+          player_id: p.id,
+          question_id: q.id,
+          answer_text: "",
+          is_correct: false,
+          points: 0
+        };
+        rows.push({p, q, a});
+      }
+    }
 
-    aBody.innerHTML = sortedAnswers.map(a=>{
-      const p = playerById.get(a.player_id);
-      const q = questionById.get(a.question_id);
-      return `
-        <tr>
-          <td>${escapeHtml(p?.display_name || "")}</td>
-          <td>${escapeHtml(q?.question_text || "")}</td>
-          <td>${escapeHtml(a.answer_text || "")}</td>
-          <td class="right"><input type="checkbox" data-bonus-correct="${a.player_id}:${a.question_id}" ${a.is_correct ? "checked" : ""}></td>
-          <td class="right">${a.points || 0}</td>
-        </tr>
-      `;
-    }).join("");
+    aBody.innerHTML = rows.map(({p,q,a})=>`
+      <tr>
+        <td>${escapeHtml(p.display_name || "")}</td>
+        <td>${escapeHtml(q.question_text || "")}</td>
+        <td>${escapeHtml(a.answer_text || "")}</td>
+        <td class="right">
+          <input type="checkbox" data-bonus-correct="${p.id}:${q.id}" ${a.is_correct ? "checked" : ""} ${a.answer_text ? "" : "disabled"}>
+        </td>
+        <td class="right">${a.points || 0}</td>
+      </tr>
+    `).join("");
 
     qBody.querySelectorAll("[data-save-bonus-q]").forEach(btn=>{
-      btn.addEventListener("click", async ()=>{
+      btn.addEventListener("click", async (e)=>{
+        e.preventDefault();
         const id = btn.dataset.saveBonusQ;
         const question_text = qBody.querySelector(`[data-bonus-q-text="${id}"]`)?.value || "";
         const correct_answer = qBody.querySelector(`[data-bonus-q-correct="${id}"]`)?.value || "";
         const points = Number(qBody.querySelector(`[data-bonus-q-points="${id}"]`)?.value || 3);
 
         try{
+          btn.disabled = true;
+          btn.textContent = "Salvestan...";
           await call(`admin/bonus/questions/${id}`, {method:"PUT", body: JSON.stringify({question_text, correct_answer, points})});
           setMsg($("adminBonusMsg"), true, "Küsimus salvestatud.");
+          btn.textContent = "Salvestatud";
+          setTimeout(()=>{ btn.textContent = "Salvesta"; btn.disabled = false; }, 1200);
           await loadAdminBonus();
+          await loadBonusQuestions();
         }catch(e){
+          btn.textContent = "Salvesta";
+          btn.disabled = false;
           setMsg($("adminBonusMsg"), false, e.message);
         }
       });
     });
 
     aBody.querySelectorAll("[data-bonus-correct]").forEach(inp=>{
-      inp.addEventListener("change", async ()=>{
+      inp.addEventListener("change", async (e)=>{
+        e.preventDefault();
         const [player_id, question_id] = inp.dataset.bonusCorrect.split(":");
 
         try{
@@ -2570,6 +2613,7 @@ async function loadAdminBonus(){
           await loadAdminBonus();
           await loadLeaderboard();
         }catch(e){
+          inp.checked = !inp.checked;
           setMsg($("adminBonusMsg"), false, e.message);
         }
       });
@@ -2580,551 +2624,6 @@ async function loadAdminBonus(){
     setMsg($("adminBonusMsg"), false, e.message);
   }
 }
-
-
-
-async function loadLeaderboard(){
-  const groupBody = $("lbGroupTable")?.querySelector("tbody");
-  const playoffBody = $("lbPlayoffTable")?.querySelector("tbody");
-  if (groupBody) groupBody.innerHTML = "";
-  if (playoffBody) playoffBody.innerHTML = "";
-  $("lbMsg").textContent = "";
-
-  try{
-    const r = await call("leaderboard",{method:"GET"});
-    renderLeaderboardTable(groupBody, r.group_leaderboard || r.leaderboard || [], "group");
-    renderLeaderboardTable(playoffBody, r.playoff_leaderboard || [], "playoff");
-  }catch(e){
-    setMsg($("lbMsg"), false, e.message);
-  }
-}
-
-
-
-async function loadOthersView(){
-  const groupTable = $("othersGroupTable");
-  const playoffTable = $("othersPlayoffTable");
-  if (!groupTable || !playoffTable) return;
-
-  const groupHead = groupTable.querySelector("thead");
-  const groupBody = groupTable.querySelector("tbody");
-  const playoffHead = playoffTable.querySelector("thead");
-  const playoffBody = playoffTable.querySelector("tbody");
-
-  groupHead.innerHTML = "";
-  groupBody.innerHTML = "";
-  playoffHead.innerHTML = "";
-  playoffBody.innerHTML = "";
-  $("othersMsg").textContent = "";
-
-  if (!token) return;
-
-  try{
-    const data = await call("predictions/matrix",{method:"GET"});
-    const players = (data.players || []).sort((a,b)=>String(a.display_name || "").localeCompare(String(b.display_name || ""), "et"));
-    const matches = (data.matches || []).sort((a,b)=>a.match_no-b.match_no);
-    const predictions = data.predictions || [];
-
-    const predMap = new Map();
-    for (const p of predictions){
-      predMap.set(`${p.player_id}:${p.match_id}`, p);
-    }
-
-    const groupMatches = matches.filter(m => Number(m.match_no) <= 72);
-    const playoffMatches = matches.filter(m => Number(m.match_no) >= 73);
-
-    buildOthersMatrix(groupHead, groupBody, groupMatches, players, predMap);
-    buildOthersMatrix(playoffHead, playoffBody, playoffMatches, players, predMap);
-
-    if (!groupMatches.length && !playoffMatches.length){
-      $("othersMsg").textContent = "Kui mängud lõppevad, tekivad need siia mängu numbri järjekorras.";
-    }
-  }catch(e){
-    setMsg($("othersMsg"), false, e.message);
-  }
-}
-
-
-function scoreColorClass(match, pr, prefix = "color"){
-  if (!match || !pr) return "";
-  const fh = Number(match.final_home);
-  const fa = Number(match.final_away);
-  const ph = Number(pr.pred_home);
-  const pa = Number(pr.pred_away);
-
-  if (![fh, fa, ph, pa].every(Number.isFinite)) return `${prefix}-red`;
-
-  const predictedOutcome = ph > pa ? 1 : ph < pa ? -1 : 0;
-  const finalOutcome = fh > fa ? 1 : fh < fa ? -1 : 0;
-  const correctOutcome = predictedOutcome === finalOutcome;
-  const exactHome = ph === fh;
-  const exactAway = pa === fa;
-
-  if (correctOutcome && exactHome && exactAway) return `${prefix}-green`;
-  if (correctOutcome && (exactHome || exactAway)) return `${prefix}-blue`;
-  if (correctOutcome) return `${prefix}-yellow`;
-  if (exactHome || exactAway) return `${prefix}-orange`;
-  return `${prefix}-red`;
-}
-
-function boardColorClass(match, pr){
-  return scoreColorClass(match, pr, "color");
-}
-
-function buildOthersMatrix(thead, tbody, matches, players, predMap){
-  thead.innerHTML = "";
-  tbody.innerHTML = "";
-
-  if (!matches.length){
-    thead.innerHTML = `<tr><th class="sticky-col">Mänge veel pole</th></tr>`;
-    return;
-  }
-
-  const top1 = document.createElement("tr");
-  top1.innerHTML = `<th class="sticky-col">Mängu nr</th>` + matches.map(m => `<th colspan="2">${m.match_no}</th>`).join("");
-  thead.appendChild(top1);
-
-
-
-  const top4 = document.createElement("tr");
-  top4.innerHTML = `<th class="sticky-col">Mäng</th>` + matches.map(m => `<th colspan="2" class="match-teams">${m.home} - ${m.away}</th>`).join("");
-  thead.appendChild(top4);
-
-  const correct = document.createElement("tr");
-  correct.className = "correct-row";
-  correct.innerHTML = `<th class="sticky-col">Õige tulemus</th>` + matches.map(m => {
-    const fh = m.final_home ?? "";
-    const fa = m.final_away ?? "";
-    return `<td>${fh}</td><td>${fa}</td>`;
-  }).join("");
-  tbody.appendChild(correct);
-
-  for (const player of players){
-    const tr = document.createElement("tr");
-    let rowHtml = `<th class="sticky-col">${player.display_name}</th>`;
-
-    for (const match of matches){
-      const pr = predMap.get(`${player.id}:${match.id}`);
-      if (!pr){
-        rowHtml += `<td></td><td></td>`;
-        continue;
-      }
-      const cls = boardColorClass(match, pr);
-      rowHtml += `<td class="${cls}">${pr.pred_home ?? ""}</td><td class="${cls}">${pr.pred_away ?? ""}</td>`;
-    }
-
-    tr.innerHTML = rowHtml;
-    tbody.appendChild(tr);
-  }
-}
-
-
-let screenshotMatrixData = null;
-
-function shortTeamName(name){
-  const s = String(name || "").trim();
-  if (!s) return "";
-  if (s.length <= 12) return s;
-  return s.split(/\s+/).map(x => x[0]).join("").toUpperCase().slice(0, 4) || s.slice(0, 4).toUpperCase();
-}
-
-function formatShortDateTime(iso){
-  if (!iso) return "";
-  const d = new Date(iso);
-  const date = new Intl.DateTimeFormat('et-EE', { timeZone:'Europe/Tallinn', day:'2-digit', month:'short' }).format(d).replace(".", "");
-  const time = new Intl.DateTimeFormat('et-EE', { timeZone:'Europe/Tallinn', hour:'2-digit', minute:'2-digit' }).format(d);
-  return `${date} ${time}`;
-}
-
-function screenshotScoreClass(match, pr){
-  return scoreColorClass(match, pr, "score");
-}
-
-function populateScreenshotMatchSelect(matches){
-  const select = $("screenshotMatchSelect");
-  if (!select) return;
-
-  const previous = select.value;
-  const sorted = (matches || []).slice().sort((a,b)=>Number(b.match_no)-Number(a.match_no));
-  select.innerHTML = sorted.length
-    ? sorted.map(m => `<option value="${m.id}">#${m.match_no} ${m.home} - ${m.away}</option>`).join("")
-    : `<option value="">Lõppenud mänge pole</option>`;
-
-  if (previous && sorted.some(m => String(m.id) === previous)) {
-    select.value = previous;
-  }
-}
-
-
-
-function updateScreenshotControls(){
-  const mode = $("screenshotMode")?.value || "single";
-  const isMulti = mode === "multi";
-  if ($("screenshotMatchSelect")) $("screenshotMatchSelect").classList.toggle("hide", isMulti);
-  if ($("screenshotSingleLabel")) $("screenshotSingleLabel").classList.toggle("hide", isMulti);
-    if ($("screenshotCountLabel")) $("screenshotCountLabel").classList.toggle("hide", !isMulti);
-}
-
-function renderScreenshotBoard(){
-  updateScreenshotControls();
-
-  const table = $("screenshotBoard");
-  const msg = $("screenshotMsg");
-  const select = $("screenshotMatchSelect");
-  if (!table || !select) return;
-
-  const tbody = table.querySelector("tbody");
-  tbody.innerHTML = "";
-  if (msg) msg.textContent = "";
-
-  const data = screenshotMatrixData;
-  if (!data || !(data.matches || []).length){
-    if (msg) msg.textContent = "Lõppenud mänge veel pole.";
-    return;
-  }
-
-  const mode = $("screenshotMode")?.value || "single";
-  const multi = mode === "multi";
-  const players = (data.players || []).slice().sort((a,b)=>String(a.display_name || "").localeCompare(String(b.display_name || ""), "et"));
-  const predMap = new Map();
-  for (const p of data.predictions || []){
-    predMap.set(`${p.player_id}:${p.match_id}`, p);
-  }
-
-  if (multi) {
-    const count = Math.max(2, Math.min(12, Number($("screenshotCount")?.value || 3)));
-    const matches = (data.matches || [])
-      .slice()
-      .sort((a,b)=>Number(b.match_no)-Number(a.match_no))
-      .slice(0, count)
-      .sort((a,b)=>Number(a.match_no)-Number(b.match_no));
-
-    if (!matches.length){
-      if (msg) msg.textContent = "Lõppenud mänge veel pole.";
-      return;
-    }
-
-    const rows = [];
-    rows.push(`<tr class="meta"><th></th>${matches.map(m => `<th colspan="2" class="game-title">${m.match_no}</th>`).join("")}</tr>`);
-    rows.push(`<tr class="meta"><th></th>${matches.map(m => `<th colspan="2">${formatShortDateTime(m.kickoff_utc)}</th>`).join("")}</tr>`);
-    rows.push(`<tr class="teams"><th></th>${matches.map(m => `<th class="team-cell">${shortTeamName(m.home)}</th><th class="team-cell">${shortTeamName(m.away)}</th>`).join("")}</tr>`);
-    rows.push(`<tr class="correct"><th>Õige tulemus</th>${matches.map(m => `<td>${m.final_home ?? ""}</td><td>${m.final_away ?? ""}</td>`).join("")}</tr>`);
-
-    for (const player of players){
-      let row = `<tr><th>${player.display_name}</th>`;
-      for (const match of matches){
-        const pr = predMap.get(`${player.id}:${match.id}`);
-        if (!pr){
-          row += `<td></td><td></td>`;
-          continue;
-        }
-        const cls = screenshotScoreClass(match, pr);
-        row += `<td class="${cls}">${pr.pred_home ?? ""}</td><td class="${cls}">${pr.pred_away ?? ""}</td>`;
-      }
-      row += `</tr>`;
-      rows.push(row);
-    }
-
-    tbody.innerHTML = rows.join("");
-    return;
-  }
-
-  const matchId = select.value || String((data.matches || [])[0]?.id || "");
-  const match = (data.matches || []).find(m => String(m.id) === String(matchId));
-  if (!match){
-    if (msg) msg.textContent = "Vali mäng.";
-    return;
-  }
-
-  const rows = [];
-  rows.push(`<tr class="meta"><th></th><th colspan="2">${match.match_no}</th></tr>`);
-  rows.push(`<tr class="meta"><th></th><th colspan="2">${formatShortDateTime(match.kickoff_utc)}</th></tr>`);
-  rows.push(`<tr class="teams"><th></th><th>${shortTeamName(match.home)}</th><th>${shortTeamName(match.away)}</th></tr>`);
-  rows.push(`<tr class="correct"><th>Õige tulemus</th><td>${match.final_home ?? ""}</td><td>${match.final_away ?? ""}</td></tr>`);
-
-  for (const player of players){
-    const pr = predMap.get(`${player.id}:${match.id}`);
-    if (!pr) {
-      rows.push(`<tr><th>${player.display_name}</th><td></td><td></td></tr>`);
-      continue;
-    }
-    const cls = screenshotScoreClass(match, pr);
-    rows.push(`<tr><th>${player.display_name}</th><td class="${cls}">${pr.pred_home ?? ""}</td><td class="${cls}">${pr.pred_away ?? ""}</td></tr>`);
-  }
-
-  tbody.innerHTML = rows.join("");
-}
-
-async function loadAdminScreenshotBoard(){
-  if (!(me && me.is_admin)) return;
-  const select = $("screenshotMatchSelect");
-  if (!select) return;
-
-  try{
-    screenshotMatrixData = await call("predictions/matrix", {method:"GET"});
-    const matches = (screenshotMatrixData.matches || []).sort((a,b)=>Number(b.match_no)-Number(a.match_no));
-    screenshotMatrixData.matches = matches;
-    populateScreenshotMatchSelect(matches);
-    updateScreenshotControls();
-    renderScreenshotBoard();
-  }catch(e){
-    if ($("screenshotMsg")) setMsg($("screenshotMsg"), false, e.message);
-  }
-}
-
-async function loadPlayers(){
-  const tbody = $("pTable").querySelector("tbody");
-  tbody.innerHTML = "";
-  if (!(me && me.is_admin)) return;
-  try{
-    const r = await call("admin/players",{method:"GET"});
-    for (const pl of r.players){
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${pl.username}</td>
-        <td>${pl.is_admin ? "jah" : "ei"}</td>
-        <td class="right">
-          <button data-reset="${pl.id}">Uus parool</button>
-          <button data-del="${pl.id}">Kustuta</button>
-        </td>
-      `;
-      tbody.appendChild(tr);
-    }
-    tbody.querySelectorAll("button[data-reset]").forEach(b=>{
-      b.addEventListener("click", async ()=>{
-        const id = b.getAttribute("data-reset");
-        const np = prompt("Uus parool (min 6):");
-        if (!np) return;
-        try{
-          await call(`admin/players/${id}`,{method:"PUT", body: JSON.stringify({password: np})});
-          setMsg($("adminMsg"), true, "Parool muudetud.");
-        }catch(e){
-          setMsg($("adminMsg"), false, e.message);
-        }
-      });
-    });
-    tbody.querySelectorAll("button[data-del]").forEach(b=>{
-      b.addEventListener("click", async ()=>{
-        const id = b.getAttribute("data-del");
-        if (!confirm("Kustutan mängija?")) return;
-        try{
-          await call(`admin/players/${id}`,{method:"DELETE"});
-          setMsg($("adminMsg"), true, "Kustutatud.");
-          await loadPlayers();
-          await loadLeaderboard();
-        }catch(e){
-          setMsg($("adminMsg"), false, e.message);
-        }
-      });
-    });
-  }catch(e){
-    setMsg($("adminMsg"), false, e.message);
-  }
-}
-
-// Events
-$("btnHealth").onclick = async ()=>{
-  try{ const r = await call("health",{method:"GET"}); setMsg($("adminMsg"), true, r.time); }
-  catch(e){ setMsg($("adminMsg"), false, e.message); }
-};
-
-
-$("btnSeedU17").onclick = async ()=>{
-  if (!(me && me.is_admin)) return setMsg($("adminMsg"), false, "Ainult admin.");
-  try{
-    const r = await call("admin/seed/u17-test",{method:"POST"});
-    setMsg($("adminMsg"), true, `U17 testmängud lisatud või uuendatud: ${r.inserted_or_updated}`);
-    await loadMatchesAndPreds();
-    await loadAdminScreenshotBoard();
-  }catch(e){
-    setMsg($("adminMsg"), false, e.message);
-  }
-};
-
-$("btnRemoveU17").onclick = async ()=>{
-  if (!(me && me.is_admin)) return setMsg($("adminMsg"), false, "Ainult admin.");
-  if (!confirm("Kas eemaldan U17 testmängud ja nende ennustused?")) return;
-  try{
-    const r = await call("admin/remove/u17-test",{method:"POST"});
-    setMsg($("adminMsg"), true, `U17 testmängud eemaldatud: ${r.removed}`);
-    await loadMatchesAndPreds();
-    await loadLeaderboard();
-    await loadOthersView();
-    await loadAdminScreenshotBoard();
-  }catch(e){
-    setMsg($("adminMsg"), false, e.message);
-  }
-};
-
-$("btnSeed").onclick = async ()=>{
-  if (!(me && me.is_admin)) return setMsg($("adminMsg"), false, "Ainult admin.");
-  try{
-    const r = await call("admin/seed/matches",{method:"POST"});
-    setMsg($("adminMsg"), true, `Mängud lisatud või uuendatud: ${r.inserted_or_updated}`);
-    await loadMatchesAndPreds();
-  }catch(e){
-    setMsg($("adminMsg"), false, e.message);
-  }
-};
-
-
-$("btnLogin").onclick = async ()=>{
-  try{
-    const r = await call("login",{method:"POST", body: JSON.stringify({username:$("u").value.trim(), password:$("p").value})});
-    token = r.token;
-    localStorage.setItem("token", token);
-    setMsg($("loginMsg"), true, `Sisse logitud: ${r.user.display_name}`);
-    await loadAll();
-  }catch(e){
-    setMsg($("loginMsg"), false, e.message);
-  }
-};
-
-
-$("btnRegister").onclick = async ()=>{
-  try{
-    const body = { username: $("ru").value.trim(), password: $("rp").value, password_confirm: $("rp2").value };
-    const r = await call("register",{method:"POST", body: JSON.stringify(body)});
-    token = r.token;
-    localStorage.setItem("token", token);
-    setMsg($("loginMsg"), true, `Konto loodud ja sisse logitud: ${r.user.display_name}`);
-    $("u").value = r.user.username;
-    $("p").value = "";
-    $("ru").value = "";
-    $("rp").value = "";
-    $("rp2").value = "";
-    await loadAll();
-  }catch(e){
-    setMsg($("loginMsg"), false, e.message);
-  }
-};
-
-async function doLogout(){
-  token=""; me=null;
-  localStorage.removeItem("token");
-  if ($("loginMsg")) setMsg($("loginMsg"), true, "Välja logitud.");
-  await loadAll();
-}
-
-$("btnLogout").onclick = doLogout;
-if ($("btnLogoutTop")) $("btnLogoutTop").onclick = doLogout;
-
-$("btnPass").onclick = async ()=>{
-  if (!token) return setMsg($("accountMsg"), false, "Logi sisse.");
-  try{
-    await call("password",{method:"POST", body: JSON.stringify({old_password:$("oldp").value, new_password:$("newp").value})});
-    setMsg($("accountMsg"), true, "Parool muudetud.");
-    $("oldp").value=""; $("newp").value="";
-  }catch(e){
-    setMsg($("accountMsg"), false, e.message);
-  }
-};
-
-$("btnAddPlayer").onclick = async ()=>{
-  if (!(me && me.is_admin)) return setMsg($("adminMsg"), false, "Ainult admin.");
-  try{
-    const username = $("pu2").value.trim();
-    const body = { username, display_name: username, password:$("pp2").value, is_admin: $("pa2").value==="true" };
-    await call("admin/players",{method:"POST", body: JSON.stringify(body)});
-    setMsg($("adminMsg"), true, "Mängija lisatud.");
-    $("pu2").value=""; $("pp2").value="";
-    await loadPlayers();
-    await loadLeaderboard();
-  }catch(e){
-    setMsg($("adminMsg"), false, e.message);
-  }
-};
-
-
-
-
-
-$("btnRecalcPoints").onclick = async ()=>{
-  if (!(me && me.is_admin)) return setMsg($("adminMsg"), false, "Ainult admin.");
-  try{
-    const r = await call("admin/recalc-points",{method:"POST"});
-    setMsg($("adminMsg"), true, `Punktid ümber arvutatud. Mänge: ${r.updated_matches}`);
-    await loadMatchesAndPreds();
-    await loadLeaderboard();
-    await loadOthersView();
-    await loadAdminScreenshotBoard();
-  }catch(e){
-    setMsg($("adminMsg"), false, e.message);
-  }
-};
-
-$("btnSyncResults").onclick = async ()=>{
-  if (!(me && me.is_admin)) return setMsg($("adminMsg"), false, "Ainult admin.");
-  try{
-    const r = await call("admin/sync/results",{method:"POST"});
-    setMsg($("adminMsg"), true, `Tulemused sünkroniseeritud. Uuendatud mänge: ${r.updated}`);
-    await loadMatchesAndPreds();
-    await loadLeaderboard();
-    await loadAdminScreenshotBoard();
-  }catch(e){
-    setMsg($("adminMsg"), false, e.message);
-  }
-};
-
-$("btnSync").onclick = async ()=>{
-  if (!(me && me.is_admin)) return setMsg($("adminMsg"), false, "Ainult admin.");
-  try{
-    const r = await call("admin/sync/schedule",{method:"POST"});
-    setMsg($("adminMsg"), true, `Valmis. Uuendatud: ${r.updated}. Leitud alagrupis: ${r.group_parsed}, play off: ${r.knockout_parsed}`);
-    await loadMatchesAndPreds();
-  }catch(e){
-    setMsg($("adminMsg"), false, e.message);
-  }
-};
-
-$("btnImport").onclick = async ()=>{
-  if (!(me && me.is_admin)) return setMsg($("adminMsg"), false, "Ainult admin.");
-  try{
-    const raw = $("imp").value.trim();
-    if (!raw) return setMsg($("adminMsg"), false, "Kleebi read siia.");
-    const lines = raw.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
-    const items = [];
-    for (const ln of lines){
-      const parts = ln.split(",").map(x=>x.trim());
-      if (parts.length < 3) continue;
-      const match_no = Number(parts[0]);
-      const date = parts[1];
-      const time = parts[2];
-      if (!match_no || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{1,2}:\d{2}$/.test(time)) continue;
-      items.push({ match_no, date_et: date, time_et: time });
-    }
-    if (!items.length) return setMsg($("adminMsg"), false, "Ei leidnud ühtegi korrektset rida.");
-    const r = await call("admin/import/kickoffs",{method:"POST", body: JSON.stringify({ items })});
-    setMsg($("adminMsg"), true, `Aegu uuendatud: ${r.updated}`);
-    await loadMatchesAndPreds();
-  }catch(e){
-    setMsg($("adminMsg"), false, e.message);
-  }
-};
-
-
-
-$("btnSetKickoff").onclick = async ()=>{
-  if (!(me && me.is_admin)) return setMsg($("adminMsg"), false, "Ainult admin.");
-  try{
-    const matchNo = Number($("timeNo").value);
-    const d = $("timeDate").value.trim();
-    const t = $("timeClock").value.trim();
-
-    if (!matchNo) return setMsg($("adminMsg"), false, "Sisesta mängu #.");
-    const utc = parseEeDateTime(d, t);
-
-    await call(`admin/matches/by-no/${matchNo}`,{method:"PUT", body: JSON.stringify({kickoff_utc: utc.toISOString()})});
-    setMsg($("adminMsg"), true, "Mänguaeg salvestatud Eesti aja järgi.");
-    await loadMatchesAndPreds();
-  }catch(e){
-    setMsg($("adminMsg"), false, e.message);
-  }
-};
-
-
-
-
 
 if ($("btnRefreshMatchDropdown")) $("btnRefreshMatchDropdown").onclick = async ()=>{
   try{

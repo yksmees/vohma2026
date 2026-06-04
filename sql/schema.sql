@@ -93,12 +93,12 @@ create table if not exists public.bonus_answers (
 
 insert into public.bonus_questions (sort_order, question_text, points, active)
 values
-  (1, '🏆 Milline koondis tuleb maailmameistriks?', 3, true),
-  (2, '⚽ Kes on turniiri suurim väravakütt?', 3, true),
-  (3, '🇦🇷 Mitu väravat lööb oma viimasel suurturniiril Messi?', 3, true),
-  (4, '🇵🇹 Mitu väravat lööb oma viimasel suurturniiril Ronaldo?', 3, true),
-  (5, '👑 Kes võidab meie alagrupiturniiri ennustuse?', 3, true),
-  (6, '🥄 Kes jääb meie alagrupiturniiri ennustuses viimaseks?', 3, true)
+  (1, 'Milline koondis tuleb maailmameistriks?', 3, true),
+  (2, 'Kes on turniiri suurim väravakütt?', 3, true),
+  (3, 'Mitu väravat lööb oma viimasel suurturniiril Messi?', 3, true),
+  (4, 'Mitu väravat lööb oma viimasel suurturniiril Ronaldo?', 3, true),
+  (5, 'Kes võidab meie alagrupiturniiri ennustuse?', 3, true),
+  (6, 'Kes jääb meie alagrupiturniiri ennustuses viimaseks?', 3, true)
 on conflict do nothing;
 
 drop trigger if exists trg_bonus_questions_updated on public.bonus_questions;
