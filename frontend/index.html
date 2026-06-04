@@ -1559,6 +1559,27 @@
       filter:saturate(1.2);
     }
 
+  
+    /* ADMIN AND BONUS FIX */
+    #adminBonusQuestionSelect{
+      width:100%;
+      max-width:720px;
+    }
+    .bonus-check{
+      display:inline-flex;
+      align-items:center;
+      gap:7px;
+      white-space:nowrap;
+      font-weight:800;
+    }
+    .bonus-check input{
+      width:auto !important;
+      min-width:0 !important;
+    }
+    #btnSaveBonus.saved{
+      filter:saturate(1.2);
+    }
+
   </style>
 </head>
 <body>
@@ -1629,7 +1650,7 @@
             <button class="tab" data-tab="bonus">Lisaküsimused</button>
             <button class="tab" data-tab="others">Teiste ennustused</button>
             <button class="tab" data-tab="account">Minu konto</button>
-            <button class="tab" data-tab="admin">Admin</button>
+            <button class="tab hide" data-tab="admin">Admin</button>
           </div>
         </div>
         <div class="row">
@@ -1799,7 +1820,7 @@
   <div class="table-wrap">
     <table id="adminBonusAnswersTable">
       <thead>
-        <tr><th>Mängija</th><th>Küsimus</th><th>Vastus</th><th class="right">Õige?</th><th class="right">Punktid</th></tr>
+        <tr><th>Mängija</th><th>Vastus</th><th class="right">Märgi õigeks</th><th class="right">Punktid</th></tr>
       </thead>
       <tbody></tbody>
     </table>
@@ -1991,6 +2012,7 @@ function parseEeDateTime(dateText, timeText){
 
   // Eesti aeg juunis/juulis on UTC+3.
   return new Date(Date.UTC(year, month - 1, day, hour - 3, minute, 0));
+  bindLogoutButtons();
 }
 
 
@@ -2159,6 +2181,40 @@ function startPredictionLockTimer(){
 }
 
 
+
+function doLogout(){
+  token = "";
+  me = null;
+  localStorage.removeItem("token");
+  setWho();
+
+  if ($("viewsCard")) $("viewsCard").classList.add("hide");
+  ["pred","lb","bonus","others","account","admin"].forEach(id=>{
+    const el = $(id);
+    if (el) el.classList.add("hide");
+  });
+
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  const predTab = document.querySelector('[data-tab="pred"]');
+  if (predTab) predTab.classList.add("active");
+
+  if ($("loginCard")) $("loginCard").classList.remove("hide");
+  if ($("quickStartCard")) $("quickStartCard").classList.remove("hide");
+}
+
+function bindLogoutButtons(){
+  ["btnLogout","btnLogoutTop"].forEach(id=>{
+    const btn = $(id);
+    if (!btn || btn.dataset.boundLogout === "1") return;
+    btn.dataset.boundLogout = "1";
+    btn.addEventListener("click", (e)=>{
+      e.preventDefault();
+      doLogout();
+    });
+  });
+}
+
+
 async function refreshMe(){
   if (!token){ me=null; setWho(); return; }
   try{
@@ -2196,14 +2252,27 @@ function updateImportTimesVisibility(activeTab){
 
 function toggleAdminTab(){
   const isA = !!(me && me.is_admin);
-  document.querySelector('[data-tab="admin"]').style.display = isA ? "" : "none";
+  const adminTab = document.querySelector('[data-tab="admin"]');
+  if (adminTab) {
+    adminTab.style.display = isA ? "" : "none";
+    adminTab.classList.toggle("hide", !isA);
+  }
+
   if (!isA){
-    $("admin").classList.add("hide");
+    if ($("admin")) $("admin").classList.add("hide");
     if ($("importTimesCard")) $("importTimesCard").classList.add("hide");
-    if ($("account")) $("account").classList.add("hide");
-    document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
-    document.querySelector('[data-tab="pred"]').classList.add("active");
-    $("pred").classList.remove("hide");
+
+    const active = document.querySelector(".tab.active")?.getAttribute("data-tab");
+    if (active === "admin") {
+      document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+      const predTab = document.querySelector('[data-tab="pred"]');
+      if (predTab) predTab.classList.add("active");
+      ["pred","lb","bonus","others","account"].forEach(id=>{
+        const el = $(id);
+        if (el) el.classList.add("hide");
+      });
+      if ($("pred")) $("pred").classList.remove("hide");
+    }
   }
 }
 
@@ -2448,10 +2517,16 @@ function escapeHtml(s){
 async function saveBonusAnswers(){
   const btn = $("btnSaveBonus");
   const inputs = Array.from(document.querySelectorAll("[data-bonus-answer]"));
-  const answers = inputs.map(inp => ({
-    question_id: Number(inp.dataset.bonusAnswer),
-    answer_text: inp.value
-  }));
+  const answers = inputs
+    .filter(inp => !String(inp.dataset.bonusAnswer || "").startsWith("fallback_"))
+    .map(inp => ({
+      question_id: Number(inp.dataset.bonusAnswer),
+      answer_text: inp.value
+    }));
+
+  if (!answers.length) {
+    return setMsg($("bonusMsg"), false, "Lisaküsimusi ei saa salvestada. Kontrolli, et SQL migratsioon oleks käivitatud.");
+  }
 
   try{
     if (btn) {
@@ -2467,14 +2542,16 @@ async function saveBonusAnswers(){
     if (btn) {
       btn.classList.add("saved");
       btn.textContent = "Vastused salvestatud";
-      setTimeout(()=>{
+    }
+
+    setTimeout(async ()=>{
+      if (btn) {
         btn.textContent = "Salvesta lisaküsimused";
         btn.classList.remove("saved");
         btn.disabled = false;
-      }, 1800);
-    }
-
-    await loadBonusQuestions();
+      }
+      await loadBonusQuestions();
+    }, 1200);
   }catch(e){
     if (btn) {
       btn.textContent = "Salvesta lisaküsimused";
@@ -2520,11 +2597,92 @@ function renderBonusScreenshot(data){
   tbody.innerHTML = rows.join("");
 }
 
+function renderAdminBonusAnswers(){
+  if (!(me && me.is_admin) || !adminBonusData) return;
+
+  const select = $("adminBonusQuestionSelect");
+  const aBody = $("adminBonusAnswersTable")?.querySelector("tbody");
+  if (!select || !aBody) return;
+
+  const questions = adminBonusData.questions || [];
+  const players = adminBonusData.players || [];
+  const answers = adminBonusData.answers || [];
+
+  if (!select.value && questions.length) select.value = String(questions[0].id);
+
+  const questionId = Number(select.value || questions[0]?.id);
+  const question = questions.find(q => Number(q.id) === questionId);
+
+  const answerMap = new Map();
+  for (const a of answers) answerMap.set(`${a.player_id}:${a.question_id}`, a);
+
+  if (!question) {
+    aBody.innerHTML = `<tr><td colspan="4">Küsimust ei leitud.</td></tr>`;
+    return;
+  }
+
+  const rows = players.map(p=>{
+    const a = answerMap.get(`${p.id}:${question.id}`) || {
+      player_id: p.id,
+      question_id: question.id,
+      answer_text: "",
+      is_correct: false,
+      points: 0
+    };
+
+    return `
+      <tr>
+        <td>${escapeHtml(p.display_name || "")}</td>
+        <td>${escapeHtml(a.answer_text || "") || `<span class="sub">Vastus puudub</span>`}</td>
+        <td class="right">
+          <label class="bonus-check">
+            <input type="checkbox" data-bonus-correct="${p.id}:${question.id}" ${a.is_correct ? "checked" : ""} ${a.answer_text ? "" : "disabled"}>
+            Õige
+          </label>
+        </td>
+        <td class="right">${a.points || 0}</td>
+      </tr>
+    `;
+  });
+
+  aBody.innerHTML = rows.join("");
+
+  aBody.querySelectorAll("[data-bonus-correct]").forEach(inp=>{
+    inp.addEventListener("change", async (e)=>{
+      e.preventDefault();
+      const [player_id, question_id] = inp.dataset.bonusCorrect.split(":");
+
+      try{
+        await call("admin/bonus/answers", {
+          method:"PUT",
+          body: JSON.stringify({
+            player_id,
+            question_id:Number(question_id),
+            is_correct: inp.checked
+          })
+        });
+
+        setMsg($("adminBonusMsg"), true, "Vastus uuendatud.");
+
+        const fresh = await call("admin/bonus", {method:"GET"});
+        adminBonusData = fresh;
+        renderAdminBonusAnswers();
+        renderBonusScreenshot(fresh);
+        await loadLeaderboard();
+      }catch(e){
+        inp.checked = !inp.checked;
+        setMsg($("adminBonusMsg"), false, e.message);
+      }
+    });
+  });
+}
+
 async function loadAdminBonus(){
   if (!(me && me.is_admin)) return;
 
   const qBody = $("adminBonusQuestionsTable")?.querySelector("tbody");
   const aBody = $("adminBonusAnswersTable")?.querySelector("tbody");
+  const select = $("adminBonusQuestionSelect");
   if (!qBody || !aBody) return;
 
   qBody.innerHTML = "";
@@ -2536,10 +2694,6 @@ async function loadAdminBonus(){
     adminBonusData = data;
 
     const questions = data.questions || [];
-    const players = data.players || [];
-    const answers = data.answers || [];
-    const answerMap = new Map();
-    for (const a of answers) answerMap.set(`${a.player_id}:${a.question_id}`, a);
 
     qBody.innerHTML = questions.map((q, idx)=>`
       <tr>
@@ -2551,31 +2705,15 @@ async function loadAdminBonus(){
       </tr>
     `).join("");
 
-    const rows = [];
-    for (const p of players) {
-      for (const q of questions) {
-        const a = answerMap.get(`${p.id}:${q.id}`) || {
-          player_id: p.id,
-          question_id: q.id,
-          answer_text: "",
-          is_correct: false,
-          points: 0
-        };
-        rows.push({p, q, a});
+    if (select) {
+      const previous = select.value;
+      select.innerHTML = questions.map((q, idx)=>`<option value="${q.id}">${idx + 1}. ${escapeHtml(q.question_text)}</option>`).join("");
+      if (previous && questions.some(q => String(q.id) === String(previous))) select.value = previous;
+      if (select.dataset.boundBonusSelect !== "1") {
+        select.dataset.boundBonusSelect = "1";
+        select.addEventListener("change", renderAdminBonusAnswers);
       }
     }
-
-    aBody.innerHTML = rows.map(({p,q,a})=>`
-      <tr>
-        <td>${escapeHtml(p.display_name || "")}</td>
-        <td>${escapeHtml(q.question_text || "")}</td>
-        <td>${escapeHtml(a.answer_text || "")}</td>
-        <td class="right">
-          <input type="checkbox" data-bonus-correct="${p.id}:${q.id}" ${a.is_correct ? "checked" : ""} ${a.answer_text ? "" : "disabled"}>
-        </td>
-        <td class="right">${a.points || 0}</td>
-      </tr>
-    `).join("");
 
     qBody.querySelectorAll("[data-save-bonus-q]").forEach(btn=>{
       btn.addEventListener("click", async (e)=>{
@@ -2588,12 +2726,25 @@ async function loadAdminBonus(){
         try{
           btn.disabled = true;
           btn.textContent = "Salvestan...";
-          await call(`admin/bonus/questions/${id}`, {method:"PUT", body: JSON.stringify({question_text, correct_answer, points})});
+
+          await call(`admin/bonus/questions/${id}`, {
+            method:"PUT",
+            body: JSON.stringify({question_text, correct_answer, points})
+          });
+
           setMsg($("adminBonusMsg"), true, "Küsimus salvestatud.");
           btn.textContent = "Salvestatud";
-          setTimeout(()=>{ btn.textContent = "Salvesta"; btn.disabled = false; }, 1200);
-          await loadAdminBonus();
+
+          const fresh = await call("admin/bonus", {method:"GET"});
+          adminBonusData = fresh;
+          renderAdminBonusAnswers();
+          renderBonusScreenshot(fresh);
           await loadBonusQuestions();
+
+          setTimeout(()=>{
+            btn.textContent = "Salvesta";
+            btn.disabled = false;
+          }, 1000);
         }catch(e){
           btn.textContent = "Salvesta";
           btn.disabled = false;
@@ -2602,23 +2753,7 @@ async function loadAdminBonus(){
       });
     });
 
-    aBody.querySelectorAll("[data-bonus-correct]").forEach(inp=>{
-      inp.addEventListener("change", async (e)=>{
-        e.preventDefault();
-        const [player_id, question_id] = inp.dataset.bonusCorrect.split(":");
-
-        try{
-          await call("admin/bonus/answers", {method:"PUT", body: JSON.stringify({player_id, question_id:Number(question_id), is_correct: inp.checked})});
-          setMsg($("adminBonusMsg"), true, "Vastus uuendatud.");
-          await loadAdminBonus();
-          await loadLeaderboard();
-        }catch(e){
-          inp.checked = !inp.checked;
-          setMsg($("adminBonusMsg"), false, e.message);
-        }
-      });
-    });
-
+    renderAdminBonusAnswers();
     renderBonusScreenshot(data);
   }catch(e){
     setMsg($("adminBonusMsg"), false, e.message);
@@ -2721,6 +2856,10 @@ document.querySelectorAll(".tab").forEach(t=>{
     document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
     t.classList.add("active");
     const name = t.getAttribute("data-tab");
+    if (name === "admin" && !(me && me.is_admin)) {
+      toggleAdminTab();
+      return;
+    }
     ["pred","lb","bonus","others","account","admin"].forEach(id=>{ const el=$(id); if (el) el.classList.add("hide"); });
     const target = $(name); if (target) target.classList.remove("hide");
     if (name === "bonus") loadBonusQuestions();
@@ -2745,6 +2884,7 @@ if ($("btnRefreshScreenshotBoard") && typeof loadAdminScreenshotBoard === "funct
   $("btnRefreshScreenshotBoard").onclick = loadAdminScreenshotBoard;
 }
 
+bindLogoutButtons();
 loadAll();
 </script>
 </body>

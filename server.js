@@ -1186,6 +1186,12 @@ if (event.httpMethod === "POST" && route === "bonus/answers") {
   const u = userFrom(event);
   if (!u) return json(401, { error: "Pole sisse logitud." });
 
+  try{
+    await ensureBonusQuestions(sb);
+  }catch(e){
+    return json(500, { error: e.message });
+  }
+
   const lock = await getBonusLockInfo(sb);
   if (lock.locked && !u.is_admin) {
     return json(403, { error: "Lisaküsimused on lukus." });
@@ -1196,28 +1202,53 @@ if (event.httpMethod === "POST" && route === "bonus/answers") {
 
   if (!answers.length) return json(400, { error: "Vastuseid ei leitud." });
 
+  const q = await sb.from("bonus_questions").select("id").eq("active", true);
+  if (q.error) return json(500, { error: q.error.message });
+
+  const validQuestionIds = new Set((q.data || []).map(x => Number(x.id)));
+
   const rows = answers
     .map(a => ({
       player_id: u.sub,
       question_id: Number(a.question_id),
-      answer_text: String(a.answer_text || "").trim(),
-      is_correct: false,
-      points: 0
+      answer_text: String(a.answer_text || "").trim()
     }))
-    .filter(a => Number.isFinite(a.question_id));
+    .filter(a => Number.isFinite(a.question_id) && validQuestionIds.has(a.question_id));
 
   if (!rows.length) return json(400, { error: "Vastuseid ei leitud." });
 
-  const up = await sb
+  for (const row of rows) {
+    const existing = await sb
+      .from("bonus_answers")
+      .select("is_correct,points")
+      .eq("player_id", row.player_id)
+      .eq("question_id", row.question_id)
+      .maybeSingle();
+
+    if (existing.error) return json(500, { error: existing.error.message });
+
+    const payload = {
+      ...row,
+      is_correct: existing.data?.is_correct || false,
+      points: existing.data?.points || 0
+    };
+
+    const up = await sb
+      .from("bonus_answers")
+      .upsert(payload, { onConflict: "player_id,question_id" });
+
+    if (up.error) return json(500, { error: up.error.message });
+  }
+
+  const saved = await sb
     .from("bonus_answers")
-    .upsert(rows, { onConflict: "player_id,question_id" })
-    .select("question_id,answer_text,is_correct,points");
+    .select("question_id,answer_text,is_correct,points")
+    .eq("player_id", u.sub);
 
-  if (up.error) return json(500, { error: up.error.message });
+  if (saved.error) return json(500, { error: saved.error.message });
 
-  return json(200, { ok: true, answers: up.data || [] });
+  return json(200, { ok: true, answers: saved.data || [] });
 }
-
 
 // Lisa vaikimisi lisaküsimused admini nupuga
 if (event.httpMethod === "POST" && route === "admin/bonus/seed") {
