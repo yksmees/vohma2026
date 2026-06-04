@@ -1955,6 +1955,7 @@ async function call(path, opts={}) {
 }
 
 function setMsg(el, ok, text){
+  if (!el) return;
   el.innerHTML = ok ? `<span class="ok">OK</span> ${text||""}` : `<span class="bad">VIGA:</span> ${text||""}`;
 }
 
@@ -2182,6 +2183,151 @@ function startPredictionLockTimer(){
 
 
 
+
+async function doLogin(e){
+  if (e) e.preventDefault();
+
+  const btn = $("btnLogin");
+  const username = $("u")?.value.trim() || "";
+  const password = $("p")?.value || "";
+
+  if (!username || !password) {
+    return setMsg($("loginMsg"), false, "Sisesta kasutajanimi ja parool.");
+  }
+
+  try{
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Login...";
+    }
+
+    const r = await call("login", {
+      method:"POST",
+      body: JSON.stringify({username, password})
+    });
+
+    token = r.token;
+    me = r.user;
+    localStorage.setItem("token", token);
+
+    setMsg($("loginMsg"), true, "Sisse logitud.");
+    setWho();
+    await loadAll();
+  }catch(err){
+    setMsg($("loginMsg"), false, err.message);
+  }finally{
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "Logi sisse";
+    }
+  }
+}
+
+async function doRegister(e){
+  if (e) e.preventDefault();
+
+  const btn = $("btnRegister");
+  const username = $("ru")?.value.trim() || "";
+  const password = $("rp")?.value || "";
+  const password_confirm = $("rp2")?.value || "";
+
+  if (!username || password.length < 6) {
+    return setMsg($("loginMsg"), false, "Sisesta kasutajanimi ja parool vähemalt 6 märki.");
+  }
+
+  if (password !== password_confirm) {
+    return setMsg($("loginMsg"), false, "Paroolid ei kattu.");
+  }
+
+  try{
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Loon...";
+    }
+
+    const r = await call("register", {
+      method:"POST",
+      body: JSON.stringify({username, password, password_confirm})
+    });
+
+    token = r.token;
+    me = r.user;
+    localStorage.setItem("token", token);
+
+    setMsg($("loginMsg"), true, "Konto loodud ja sisse logitud.");
+    setWho();
+    await loadAll();
+  }catch(err){
+    setMsg($("loginMsg"), false, err.message);
+  }finally{
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "Loo konto";
+    }
+  }
+}
+
+async function doChangePassword(e){
+  if (e) e.preventDefault();
+
+  const old_password = $("oldp")?.value || "";
+  const new_password = $("newp")?.value || "";
+
+  if (!old_password || new_password.length < 6) {
+    return setMsg($("accountMsg"), false, "Sisesta praegune parool ja uus parool vähemalt 6 märki.");
+  }
+
+  try{
+    await call("password", {
+      method:"POST",
+      body: JSON.stringify({old_password, new_password})
+    });
+
+    $("oldp").value = "";
+    $("newp").value = "";
+    setMsg($("accountMsg"), true, "Parool muudetud.");
+  }catch(err){
+    setMsg($("accountMsg"), false, err.message);
+  }
+}
+
+function bindAuthButtons(){
+  const loginBtn = $("btnLogin");
+  if (loginBtn && loginBtn.dataset.boundAuth !== "1") {
+    loginBtn.dataset.boundAuth = "1";
+    loginBtn.addEventListener("click", doLogin);
+  }
+
+  const registerBtn = $("btnRegister");
+  if (registerBtn && registerBtn.dataset.boundAuth !== "1") {
+    registerBtn.dataset.boundAuth = "1";
+    registerBtn.addEventListener("click", doRegister);
+  }
+
+  const passBtn = $("btnPass");
+  if (passBtn && passBtn.dataset.boundAuth !== "1") {
+    passBtn.dataset.boundAuth = "1";
+    passBtn.addEventListener("click", doChangePassword);
+  }
+
+  const passInput = $("p");
+  if (passInput && passInput.dataset.boundEnter !== "1") {
+    passInput.dataset.boundEnter = "1";
+    passInput.addEventListener("keydown", (e)=>{
+      if (e.key === "Enter") doLogin(e);
+    });
+  }
+
+  const userInput = $("u");
+  if (userInput && userInput.dataset.boundEnter !== "1") {
+    userInput.dataset.boundEnter = "1";
+    userInput.addEventListener("keydown", (e)=>{
+      if (e.key === "Enter") doLogin(e);
+    });
+  }
+}
+
+
 function doLogout(){
   token = "";
   me = null;
@@ -2234,7 +2380,12 @@ async function loadAll(){
   const views = $("viewsCard");
   if (views) views.classList.toggle("hide", !me);
 
-  await loadMatchesAndPreds();
+  if (!me) {
+    toggleAdminTab();
+    return;
+  }
+
+  if (typeof loadMatchesAndPreds === "function") await loadMatchesAndPreds();
   if (typeof loadLeaderboard === "function") await loadLeaderboard();
   if (typeof loadBonusQuestions === "function") await loadBonusQuestions();
   if (typeof loadOthersView === "function") await loadOthersView();
@@ -3105,6 +3256,7 @@ if ($("btnRefreshScreenshotBoard") && typeof loadAdminScreenshotBoard === "funct
   $("btnRefreshScreenshotBoard").onclick = loadAdminScreenshotBoard;
 }
 
+bindAuthButtons();
 bindLogoutButtons();
 loadAll();
 </script>
