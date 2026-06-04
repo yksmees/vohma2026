@@ -624,7 +624,14 @@ async function syncApiFootballResults(sb, { force=false } = {}){
     // Optional fixture-id salvestus eraldi. Kui veerg puudub, ei tohi see skoori salvestamist katki teha.
     const fxId = Number(fx?.fixture?.id);
     if (fxId && Number(match.api_football_fixture_id) !== fxId){
-      await sb.from("matches").update({ api_football_fixture_id: fxId }).eq("id", match.id).catch(() => null);
+      try {
+        const fxUpd = await sb.from("matches").update({ api_football_fixture_id: fxId }).eq("id", match.id);
+        // Kui api_football_fixture_id veerg puudub, võib Supabase tagastada errori.
+        // See ei tohi skoori salvestamist peatada.
+        void fxUpd;
+      } catch (_) {
+        // ignoreeri vabatahtliku veeru salvestuse viga
+      }
     }
 
     if (apiFixtureFinished(fx)){
