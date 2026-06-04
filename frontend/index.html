@@ -1580,6 +1580,59 @@
       filter:saturate(1.2);
     }
 
+  
+    /* BONUS MATRIX ADMIN VIEW */
+    .bonus-admin-matrix-wrap{
+      max-width:100%;
+      overflow-x:auto;
+      -webkit-overflow-scrolling:touch;
+    }
+
+    .bonus-admin-matrix th,
+    .bonus-admin-matrix td,
+    #bonusScreenshotTable th,
+    #bonusScreenshotTable td{
+      vertical-align:top;
+      min-width:150px;
+      white-space:normal;
+    }
+
+    .bonus-admin-matrix th:first-child,
+    #bonusScreenshotTable th:first-child{
+      min-width:260px;
+      position:sticky;
+      left:0;
+      z-index:2;
+      background:#121a3a;
+    }
+
+    .correct-answer-cell{
+      font-weight:900;
+      color:#ffffff;
+    }
+
+    .bonus-answer-cell{
+      transition:background .15s ease, border-color .15s ease;
+    }
+
+    .bonus-answer-text{
+      font-weight:800;
+      margin-bottom:8px;
+    }
+
+    .bonus-correct-cell{
+      background:rgba(34,197,94,.28) !important;
+      border-color:rgba(34,197,94,.75) !important;
+      color:#ffffff !important;
+    }
+
+    .bonus-total-row th,
+    .bonus-total-row td{
+      font-size:15px;
+      font-weight:900;
+      background:rgba(255,255,255,.08);
+    }
+
   </style>
 </head>
 <body>
@@ -1820,7 +1873,7 @@
   <div class="table-wrap">
     <table id="adminBonusAnswersTable">
       <thead>
-        <tr><th>Mängija</th><th>Vastus</th><th class="right">Märgi õigeks</th><th class="right">Punktid</th></tr>
+        <tr><th>Küsimus</th><th>Õige vastus</th></tr>
       </thead>
       <tbody></tbody>
     </table>
@@ -2926,82 +2979,93 @@ function renderBonusScreenshot(data){
 
   for (const a of answers) answerMap.set(`${a.player_id}:${a.question_id}`, a);
 
-  const rows = [];
-  rows.push(`<tr class="teams"><th>Kasutaja</th>${questions.map((q,i)=>`<th title="${escapeHtml(q.question_text)}">${shortQuestion(q,i)}</th>`).join("")}<th>Punktid</th></tr>`);
-  rows.push(`<tr class="correct"><th>Õige vastus</th>${questions.map(q=>`<td>${escapeHtml(q.correct_answer || "")}</td>`).join("")}<td></td></tr>`);
-
-  for (const p of players){
-    let pts = 0;
-    let row = `<tr><th>${escapeHtml(p.display_name)}</th>`;
-    for (const q of questions){
-      const a = answerMap.get(`${p.id}:${q.id}`);
-      pts += Number(a?.points || 0);
-      const mark = a?.is_correct ? " ✓" : "";
-      row += `<td>${escapeHtml(a?.answer_text || "")}${mark}</td>`;
-    }
-    row += `<td>${pts}</td></tr>`;
-    rows.push(row);
+  const totals = new Map(players.map(p => [p.id, 0]));
+  for (const a of answers) {
+    totals.set(a.player_id, (totals.get(a.player_id) || 0) + (Number(a.points) || 0));
   }
 
-  tbody.innerHTML = rows.join("");
+  const header = `<tr class="teams"><th>Küsimus</th><th>Õige vastus</th>${players.map(p=>`<th>${escapeHtml(p.display_name || "")}</th>`).join("")}</tr>`;
+
+  const rows = questions.map((q, idx)=>{
+    const cells = players.map(p=>{
+      const a = answerMap.get(`${p.id}:${q.id}`);
+      const cls = a?.is_correct ? "bonus-correct-cell" : "";
+      const mark = a?.is_correct ? " ✓" : "";
+      return `<td class="${cls}">${escapeHtml(a?.answer_text || "")}${mark}</td>`;
+    }).join("");
+
+    return `<tr><th>${idx + 1}. ${escapeHtml(q.question_text || "")}</th><td class="correct-answer-cell">${escapeHtml(q.correct_answer || "")}</td>${cells}</tr>`;
+  }).join("");
+
+  const totalRow = `<tr class="bonus-total-row"><th>Kokku</th><td></td>${players.map(p=>`<td><strong>${totals.get(p.id) || 0}p</strong></td>`).join("")}</tr>`;
+
+  tbody.innerHTML = header + rows + totalRow;
 }
 
 function renderAdminBonusAnswers(){
   if (!(me && me.is_admin) || !adminBonusData) return;
 
-  const select = $("adminBonusQuestionSelect");
   const aBody = $("adminBonusAnswersTable")?.querySelector("tbody");
-  if (!select || !aBody) return;
+  if (!aBody) return;
 
   const questions = adminBonusData.questions || [];
   const players = adminBonusData.players || [];
   const answers = adminBonusData.answers || [];
-
-  if (!select.value && questions.length) select.value = String(questions[0].id);
-
-  const questionId = Number(select.value || questions[0]?.id);
-  const question = questions.find(q => Number(q.id) === questionId);
-
   const answerMap = new Map();
+
   for (const a of answers) answerMap.set(`${a.player_id}:${a.question_id}`, a);
 
-  if (!question) {
-    aBody.innerHTML = `<tr><td colspan="4">Küsimust ei leitud.</td></tr>`;
-    return;
+  const totals = new Map(players.map(p => [p.id, 0]));
+  for (const a of answers) {
+    totals.set(a.player_id, (totals.get(a.player_id) || 0) + (Number(a.points) || 0));
   }
 
-  const rows = players.map(p=>{
-    const a = answerMap.get(`${p.id}:${question.id}`) || {
-      player_id: p.id,
-      question_id: question.id,
-      answer_text: "",
-      is_correct: false,
-      points: 0
-    };
+  const header = `<tr><th>Küsimus</th><th>Õige vastus</th>${players.map(p=>`<th>${escapeHtml(p.display_name || "")}</th>`).join("")}</tr>`;
 
-    return `
-      <tr>
-        <td>${escapeHtml(p.display_name || "")}</td>
-        <td>${escapeHtml(a.answer_text || "") || `<span class="sub">Vastus puudub</span>`}</td>
-        <td class="right">
+  const rows = questions.map((q, idx)=>{
+    const cells = players.map(p=>{
+      const a = answerMap.get(`${p.id}:${q.id}`) || {
+        player_id: p.id,
+        question_id: q.id,
+        answer_text: "",
+        is_correct: false,
+        points: 0
+      };
+
+      const hasAnswer = String(a.answer_text || "").trim() !== "";
+      const cls = a.is_correct ? "bonus-correct-cell" : "";
+      const disabled = hasAnswer ? "" : "disabled";
+      const checked = a.is_correct ? "checked" : "";
+
+      return `
+        <td class="bonus-answer-cell ${cls}">
+          <div class="bonus-answer-text">${escapeHtml(a.answer_text || "") || `<span class="sub">Vastus puudub</span>`}</div>
           <label class="bonus-check">
-            <input type="checkbox" data-bonus-correct="${p.id}:${question.id}" ${a.is_correct ? "checked" : ""} ${a.answer_text ? "" : "disabled"}>
+            <input type="checkbox" data-bonus-correct="${p.id}:${q.id}" ${checked} ${disabled}>
             Õige
           </label>
         </td>
-        <td class="right">${a.points || 0}</td>
-      </tr>
-    `;
-  });
+      `;
+    }).join("");
 
-  aBody.innerHTML = rows.join("");
+    return `<tr><th>${idx + 1}. ${escapeHtml(q.question_text || "")}</th><td class="correct-answer-cell">${escapeHtml(q.correct_answer || "")}</td>${cells}</tr>`;
+  }).join("");
+
+  const totalRow = `<tr class="bonus-total-row"><th>Kokku</th><td></td>${players.map(p=>`<td><strong>${totals.get(p.id) || 0}p</strong></td>`).join("")}</tr>`;
+
+  aBody.innerHTML = header + rows + totalRow;
 
   aBody.querySelectorAll("[data-bonus-correct]").forEach(inp=>{
     inp.addEventListener("change", async (e)=>{
       e.preventDefault();
+
       const [player_id, question_id] = inp.dataset.bonusCorrect.split(":");
+      const cell = inp.closest("td");
+      const originalChecked = !inp.checked;
 
       try{
+        inp.disabled = true;
+
         await call("admin/bonus/answers", {
           method:"PUT",
           body: JSON.stringify({
@@ -3015,12 +3079,16 @@ function renderAdminBonusAnswers(){
 
         const fresh = await call("admin/bonus", {method:"GET"});
         adminBonusData = fresh;
+
         renderAdminBonusAnswers();
         renderBonusScreenshot(fresh);
-        await loadLeaderboard();
-      }catch(e){
-        inp.checked = !inp.checked;
-        setMsg($("adminBonusMsg"), false, e.message);
+
+        if (typeof loadLeaderboard === "function") await loadLeaderboard();
+      }catch(err){
+        inp.checked = originalChecked;
+        if (cell) cell.classList.toggle("bonus-correct-cell", originalChecked);
+        setMsg($("adminBonusMsg"), false, err.message);
+        inp.disabled = false;
       }
     });
   });
@@ -3031,7 +3099,6 @@ async function loadAdminBonus(){
 
   const qBody = $("adminBonusQuestionsTable")?.querySelector("tbody");
   const aBody = $("adminBonusAnswersTable")?.querySelector("tbody");
-  const select = $("adminBonusQuestionSelect");
   if (!qBody || !aBody) return;
 
   qBody.innerHTML = "";
@@ -3054,19 +3121,10 @@ async function loadAdminBonus(){
       </tr>
     `).join("");
 
-    if (select) {
-      const previous = select.value;
-      select.innerHTML = questions.map((q, idx)=>`<option value="${q.id}">${idx + 1}. ${escapeHtml(q.question_text)}</option>`).join("");
-      if (previous && questions.some(q => String(q.id) === String(previous))) select.value = previous;
-      if (select.dataset.boundBonusSelect !== "1") {
-        select.dataset.boundBonusSelect = "1";
-        select.addEventListener("change", renderAdminBonusAnswers);
-      }
-    }
-
     qBody.querySelectorAll("[data-save-bonus-q]").forEach(btn=>{
       btn.addEventListener("click", async (e)=>{
         e.preventDefault();
+
         const id = btn.dataset.saveBonusQ;
         const question_text = qBody.querySelector(`[data-bonus-q-text="${id}"]`)?.value || "";
         const correct_answer = qBody.querySelector(`[data-bonus-q-correct="${id}"]`)?.value || "";
@@ -3086,30 +3144,30 @@ async function loadAdminBonus(){
 
           const fresh = await call("admin/bonus", {method:"GET"});
           adminBonusData = fresh;
+
           renderAdminBonusAnswers();
           renderBonusScreenshot(fresh);
-          await loadBonusQuestions();
+
+          if (typeof loadBonusQuestions === "function") await loadBonusQuestions();
 
           setTimeout(()=>{
             btn.textContent = "Salvesta";
             btn.disabled = false;
           }, 1000);
-        }catch(e){
+        }catch(err){
           btn.textContent = "Salvesta";
           btn.disabled = false;
-          setMsg($("adminBonusMsg"), false, e.message);
+          setMsg($("adminBonusMsg"), false, err.message);
         }
       });
     });
 
     renderAdminBonusAnswers();
     renderBonusScreenshot(data);
-  }catch(e){
-    setMsg($("adminBonusMsg"), false, e.message);
+  }catch(err){
+    setMsg($("adminBonusMsg"), false, err.message);
   }
 }
-
-if ($("btnSaveBonus")) $("btnSaveBonus").onclick = (e)=>{ e.preventDefault(); saveBonusAnswers(); };
 
 if ($("btnRefreshMatchDropdown")) $("btnRefreshMatchDropdown").onclick = async ()=>{
   try{
