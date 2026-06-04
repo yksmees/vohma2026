@@ -1055,17 +1055,30 @@ if (event.httpMethod === "GET" && route === "predictions/matrix") {
 
   if (matchesRes.error) return json(500, { error: matchesRes.error.message });
 
-  const finishedMatches = (matchesRes.data || []).filter(m =>
-    m.is_finished ||
-    (
-      m.final_home !== null &&
-      m.final_home !== undefined &&
-      m.final_away !== null &&
-      m.final_away !== undefined
-    )
-  );
+  const now = Date.now();
 
-  const matchIds = finishedMatches.map(m => m.id);
+  const visibleMatches = (matchesRes.data || []).filter(m => {
+    const hasFinal =
+      m.is_finished ||
+      (
+        m.final_home !== null &&
+        m.final_home !== undefined &&
+        m.final_away !== null &&
+        m.final_away !== undefined
+      );
+
+    const kickoff = m.kickoff_utc ? new Date(m.kickoff_utc).getTime() : null;
+    const locked = Number.isFinite(kickoff) && now >= (kickoff - 60 * 60 * 1000);
+
+    return hasFinal || locked;
+  }).sort((a,b) => {
+    const ta = a.kickoff_utc ? new Date(a.kickoff_utc).getTime() : 0;
+    const tb = b.kickoff_utc ? new Date(b.kickoff_utc).getTime() : 0;
+    if (tb !== ta) return tb - ta;
+    return (Number(b.match_no) || 0) - (Number(a.match_no) || 0);
+  });
+
+  const matchIds = visibleMatches.map(m => m.id);
   let predictions = [];
 
   if (matchIds.length) {
@@ -1081,7 +1094,7 @@ if (event.httpMethod === "GET" && route === "predictions/matrix") {
   return json(200, {
     ok: true,
     players: (playersRes.data || []).filter(p => !p.is_admin).sort((a,b) => String(a.display_name || "").localeCompare(String(b.display_name || ""), "et")),
-    matches: finishedMatches,
+    matches: visibleMatches,
     predictions
   });
 }

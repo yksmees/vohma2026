@@ -1727,6 +1727,58 @@
       font-weight:900 !important;
     }
 
+  
+    /* LOCKED OTHERS AND FINAL SCORE */
+    .matrix-final-score{
+      display:inline-block;
+      margin-top:4px;
+      padding:3px 7px;
+      border-radius:999px;
+      background:rgba(255,255,255,.12);
+      color:#fff;
+      font-weight:900;
+      white-space:nowrap;
+    }
+
+    .matrix-lock-note{
+      display:inline-block;
+      margin-top:4px;
+      padding:3px 7px;
+      border-radius:999px;
+      background:rgba(250,204,21,.20);
+      color:#fde68a;
+      font-weight:900;
+      white-space:nowrap;
+    }
+
+    .final-score-badge{
+      display:inline-flex;
+      align-items:center;
+      gap:5px;
+      margin-top:6px;
+      padding:5px 9px;
+      border-radius:999px;
+      background:rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.18);
+      color:#ffffff;
+      font-size:13px;
+      font-weight:900;
+      white-space:nowrap;
+    }
+
+    .final-score-badge strong{
+      font-size:15px;
+      letter-spacing:.02em;
+    }
+
+    @media (max-width:760px){
+      .final-score-badge{
+        margin-top:8px;
+        width:max-content;
+        max-width:100%;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -2618,6 +2670,7 @@ const koTxt = ko ? new Intl.DateTimeFormat('et-EE',{timeZone:'Europe/Tallinn', y
 const locked = !!(ko && (Date.now() >= (ko.getTime() - 60*60*1000)) && !(me && me.is_admin));
 const lockHint = locked ? "Lukus" : "";
 const finished = !!(row.is_finished || final);
+const finalScoreHtml = final ? `<div class="final-score-badge">Lõpp skoor: <strong>${final}</strong></div>` : "";
 const locationAndTime = `${row.location || ""}${row.location && koTxt ? " • " : ""}${koTxt}`;
 const colorClass = pointColorClass(row, pr);
 if (finished) tr.classList.add("match-finished");
@@ -2627,7 +2680,7 @@ tr.innerHTML = `
   <td><span class="pill">${row.stage}</span></td>
   <td>${row.home}</td>
   <td>${row.away}</td>
-  <td>${locationAndTime} ${lockHint ? `<span class="pill">${lockHint}</span>` : ""}</td>
+  <td>${locationAndTime} ${lockHint ? `<span class="pill">${lockHint}</span>` : ""}${finalScoreHtml}</td>
   <td class="pred-cell">
     <div class="pred-note">${isPlayoffMatch(row) ? "90 min skoor" : ""}</div>
     <div class="pred-controls">
@@ -2758,6 +2811,36 @@ async function loadLeaderboard(){
   }
 }
 
+
+function matchSortNewest(a,b){
+  const ta = a?.kickoff_utc ? new Date(a.kickoff_utc).getTime() : 0;
+  const tb = b?.kickoff_utc ? new Date(b.kickoff_utc).getTime() : 0;
+  if (tb !== ta) return tb - ta;
+  return (Number(b?.match_no) || 0) - (Number(a?.match_no) || 0);
+}
+
+function hasFinalScore(row){
+  return !!(
+    row &&
+    row.final_home !== null &&
+    row.final_home !== undefined &&
+    row.final_away !== null &&
+    row.final_away !== undefined
+  );
+}
+
+function finalScoreText(row){
+  return hasFinalScore(row) ? `${row.final_home}:${row.final_away}` : "";
+}
+
+function othersHeaderResultHtml(row){
+  if (hasFinalScore(row)) {
+    return `<br><span class="matrix-final-score">Lõpp skoor: <b>${finalScoreText(row)}</b></span>`;
+  }
+  return `<br><span class="matrix-lock-note">Lukus</span>`;
+}
+
+
 function renderOthersMatrix(table, matches, players, predictions){
   if (!table) return;
   const thead = table.querySelector("thead");
@@ -2766,14 +2849,14 @@ function renderOthersMatrix(table, matches, players, predictions){
 
   if (!matches.length){
     thead.innerHTML = "";
-    tbody.innerHTML = `<tr><td>Lõppenud mänge veel ei ole.</td></tr>`;
+    tbody.innerHTML = `<tr><td>Lukustunud või lõppenud mänge veel ei ole.</td></tr>`;
     return;
   }
 
   thead.innerHTML = `
     <tr>
       <th>Kasutaja</th>
-      ${matches.map(m=>`<th>#${displayMatchNo(m)}<br>${escapeHtml(m.home)} - ${escapeHtml(m.away)}<br><b>${m.final_home ?? ""}:${m.final_away ?? ""}</b></th>`).join("")}
+      ${matches.map(m=>`<th>#${displayMatchNo(m)}<br>${escapeHtml(m.home)} - ${escapeHtml(m.away)}${othersHeaderResultHtml(m)}</th>`).join("")}
     </tr>
   `;
 
@@ -2798,8 +2881,9 @@ async function loadOthersView(){
     const matches = r.matches || [];
     const predictions = r.predictions || [];
 
-    const groupMatches = matches.filter(m => Number(m.match_no) >= 1 && Number(m.match_no) <= 72);
-    const playoffMatches = matches.filter(m => !(Number(m.match_no) >= 1 && Number(m.match_no) <= 72));
+    const sortedMatches = matches.slice().sort(matchSortNewest);
+    const groupMatches = sortedMatches.filter(m => Number(m.match_no) >= 1 && Number(m.match_no) <= 72);
+    const playoffMatches = sortedMatches.filter(m => !(Number(m.match_no) >= 1 && Number(m.match_no) <= 72));
 
     renderOthersMatrix($("othersGroupTable"), groupMatches, players, predictions);
     renderOthersMatrix($("othersPlayoffTable"), playoffMatches, players, predictions);
@@ -2883,7 +2967,7 @@ function renderScreenshotBoard(){
 
   if (mode === "multi"){
     const count = Math.max(1, Math.min(12, Number($("screenshotCount")?.value || 3)));
-    chosen = matches.slice(-count);
+    chosen = matches.slice().sort(matchSortNewest).slice(0, count);
   } else {
     const id = $("screenshotMatchSelect")?.value;
     chosen = matches.filter(m => String(m.id) === String(id));
