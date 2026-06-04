@@ -1811,6 +1811,16 @@
       opacity:1;
     }
 
+  
+    /* MANUAL RESULTS IMPORT */
+    .manual-results-import-card textarea{
+      width:100%;
+      min-height:120px;
+      resize:vertical;
+      font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      line-height:1.45;
+    }
+
   </style>
 </head>
 <body>
@@ -1993,7 +2003,7 @@
     <b>Lisa U17 testmängud</b> lisab kolm UEFA U17 testmängu ennustusvaate algusesse. <b>Eemalda U17 testmängud</b> kustutab need hiljem koos nende ennustustega.<br>
     <b>Sünkroniseeri ajakava</b> uuendab mänguaegu olemasoleva ajakava järgi.<br>
     <b>Sünkroniseeri tulemused</b> tõmbab API-Footballist lõppenud mängude skoorid.<br>
-    <b>Käsitsi tulemus</b> sisesta mängu numbri järgi, et testida punktiarvestust.<br>
+    <b>Käsitsi tulemus</b> sisesta ühe mängu tulemus mängu numbri järgi. <b>Impordi tulemused korraga</b> võimaldab mitu tulemust korraga kleepida kujul <code>mängu_nr skoor</code>, näiteks <code>-3 1:2</code> või play-off viigi puhul <code>-2 0:0 home</code>.<br>
     <b>Käsitsi mänguaeg</b> sisesta kuupäev kujul DD:MM:YY ja kellaaeg HH:MM Eesti aja järgi, et testida 1 tunni lukku.<br>
     <b>Kustuta mäng</b> vali mäng dropdown-listist. See kustutab ka selle mängu ennustused.<br>
     <b>Lisa uus mäng</b> sisesta mängu nr, meeskonnad, kuupäev DD:MM:YY, kellaaeg HH:MM ja asukoht. Etappi eraldi sisestama ei pea.<br>
@@ -2133,6 +2143,17 @@
               <input id="timeDate" placeholder="kuupäev DD:MM:YY" />
               <input id="timeClock" placeholder="kellaaeg HH:MM" />
               <button id="btnSetKickoff" type="button" class="primary">Salvesta mänguaeg</button>
+            </div>
+            <div class="card manual-results-import-card" style="margin-top:12px">
+              <strong>Impordi tulemused korraga</strong>
+              <div class="sub" style="margin-top:6px">
+                Kleebi iga tulemus eraldi reale. Vorming: <code>mängu_nr skoor</code>. Play-off viigi puhul lisa edasipääseja <code>home</code> või <code>away</code>.
+              </div>
+              <textarea id="manualResultsText" rows="5" placeholder="-3 1:2&#10;-2 0:0 home&#10;-1 2:1" style="margin-top:10px"></textarea>
+              <div class="row" style="margin-top:10px">
+                <button id="btnImportManualResults" type="button" class="primary">Impordi tulemused</button>
+                <button id="btnClearManualResults" type="button">Tühjenda</button>
+              </div>
             </div>
           
 
@@ -3809,6 +3830,58 @@ $("btnAddMatch").onclick = async ()=>{
     setMsg($("adminMsg"), false, e.message);
   }
 };
+
+
+if ($("btnImportManualResults")) $("btnImportManualResults").onclick = async (e)=>{
+  if (e) e.preventDefault();
+  if (!(me && me.is_admin)) return setMsg($("adminMsg"), false, "Ainult admin.");
+
+  const btn = $("btnImportManualResults");
+  const text = $("manualResultsText")?.value || "";
+
+  if (!text.trim()) return setMsg($("adminMsg"), false, "Sisesta vähemalt üks tulemus.");
+
+  try{
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Impordin...";
+    }
+
+    const r = await call("admin/results/import", {
+      method:"POST",
+      body: JSON.stringify({text})
+    });
+
+    const updated = (r.updated || []).map(x => `#${x.match_no} ${x.home} - ${x.away} ${x.score}${x.winner ? " edasi: " + x.winner : ""}`);
+    const errors = r.errors || [];
+
+    const msgParts = [
+      `uuendatud ${r.updated_count || 0}`,
+      updated.length ? `mängud: ${updated.join("; ")}` : "",
+      errors.length ? `vead: ${errors.join("; ")}` : ""
+    ].filter(Boolean);
+
+    setMsg($("adminMsg"), errors.length ? false : true, `Tulemuste import: ${msgParts.join(" • ")}`);
+
+    await loadMatchesAndPreds();
+    await loadLeaderboard();
+    await loadOthersView();
+    if (typeof loadAdminScreenshotBoard === "function") await loadAdminScreenshotBoard();
+  }catch(err){
+    setMsg($("adminMsg"), false, err.message);
+  }finally{
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "Impordi tulemused";
+    }
+  }
+};
+
+if ($("btnClearManualResults")) $("btnClearManualResults").onclick = (e)=>{
+  if (e) e.preventDefault();
+  if ($("manualResultsText")) $("manualResultsText").value = "";
+};
+
 
 $("btnSetFinal").onclick = async ()=>{
   if (!(me && me.is_admin)) return setMsg($("adminMsg"), false, "Ainult admin.");

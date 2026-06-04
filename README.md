@@ -479,3 +479,5 @@ Käivita Supabase SQL Editoris:
 Kui kasutaja vaates küsimused ei ilmu, käivita `sql/bonus_questions_migration.sql`. Admin vaates saab lisaks vajutada `Lisa vaikimisi lisaküsimused`.
 
 Admin saab lisaküsimuste vaates uusi küsimusi juurde lisada ning olemasolevaid küsimusi, õigeid vastuseid ja punkte muuta.
+
+Admin vaates saab tulemusi sisestada ka korraga plokina: iga rida kujul `mängu_nr skoor`, näiteks `-3 1:2`. Play-off viigi puhul lisa `home` või `away`, näiteks `-2 0:0 home`.

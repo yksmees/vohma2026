@@ -516,6 +516,37 @@ async function fetchApiFootballFixtures(matchDates = []){
   return { ok:true, fixtures: allFixtures, errors, requested };
 }
 
+
+function parseManualResultLine(line){
+  const raw = String(line || "").trim();
+  if (!raw || raw.startsWith("#")) return null;
+
+  const cleaned = raw
+    .replace(/[,;]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const m = cleaned.match(/^#?(-?\d+)\s+(\d+)\s*[:\-]\s*(\d+)(?:\s+(home|away|kodu|võõrsil|voorsil))?$/i)
+    || cleaned.match(/^#?(-?\d+)\s+(\d+)\s+(\d+)(?:\s+(home|away|kodu|võõrsil|voorsil))?$/i);
+
+  if (!m) return { error: `Vigane rida: ${raw}` };
+
+  const match_no = Number(m[1]);
+  const final_home = Number(m[2]);
+  const final_away = Number(m[3]);
+  let winner = String(m[4] || "").toLowerCase();
+
+  if (winner === "kodu") winner = "home";
+  if (winner === "võõrsil" || winner === "voorsil") winner = "away";
+  if (winner && !["home", "away"].includes(winner)) winner = "";
+
+  if (!Number.isFinite(match_no) || !Number.isFinite(final_home) || !Number.isFinite(final_away)) {
+    return { error: `Vigased numbrid: ${raw}` };
+  }
+
+  return { match_no, final_home, final_away, winner };
+}
+
 async function recalcPointsForMatch(sb, matchId){
   const matchRes = await sb.from("matches").select("*").eq("id", matchId).single();
   if (matchRes.error || !matchRes.data) return;
@@ -839,6 +870,91 @@ if (event.httpMethod === "GET" && route === "me") {
         .slice(0, 10);
 
       return json(200, { ok:true, match: matchRes.data, requested: fetched.requested || [], api_errors: fetched.errors || [], candidates });
+    }
+
+
+    // Admin bulk manual result import
+    if (event.httpMethod === "POST" && route === "admin/results/import") {
+      const u = userFrom(event);
+      if (!u || !u.is_admin) return json(403, { error: "Admini õigused puuduvad." });
+
+      const body = JSON.parse(event.body || "{}");
+      const text = String(body.text || "");
+      const lines = text.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+
+      if (!lines.length) return json(400, { error: "Sisesta vähemalt üks tulemus." });
+
+      const updated = [];
+      const errors = [];
+
+      for (const line of lines) {
+        const parsed = parseManualResultLine(line);
+
+        if (!parsed) continue;
+        if (parsed.error) {
+          errors.push(parsed.error);
+          continue;
+        }
+
+        const matchRes = await sb
+          .from("matches")
+          .select("id,match_no,home,away,stage")
+          .eq("match_no", parsed.match_no)
+          .single();
+
+        if (matchRes.error || !matchRes.data) {
+          errors.push(`#${parsed.match_no}: mängu ei leitud`);
+          continue;
+        }
+
+        const isDraw = parsed.final_home === parsed.final_away;
+        const isPlayoff = isPlayoffMatch(matchRes.data);
+        const winner = isDraw && isPlayoff ? normalizeWinner(parsed.winner) : normalizeWinner(parsed.winner);
+
+        if (isDraw && isPlayoff && !winner) {
+          errors.push(`#${parsed.match_no}: play-off viigi puhul lisa edasipääseja home või away`);
+          continue;
+        }
+
+        const patch = {
+          final_home: parsed.final_home,
+          final_away: parsed.final_away,
+          is_finished: true,
+          manual_result_override: true
+        };
+
+        if (winner) patch.winner = winner;
+
+        const upd = await sb
+          .from("matches")
+          .update(patch)
+          .eq("id", matchRes.data.id)
+          .select("*")
+          .single();
+
+        if (upd.error) {
+          errors.push(`#${parsed.match_no}: ${upd.error.message}`);
+          continue;
+        }
+
+        await recalcPointsForMatch(sb, matchRes.data.id);
+
+        updated.push({
+          match_no: parsed.match_no,
+          home: matchRes.data.home,
+          away: matchRes.data.away,
+          score: `${parsed.final_home}:${parsed.final_away}`,
+          winner: winner || ""
+        });
+      }
+
+      return json(200, {
+        ok: true,
+        updated_count: updated.length,
+        error_count: errors.length,
+        updated,
+        errors
+      });
     }
 
     // Admin sync results from API-Football
