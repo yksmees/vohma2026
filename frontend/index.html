@@ -1680,6 +1680,53 @@
       text-shadow:0 1px 2px rgba(0,0,0,.55);
     }
 
+  
+    /* BONUS SCREENSHOT EXPORT AND LIGHT READABILITY */
+    #bonusScreenshotTable .bonus-question-text,
+    .bonus-admin-matrix .bonus-question-text{
+      background:#ffffff !important;
+      color:#0f172a !important;
+      font-family:Arial, Helvetica, sans-serif !important;
+      font-size:15px !important;
+      font-weight:900 !important;
+      line-height:1.35 !important;
+      text-shadow:none !important;
+      border-color:#cbd5e1 !important;
+    }
+
+    #bonusScreenshotTable .correct-answer-cell,
+    .bonus-admin-matrix .correct-answer-cell{
+      background:#fef3c7 !important;
+      color:#111827 !important;
+      font-family:Arial, Helvetica, sans-serif !important;
+      font-weight:900 !important;
+      line-height:1.35 !important;
+      text-shadow:none !important;
+      border-color:#f59e0b !important;
+      min-width:170px;
+    }
+
+    #bonusScreenshotTable td,
+    #bonusScreenshotTable th{
+      color:#0f172a;
+    }
+
+    #bonusScreenshotTable .teams th{
+      background:#1e293b !important;
+      color:#ffffff !important;
+      font-family:Arial, Helvetica, sans-serif !important;
+      font-weight:900 !important;
+      text-shadow:none !important;
+    }
+
+    #bonusScreenshotTable .bonus-correct-cell,
+    .bonus-admin-matrix .bonus-correct-cell{
+      background:#bbf7d0 !important;
+      color:#0f172a !important;
+      border-color:#22c55e !important;
+      font-weight:900 !important;
+    }
+
   </style>
 </head>
 <body>
@@ -1918,6 +1965,7 @@
           </div>
 
 
+  <div class="sub" style="margin-top:12px">Olemasolevad lisaküsimused. Muuda küsimust, õiget vastust või punkte ja vajuta Salvesta.</div>
   <div class="table-wrap" style="margin-top:10px">
     <table id="adminBonusQuestionsTable">
       <thead>
@@ -1941,6 +1989,9 @@
 <div class="card" id="bonusScreenshotCard" style="margin-top:10px">
   <strong>Lisaküsimused screenshotiks</strong>
   <div class="sub" style="margin-top:8px">Eraldi kompaktne tabel lisaküsimuste vastuste screenshotiks.</div>
+          <div class="row" style="margin-top:10px">
+            <button id="btnExportBonusJpg" type="button" class="primary">Ekspordi JPG</button>
+          </div>
   <div class="screenshot-board-wrap">
     <table id="bonusScreenshotTable" class="screenshot-board">
       <tbody></tbody>
@@ -3171,6 +3222,187 @@ function renderAdminBonusAnswers(){
   });
 }
 
+
+function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight, maxLines = 6){
+  const words = String(text || "").split(/\s+/).filter(Boolean);
+  const lines = [];
+  let line = "";
+
+  for (const word of words){
+    const test = line ? `${line} ${word}` : word;
+    if (ctx.measureText(test).width <= maxWidth){
+      line = test;
+    } else {
+      if (line) lines.push(line);
+      line = word;
+    }
+  }
+
+  if (line) lines.push(line);
+
+  const finalLines = lines.slice(0, maxLines);
+  if (lines.length > maxLines && finalLines.length){
+    let last = finalLines[finalLines.length - 1];
+    while (ctx.measureText(last + "…").width > maxWidth && last.length > 0) {
+      last = last.slice(0, -1);
+    }
+    finalLines[finalLines.length - 1] = last + "…";
+  }
+
+  finalLines.forEach((l, i)=>ctx.fillText(l, x, y + i * lineHeight));
+  return finalLines.length * lineHeight;
+}
+
+function drawCell(ctx, x, y, w, h, opts = {}){
+  ctx.fillStyle = opts.bg || "#ffffff";
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = opts.border || "#d1d5db";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x, y, w, h);
+}
+
+function exportBonusScreenshotJpg(){
+  const data = adminBonusData;
+  if (!data) {
+    return setMsg($("adminBonusMsg"), false, "Lisaküsimuste andmeid pole veel laaditud.");
+  }
+
+  const questions = data.questions || [];
+  const players = data.players || [];
+  const answers = data.answers || [];
+  const answerMap = new Map();
+
+  for (const a of answers) answerMap.set(`${a.player_id}:${a.question_id}`, a);
+
+  if (!questions.length || !players.length) {
+    return setMsg($("adminBonusMsg"), false, "Ekspordiks puuduvad küsimused või kasutajad.");
+  }
+
+  const qCol = 340;
+  const correctCol = 230;
+  const userCol = 175;
+  const headerH = 70;
+  const rowH = 118;
+  const totalH = 56;
+  const pad = 18;
+
+  const width = pad * 2 + qCol + correctCol + players.length * userCol;
+  const height = pad * 2 + headerH + questions.length * rowH + totalH + 42;
+
+  const scale = Math.min(2, window.devicePixelRatio || 1.5);
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.ceil(width * scale);
+  canvas.height = Math.ceil(height * scale);
+
+  const ctx = canvas.getContext("2d");
+  ctx.scale(scale, scale);
+
+  ctx.fillStyle = "#f8fafc";
+  ctx.fillRect(0, 0, width, height);
+
+  ctx.fillStyle = "#0f172a";
+  ctx.font = "900 24px Arial, Helvetica, sans-serif";
+  ctx.fillText("Lisaküsimused", pad, 32);
+
+  ctx.font = "700 13px Arial, Helvetica, sans-serif";
+  ctx.fillStyle = "#475569";
+  ctx.fillText("Õige vastus annab 3 punkti. Roheline lahter tähendab admini poolt õigeks märgitud vastust.", pad, 54);
+
+  let y = pad + 58;
+  let x = pad;
+
+  ctx.font = "900 14px Arial, Helvetica, sans-serif";
+  drawCell(ctx, x, y, qCol, headerH, {bg:"#1e293b", border:"#334155"});
+  ctx.fillStyle = "#ffffff";
+  wrapCanvasText(ctx, "Küsimus", x + 10, y + 28, qCol - 20, 17, 2);
+  x += qCol;
+
+  drawCell(ctx, x, y, correctCol, headerH, {bg:"#facc15", border:"#ca8a04"});
+  ctx.fillStyle = "#111827";
+  wrapCanvasText(ctx, "Õige vastus", x + 10, y + 28, correctCol - 20, 17, 2);
+  x += correctCol;
+
+  players.forEach(p=>{
+    drawCell(ctx, x, y, userCol, headerH, {bg:"#1e293b", border:"#334155"});
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "900 13px Arial, Helvetica, sans-serif";
+    wrapCanvasText(ctx, p.display_name || "", x + 9, y + 24, userCol - 18, 16, 3);
+    x += userCol;
+  });
+
+  const totals = new Map(players.map(p => [p.id, 0]));
+  for (const a of answers) {
+    totals.set(a.player_id, (totals.get(a.player_id) || 0) + (Number(a.points) || 0));
+  }
+
+  y += headerH;
+
+  questions.forEach((q, idx)=>{
+    x = pad;
+
+    drawCell(ctx, x, y, qCol, rowH, {bg:"#ffffff", border:"#cbd5e1"});
+    ctx.fillStyle = "#0f172a";
+    ctx.font = "900 14px Arial, Helvetica, sans-serif";
+    wrapCanvasText(ctx, `${idx + 1}. ${q.question_text || ""}`, x + 10, y + 22, qCol - 20, 17, 5);
+    x += qCol;
+
+    const correctText = getBonusCorrectAnswerText(q, players, answerMap);
+    drawCell(ctx, x, y, correctCol, rowH, {bg:"#fef3c7", border:"#f59e0b"});
+    ctx.fillStyle = "#111827";
+    ctx.font = "900 14px Arial, Helvetica, sans-serif";
+    wrapCanvasText(ctx, correctText || "", x + 10, y + 22, correctCol - 20, 17, 5);
+    x += correctCol;
+
+    players.forEach(p=>{
+      const a = answerMap.get(`${p.id}:${q.id}`);
+      const isCorrect = !!a?.is_correct;
+      drawCell(ctx, x, y, userCol, rowH, {
+        bg: isCorrect ? "#bbf7d0" : "#ffffff",
+        border: isCorrect ? "#22c55e" : "#cbd5e1"
+      });
+
+      ctx.fillStyle = "#0f172a";
+      ctx.font = isCorrect ? "900 14px Arial, Helvetica, sans-serif" : "700 13px Arial, Helvetica, sans-serif";
+      wrapCanvasText(ctx, a?.answer_text || "", x + 9, y + 22, userCol - 18, 17, 4);
+
+      if (isCorrect) {
+        ctx.fillStyle = "#166534";
+        ctx.font = "900 16px Arial, Helvetica, sans-serif";
+        ctx.fillText("✓", x + userCol - 24, y + rowH - 14);
+      }
+
+      x += userCol;
+    });
+
+    y += rowH;
+  });
+
+  x = pad;
+  drawCell(ctx, x, y, qCol + correctCol, totalH, {bg:"#0f172a", border:"#334155"});
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "900 17px Arial, Helvetica, sans-serif";
+  ctx.fillText("Kokku", x + 10, y + 34);
+  x += qCol + correctCol;
+
+  players.forEach(p=>{
+    drawCell(ctx, x, y, userCol, totalH, {bg:"#0f172a", border:"#334155"});
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "900 17px Arial, Helvetica, sans-serif";
+    ctx.fillText(`${totals.get(p.id) || 0}p`, x + 10, y + 34);
+    x += userCol;
+  });
+
+  const link = document.createElement("a");
+  const stamp = new Date().toISOString().slice(0,10);
+  link.download = `lisakusimused_${stamp}.jpg`;
+  link.href = canvas.toDataURL("image/jpeg", 0.95);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  setMsg($("adminBonusMsg"), true, "JPG eksporditud.");
+}
+
 async function loadAdminBonus(){
   if (!(me && me.is_admin)) return;
 
@@ -3245,6 +3477,48 @@ async function loadAdminBonus(){
     setMsg($("adminBonusMsg"), false, err.message);
   }
 }
+
+
+if ($("btnAddBonusQuestion")) $("btnAddBonusQuestion").onclick = async (e)=>{
+  if (e) e.preventDefault();
+  if (!(me && me.is_admin)) return setMsg($("adminBonusMsg"), false, "Ainult admin.");
+
+  const btn = $("btnAddBonusQuestion");
+  const question_text = $("newBonusQuestionText")?.value.trim() || "";
+  const correct_answer = $("newBonusCorrectAnswer")?.value.trim() || "";
+  const points = Number($("newBonusPoints")?.value || 3);
+
+  if (!question_text) return setMsg($("adminBonusMsg"), false, "Sisesta lisaküsimuse tekst.");
+
+  try{
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Lisan...";
+    }
+
+    await call("admin/bonus/questions", {
+      method:"POST",
+      body: JSON.stringify({question_text, correct_answer, points})
+    });
+
+    if ($("newBonusQuestionText")) $("newBonusQuestionText").value = "";
+    if ($("newBonusCorrectAnswer")) $("newBonusCorrectAnswer").value = "";
+    if ($("newBonusPoints")) $("newBonusPoints").value = "3";
+
+    setMsg($("adminBonusMsg"), true, "Lisaküsimus lisatud.");
+
+    if (typeof loadAdminBonus === "function") await loadAdminBonus();
+    if (typeof loadBonusQuestions === "function") await loadBonusQuestions();
+  }catch(err){
+    setMsg($("adminBonusMsg"), false, err.message);
+  }finally{
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "Lisa küsimus";
+    }
+  }
+};
+
 
 if ($("btnRefreshMatchDropdown")) $("btnRefreshMatchDropdown").onclick = async ()=>{
   try{
