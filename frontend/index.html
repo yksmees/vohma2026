@@ -4954,6 +4954,69 @@ $("btnSetFinal").onclick = async ()=>{
 
 
 
+
+if ($("btnSeedU17")) $("btnSeedU17").onclick = async (e)=>{
+  if (e) e.preventDefault();
+  if (!(me && me.is_admin)) return setMsg($("adminMsg"), false, "Ainult admin.");
+
+  const btn = $("btnSeedU17");
+
+  try{
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Lisan U17...";
+    }
+
+    const r = await call("admin/seed/u17-test", {method:"POST"});
+    setMsg($("adminMsg"), true, `U17 testmängud lisatud/uuendatud: ${r.inserted_or_updated || 0}${r.derived_updates ? ", play-off paarid uuendatud " + r.derived_updates : ""}.`);
+
+    await loadMatchesAndPreds();
+    await loadLeaderboard();
+    await loadOthersView();
+    await loadAdminScreenshotBoard();
+    if (typeof loadAdminBonus === "function") await loadAdminBonus();
+  }catch(err){
+    setMsg($("adminMsg"), false, err.message);
+  }finally{
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "Lisa U17 testmängud";
+    }
+  }
+};
+
+if ($("btnRemoveU17")) $("btnRemoveU17").onclick = async (e)=>{
+  if (e) e.preventDefault();
+  if (!(me && me.is_admin)) return setMsg($("adminMsg"), false, "Ainult admin.");
+  if (!confirm("Kas eemaldan U17 testmängud ja nende ennustused?")) return;
+
+  const btn = $("btnRemoveU17");
+
+  try{
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Eemaldan U17...";
+    }
+
+    const r = await call("admin/remove/u17-test", {method:"POST"});
+    setMsg($("adminMsg"), true, `U17 testmängud eemaldatud: ${r.removed || 0}.`);
+
+    await loadMatchesAndPreds();
+    await loadLeaderboard();
+    await loadOthersView();
+    await loadAdminScreenshotBoard();
+    if (typeof loadAdminBonus === "function") await loadAdminBonus();
+  }catch(err){
+    setMsg($("adminMsg"), false, err.message);
+  }finally{
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "Eemalda U17 testmängud";
+    }
+  }
+};
+
+
 if ($("btnSeedBalticCup")) $("btnSeedBalticCup").onclick = async (e)=>{
   if (e) e.preventDefault();
   if (!(me && me.is_admin)) return setMsg($("adminMsg"), false, "Ainult admin.");
