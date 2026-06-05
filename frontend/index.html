@@ -66,7 +66,7 @@
     tr.color-green td{background:rgba(66,211,146,.16)}
     tr.color-blue td{background:rgba(80,140,255,.16)}
     tr.color-yellow td{background:rgba(255,210,80,.16)}
-    tr.color-orange td{background:rgba(255,149,0,.18)}
+    tr.color-orange td{background:#fb923c;color:#111827;font-weight:900}
     tr.color-red td{background:rgba(255,107,107,.16)}
     .others{font-size:12px;line-height:1.35;color:var(--muted);text-align:left}
     .others-board-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;margin-top:10px;background:rgba(13,20,48,.35)}
@@ -1835,6 +1835,73 @@
       }
     }
 
+  
+    /* PREDICTION COLOR FIX */
+    tr.color-green td{
+      background:#16a34a !important;
+      color:#ffffff !important;
+      font-weight:800;
+    }
+
+    tr.color-blue td{
+      background:#2563eb !important;
+      color:#ffffff !important;
+      font-weight:800;
+    }
+
+    tr.color-yellow td{
+      background:#facc15 !important;
+      color:#111827 !important;
+      font-weight:800;
+    }
+
+    tr.color-orange td{
+      background:#fb923c !important;
+      color:#111827 !important;
+      font-weight:900;
+    }
+
+    tr.color-red td{
+      background:#dc2626 !important;
+      color:#ffffff !important;
+      font-weight:800;
+    }
+
+    .others-board-table td.score-green,
+    .screenshot-board .score-green{
+      background:#16a34a !important;
+      color:#ffffff !important;
+      font-weight:900 !important;
+    }
+
+    .others-board-table td.score-blue,
+    .screenshot-board .score-blue{
+      background:#2563eb !important;
+      color:#ffffff !important;
+      font-weight:900 !important;
+    }
+
+    .others-board-table td.score-yellow,
+    .screenshot-board .score-yellow{
+      background:#facc15 !important;
+      color:#111827 !important;
+      font-weight:900 !important;
+    }
+
+    .others-board-table td.score-orange,
+    .screenshot-board .score-orange{
+      background:#fb923c !important;
+      color:#111827 !important;
+      font-weight:900 !important;
+    }
+
+    .others-board-table td.score-red,
+    .screenshot-board .score-red{
+      background:#dc2626 !important;
+      color:#ffffff !important;
+      font-weight:900 !important;
+    }
+
   </style>
 </head>
 <body>
@@ -3057,7 +3124,7 @@ function renderOthersMatrix(table, matches, players, predictions){
 
   thead.innerHTML = `
     <tr>
-      <th>Kasutaja</th>
+      <th class="sticky-col">Kasutaja</th>
       ${matches.map(m=>`<th>#${displayMatchNo(m)}<br>${escapeHtml(m.home)} - ${escapeHtml(m.away)}${othersHeaderResultHtml(m)}</th>`).join("")}
     </tr>
   `;
@@ -3069,7 +3136,7 @@ function renderOthersMatrix(table, matches, players, predictions){
       const cls = pr ? scoreCellClass(m, pr) : "";
       return `<td class="${cls}">${score}</td>`;
     }).join("");
-    return `<tr><th>${escapeHtml(p.display_name || "")}</th>${cells}</tr>`;
+    return `<tr><th class="sticky-col">${escapeHtml(p.display_name || "")}</th>${cells}</tr>`;
   }).join("");
 }
 
