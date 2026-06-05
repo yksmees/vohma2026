@@ -2515,6 +2515,36 @@
       }
     }
 
+  
+    /* SAVE BUTTON UNDER WINNER PICK */
+    .pred-cell .save-only-controls{
+      margin-top:8px !important;
+    }
+
+    .pred-cell .winner-pick + .save-only-controls{
+      margin-top:10px !important;
+    }
+
+    .pred-cell .winner-pick.hide + .save-only-controls{
+      margin-top:6px !important;
+    }
+
+    @media (max-width:760px){
+      #mTable .pred-cell .save-only-controls{
+        margin-top:10px !important;
+        width:100% !important;
+      }
+
+      #mTable .pred-cell .winner-pick + .save-only-controls{
+        margin-top:10px !important;
+      }
+
+      #mTable .pred-cell .save-only-controls button{
+        width:100% !important;
+        min-height:44px !important;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -3596,10 +3626,10 @@ tr.innerHTML = `
   <td>${locationAndTime} ${lockHint ? `<span class="pill">${lockHint}</span>` : ""}${finalScoreHtml}${advanceHtml}</td>
   <td class="pred-cell">
     <div class="pred-note">${isPlayoffMatch(row) ? "90 min skoor" : ""}</div>
+    ${predictionWinnerHtml(row, pr, locked)}
     <div class="pred-controls save-only-controls">
       <button type="button" class="${pr ? "saved" : ""}" data-save="${row.id}" ${locked ? "disabled" : ""}>${pr ? "Salvestatud" : "Salvesta"}</button>
     </div>
-    ${predictionWinnerHtml(row, pr, locked)}
   </td>
   <td class="right points-cell"><span class="points-value">${pr?pr.points:0}</span></td>
 `;
