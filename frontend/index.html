@@ -2185,6 +2185,54 @@
       }
     }
 
+  
+    /* MOBILE POINTS CELL FIX */
+    .points-cell{
+      font-weight:900;
+    }
+
+    .points-value{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-width:30px;
+      padding:4px 8px;
+      border-radius:999px;
+      background:rgba(255,255,255,.10);
+      color:inherit;
+      font-weight:950;
+      text-align:center;
+    }
+
+    @media (max-width:760px){
+      #mTable td.points-cell{
+        display:flex !important;
+        align-items:center !important;
+        justify-content:space-between !important;
+        gap:10px !important;
+        width:100% !important;
+        min-height:40px !important;
+        overflow:visible !important;
+        text-align:right !important;
+      }
+
+      #mTable td.points-cell::before{
+        flex:0 0 98px !important;
+        max-width:98px !important;
+        content:"Punktid" !important;
+      }
+
+      #mTable td.points-cell .points-value{
+        display:inline-flex !important;
+        visibility:visible !important;
+        opacity:1 !important;
+        margin-left:auto !important;
+        flex:0 0 auto !important;
+        min-width:36px !important;
+        color:inherit !important;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -3273,7 +3321,7 @@ tr.innerHTML = `
     </div>
     ${predictionWinnerHtml(row, pr, locked)}
   </td>
-  <td class="right">${pr?pr.points:0}</td>
+  <td class="right points-cell"><span class="points-value">${pr?pr.points:0}</span></td>
 `;
       tbody.appendChild(tr);
     }
