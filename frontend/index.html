@@ -750,7 +750,7 @@
       #mTable td:nth-child(2)::before{content:"Alagrupp";}
       #mTable td:nth-child(3)::before{content:"Kodumeeskond";}
       #mTable td:nth-child(4)::before{content:"Võõrsil";}
-      #mTable td:nth-child(5)::before{content:"Aeg ja koht";}
+      #mTable td:nth-child(5)::before{content:"Aeg";}
       #mTable td:nth-child(6)::before{content:"Sinu ennustus";}
       #mTable td:nth-child(7)::before{content:"Punktid";}
 
@@ -1155,7 +1155,7 @@
       #mTable td:nth-child(2)::before{content:"Alagrupp";}
       #mTable td:nth-child(3)::before{content:"Kodumeeskond";}
       #mTable td:nth-child(4)::before{content:"Võõrsil";}
-      #mTable td:nth-child(5)::before{content:"Aeg ja koht";}
+      #mTable td:nth-child(5)::before{content:"Aeg";}
       #mTable td:nth-child(6)::before{content:"Sinu ennustus";}
       #mTable td:nth-child(7)::before{content:"Punktid";}
 
@@ -2086,6 +2086,105 @@
       }
     }
 
+  
+    /* COMPACT MATCH VIEW AND MOBILE READABILITY */
+    .final-score-badge,
+    .advance-badge{
+      white-space:normal !important;
+      overflow-wrap:normal !important;
+      word-break:normal !important;
+      line-height:1.25 !important;
+      max-width:100% !important;
+    }
+
+    @media (min-width:761px){
+      #mTable th:nth-child(5),
+      #mTable td:nth-child(5){
+        width:190px !important;
+        min-width:190px !important;
+        max-width:190px !important;
+      }
+
+      #mTable th:nth-child(3),
+      #mTable td:nth-child(3),
+      #mTable th:nth-child(4),
+      #mTable td:nth-child(4){
+        width:132px !important;
+      }
+    }
+
+    @media (max-width:760px){
+      #mTable td:nth-child(5){
+        display:block !important;
+      }
+
+      #mTable td:nth-child(5)::before{
+        display:block !important;
+        max-width:none !important;
+        margin-bottom:6px !important;
+      }
+
+      #mTable td:nth-child(5){
+        text-align:left !important;
+      }
+
+      #mTable td:nth-child(5) .pill{
+        display:inline-block !important;
+        width:auto !important;
+        margin-left:0 !important;
+      }
+
+      #mTable .final-score-badge,
+      #mTable .advance-badge{
+        display:block !important;
+        width:100% !important;
+        margin:6px 0 0 0 !important;
+        padding:7px 9px !important;
+        border-radius:10px !important;
+        text-align:left !important;
+        white-space:normal !important;
+        overflow-wrap:normal !important;
+        word-break:keep-all !important;
+        line-height:1.25 !important;
+      }
+
+      #mTable .final-score-badge strong,
+      #mTable .advance-badge strong{
+        display:inline !important;
+        white-space:normal !important;
+        overflow-wrap:normal !important;
+        word-break:normal !important;
+      }
+
+      #mTable td:nth-child(3),
+      #mTable td:nth-child(4){
+        align-items:flex-start !important;
+      }
+
+      #mTable td:nth-child(3) > span,
+      #mTable td:nth-child(4) > span,
+      #mTable .team-advanced{
+        display:block !important;
+        width:calc(100% - 106px) !important;
+        margin-left:auto !important;
+        text-align:right !important;
+        line-height:1.25 !important;
+      }
+
+      #mTable .team-advanced{
+        padding:5px 8px !important;
+        border-radius:10px !important;
+      }
+    }
+
+    @media (max-width:430px){
+      #mTable td:nth-child(3) > span,
+      #mTable td:nth-child(4) > span,
+      #mTable .team-advanced{
+        width:calc(100% - 98px) !important;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -2391,7 +2490,7 @@
           
           <div class="card">
             <strong>Käsitsi kontroll: tulemus ja mänguaeg</strong>
-            <div class="sub" style="margin-top:6px">Sisesta mängu number (#). Tulemus arvutab punktid ümber. Mänguaeg salvesta Eesti aja järgi, et kontrollida 1 tunni lukku.</div>
+            <div class="sub" style="margin-top:6px">Sisesta mängu number (#) või vali mäng dropdownist. Tulemus arvutab punktid ümber. Mänguaeg salvesta Eesti aja järgi, et kontrollida 1 tunni lukku.</div>
             <div class="row result-dropdown-row" style="margin-top:10px">
               <select id="resultMatchSelect"></select>
               <button id="btnRefreshResultMatchDropdown" type="button">Uuenda nimekirja</button>
@@ -3155,7 +3254,7 @@ const lockHint = locked ? "Lukus" : "";
 const finished = !!(row.is_finished || final);
 const finalScoreHtml = final ? `<div class="final-score-badge">Lõpp skoor: <strong>${final}</strong></div>` : "";
 const advanceHtml = advancementHtml(row);
-const locationAndTime = `${row.location || ""}${row.location && koTxt ? " • " : ""}${koTxt}`;
+const locationAndTime = `${koTxt}`;
 const colorClass = pointColorClass(row, pr);
 if (finished) tr.classList.add("match-finished");
 if (finished && colorClass) tr.classList.add("row-finished", colorClass);
