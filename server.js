@@ -20,6 +20,11 @@ function requiredEnv(name) {
   return String(value).trim();
 }
 
+function optionalEnv(name) {
+  const value = process.env[name];
+  return value && String(value).trim() ? String(value).trim() : "";
+}
+
 function getSupabaseUrl() {
   const raw = requiredEnv("SUPABASE_URL");
   return raw.replace(/\/rest\/v1\/?$/i, "").replace(/\/+$/g, "");
@@ -34,6 +39,29 @@ function getJwtSecret() {
 }
 
 function validateRequiredEnv() {
+  const errors = [];
+
+  const supabaseUrl = optionalEnv("SUPABASE_URL");
+  const supabaseKey = optionalEnv("SUPABASE_SERVICE_ROLE_KEY");
+  const jwtSecret = optionalEnv("JWT_SECRET");
+
+  if (!supabaseUrl) errors.push("SUPABASE_URL puudub.");
+  if (!supabaseKey) errors.push("SUPABASE_SERVICE_ROLE_KEY puudub.");
+  if (!jwtSecret) {
+    errors.push("JWT_SECRET puudub.");
+  } else {
+    if (jwtSecret.length < 16) {
+      errors.push("JWT_SECRET on liiga lühike. Kasuta vähemalt 16 juhuslikku märki.");
+    }
+    if (jwtSecret === "samsung-mm-2026-secret") {
+      errors.push("JWT_SECRET on vana avalik vaikeväärtus. Vaheta see Railway Variables all ära.");
+    }
+  }
+
+  if (errors.length) {
+    throw new Error("Kriitilised env muutujad puuduvad või on valed:\n" + errors.map(e => `- ${e}`).join("\n"));
+  }
+
   getSupabaseUrl();
   getSupabaseKey();
   getJwtSecret();
@@ -1252,8 +1280,8 @@ if (event.httpMethod === "GET" && route === "me") {
     }
 
 
-    // Optional Railway cron sync. Set CRON_SECRET and send it as Bearer token, x-cron-secret header or ?secret=...
-    if (event.httpMethod === "POST" && route === "cron/sync/results") {
+    // Optional Railway cron sync. Set CRON_SECRET and call /api/cron/sync or /api/cron/sync/results with Bearer token, x-cron-secret header or ?secret=...
+    if (event.httpMethod === "POST" && (route === "cron/sync/results" || route === "cron/sync")) {
       const configuredSecret = process.env.CRON_SECRET || "";
       const h = event.headers || {};
       const auth = h.authorization || h.Authorization || "";
