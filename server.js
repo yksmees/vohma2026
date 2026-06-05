@@ -1864,7 +1864,7 @@ if (event.httpMethod === "POST" && route === "bonus/answers") {
     .map(a => ({
       player_id: u.sub,
       question_id: Number(a.question_id),
-      answer_text: String(a.answer_text || "").trim()
+      answer_text: String(a.answer_text || "").normalize("NFC").trim()
     }))
     .filter(a => Number.isFinite(a.question_id) && validQuestionIds.has(a.question_id));
 
@@ -1900,7 +1900,7 @@ if (event.httpMethod === "POST" && route === "bonus/answers") {
 
   if (saved.error) return json(500, { error: saved.error.message });
 
-  return json(200, { ok: true, answers: saved.data || [] });
+  return json(200, { ok: true, saved_count: rows.length, answers: saved.data || [] });
 }
 
 // Lisa vaikimisi lisaküsimused admini nupuga
