@@ -80,6 +80,42 @@ const U17_TEST_MATCHES = [
   }
 ];
 
+
+const BALTIC_CUP_TEST_MATCHES = [
+  {
+    stage: "BALTIC CUP TEST",
+    match_no: -23,
+    kickoff_utc: "2026-06-06T13:00:00Z",
+    home: "Lithuania",
+    away: "Latvia",
+    location: "Darius and Girėnas Stadium, Kaunas"
+  },
+  {
+    stage: "BALTIC CUP TEST",
+    match_no: -22,
+    kickoff_utc: "2026-06-06T15:00:00Z",
+    home: "Estonia",
+    away: "Faroe Islands",
+    location: "Lilleküla Stadium, Tallinn"
+  },
+  {
+    stage: "BALTIC CUP TEST",
+    match_no: -21,
+    kickoff_utc: "2026-06-09T13:00:00Z",
+    home: "L-23",
+    away: "L-22",
+    location: "Baltic Cup 3rd place"
+  },
+  {
+    stage: "BALTIC CUP TEST",
+    match_no: -20,
+    kickoff_utc: "2026-06-09T15:00:00Z",
+    home: "W-23",
+    away: "W-22",
+    location: "Baltic Cup Final"
+  }
+];
+
 function json(statusCode, obj, headers = {}) {
   return {
     statusCode,
@@ -445,6 +481,43 @@ function uniqueList(items){
 }
 
 
+
+async function discoverApiFootballLeagueSources(apiKey, search, season){
+  const found = [];
+  const url = `${API_FOOTBALL_BASE_URL}/leagues?search=${encodeURIComponent(search)}`;
+
+  try{
+    const resp = await fetch(url, {
+      headers: {
+        "x-apisports-key": apiKey,
+        "Accept": "application/json"
+      }
+    });
+
+    if (!resp.ok) return found;
+
+    const data = await resp.json();
+    const rows = Array.isArray(data?.response) ? data.response : [];
+
+    for (const row of rows){
+      const leagueName = String(row?.league?.name || "").toLowerCase();
+      const leagueId = Number(row?.league?.id);
+      if (!leagueId) continue;
+
+      if (!leagueName.includes(String(search || "").toLowerCase())) continue;
+
+      const seasons = Array.isArray(row?.seasons) ? row.seasons : [];
+      if (seasons.some(s => Number(s?.year) === Number(season))) {
+        found.push({ league: leagueId, season });
+      }
+    }
+  }catch(_){
+    return found;
+  }
+
+  return found;
+}
+
 async function fetchApiFootballFixtures(matchDates = []){
   const apiKey = process.env.API_FOOTBALL_KEY || "";
   if (!apiKey) return { ok:false, error:"API_FOOTBALL_KEY puudu", fixtures:[] };
@@ -453,6 +526,13 @@ async function fetchApiFootballFixtures(matchDates = []){
     { league: API_FOOTBALL_LEAGUE_ID, season: API_FOOTBALL_SEASON },
     ...API_FOOTBALL_EXTRA_LEAGUES
   ];
+
+  const discoveredBaltic = await discoverApiFootballLeagueSources(apiKey, "Baltic Cup", 2026);
+  for (const src of discoveredBaltic){
+    if (!sources.some(s => Number(s.league) === Number(src.league) && Number(s.season) === Number(src.season))) {
+      sources.push(src);
+    }
+  }
 
   const allFixtures = [];
   const errors = [];
@@ -612,6 +692,23 @@ async function updateDerivedPlayoffMatches(sb){
     if (Number(match.match_no) === -1) {
       const semi1 = getMatchAdvancement(byNo.get(-3));
       const semi2 = getMatchAdvancement(byNo.get(-2));
+
+      if (semi1?.winnerName) home = semi1.winnerName;
+      if (semi2?.winnerName) away = semi2.winnerName;
+    }
+
+    // Baltic Cup testturniir: 3. koht kaotajad, finaal võitjad.
+    if (Number(match.match_no) === -21) {
+      const semi1 = getMatchAdvancement(byNo.get(-23));
+      const semi2 = getMatchAdvancement(byNo.get(-22));
+
+      if (semi1?.loserName) home = semi1.loserName;
+      if (semi2?.loserName) away = semi2.loserName;
+    }
+
+    if (Number(match.match_no) === -20) {
+      const semi1 = getMatchAdvancement(byNo.get(-23));
+      const semi2 = getMatchAdvancement(byNo.get(-22));
 
       if (semi1?.winnerName) home = semi1.winnerName;
       if (semi2?.winnerName) away = semi2.winnerName;
@@ -1096,6 +1193,39 @@ if (event.httpMethod === "POST" && route === "admin/remove/u17-test") {
 
   return json(200, { ok: true, removed: ids.length });
 }
+
+// Admin seed Baltic Cup test matches
+if (event.httpMethod === "POST" && route === "admin/seed/baltic-cup-test") {
+  const u = userFrom(event);
+  if (!u || !u.is_admin) return json(403, { error: "Admini õigused puuduvad." });
+
+  const up = await sb.from("matches").upsert(BALTIC_CUP_TEST_MATCHES.map(x => ({...x})), { onConflict: "match_no" }).select("id");
+  if (up.error) return json(500, { error: up.error.message });
+  const derived = await updateDerivedPlayoffMatches(sb);
+  return json(200, { ok: true, inserted_or_updated: (up.data || []).length, derived_updates: derived.updated || 0 });
+}
+
+// Admin remove Baltic Cup test matches
+if (event.httpMethod === "POST" && route === "admin/remove/baltic-cup-test") {
+  const u = userFrom(event);
+  if (!u || !u.is_admin) return json(403, { error: "Admini õigused puuduvad." });
+
+  const idsRes = await sb.from("matches").select("id").eq("stage", "BALTIC CUP TEST");
+  if (idsRes.error) return json(500, { error: idsRes.error.message });
+
+  const ids = (idsRes.data || []).map(x => x.id);
+  if (ids.length) {
+    const delPreds = await sb.from("predictions").delete().in("match_id", ids);
+    if (delPreds.error) return json(500, { error: delPreds.error.message });
+  }
+
+  const delMatches = await sb.from("matches").delete().eq("stage", "BALTIC CUP TEST");
+  if (delMatches.error) return json(500, { error: delMatches.error.message });
+
+  return json(200, { ok: true, removed: ids.length });
+}
+
+
 
     // Admin seed matches (idempotent upsert by match_no)
     if (event.httpMethod === "POST" && route === "admin/seed/matches") {

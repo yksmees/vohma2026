@@ -2785,6 +2785,7 @@
     <b>Mängijad</b> tabelis saad nupuga Muuda muuta mängija nime, username’i ja parooli. Kasutaja ID jääb samaks, seega punktid ja ennustused jäävad alles.<br>
     <b>Lae ametlik mängutabel</b> uuendab FIFA 2026 mängud andmebaasis.<br>
     <b>Lisa U17 testmängud</b> lisab kolm UEFA U17 testmängu ennustusvaate algusesse. <b>Eemalda U17 testmängud</b> kustutab need hiljem koos nende ennustustega.<br>
+    <b>Lisa Baltic Cup testmängud</b> lisab neli Baltic Cup 2026 play-off testmängu. <b>Eemalda Baltic Cup testmängud</b> kustutab need hiljem koos nende ennustustega.<br>
     <b>Sünkroniseeri ajakava</b> uuendab mänguaegu olemasoleva ajakava järgi.<br>
     <b>Sünkroniseeri tulemused</b> tõmbab API-Footballist lõppenud mängude skoorid.<br>
     <b>Käsitsi tulemus</b> vali mäng dropdownist või sisesta mängu number käsitsi. <b>Impordi tulemused korraga</b> võimaldab mitu tulemust korraga kleepida kujul <code>mängu_nr skoor</code>, näiteks <code>-3 1:2</code> või play-off viigi puhul <code>-2 0:0 home</code>.<br>
@@ -2879,11 +2880,13 @@
 
         <div id="adminMsg" class="msg"></div>
         <div class="row" style="margin-top:10px">
-          <button id="btnHealth">API tervis</button>
-          <button id="btnSeed" class="primary">Lae ametlik mängutabel</button>
+          <button id="btnHealth" type="button">API tervis</button>
+          <button id="btnSeed" type="button" class="primary">Lae ametlik mängutabel</button>
           <button id="btnSeedU17" type="button">Lisa U17 testmängud</button>
           <button id="btnRemoveU17" type="button">Eemalda U17 testmängud</button>
-          <button id="btnSync">Sünkroniseeri ajakava</button>
+          <button id="btnSeedBalticCup" type="button">Lisa Baltic Cup testmängud</button>
+          <button id="btnRemoveBalticCup" type="button">Eemalda Baltic Cup testmängud</button>
+          <button id="btnSync" type="button">Sünkroniseeri ajakava</button>
           <button id="btnSyncResults" type="button">Sünkroniseeri tulemused</button>
           <button id="btnRecalcPoints" type="button">Arvuta punktid ümber</button>
         </div>
@@ -4941,6 +4944,39 @@ $("btnSetFinal").onclick = async ()=>{
       $("resultMatchSelect").value = selectedResultMatch;
       fillResultFieldsFromSelectedMatch();
     }
+    await loadLeaderboard();
+    await loadOthersView();
+    await loadAdminScreenshotBoard();
+  }catch(e){
+    setMsg($("adminMsg"), false, e.message);
+  }
+};
+
+
+
+if ($("btnSeedBalticCup")) $("btnSeedBalticCup").onclick = async (e)=>{
+  if (e) e.preventDefault();
+  if (!(me && me.is_admin)) return setMsg($("adminMsg"), false, "Ainult admin.");
+  try{
+    const r = await call("admin/seed/baltic-cup-test", {method:"POST"});
+    setMsg($("adminMsg"), true, `Baltic Cup testmängud lisatud/uuendatud: ${r.inserted_or_updated || 0}${r.derived_updates ? ", play-off paarid uuendatud " + r.derived_updates : ""}.`);
+    await loadMatchesAndPreds();
+    await loadLeaderboard();
+    await loadOthersView();
+    await loadAdminScreenshotBoard();
+  }catch(e){
+    setMsg($("adminMsg"), false, e.message);
+  }
+};
+
+if ($("btnRemoveBalticCup")) $("btnRemoveBalticCup").onclick = async (e)=>{
+  if (e) e.preventDefault();
+  if (!(me && me.is_admin)) return setMsg($("adminMsg"), false, "Ainult admin.");
+  if (!confirm("Kas eemaldan Baltic Cup testmängud ja nende ennustused?")) return;
+  try{
+    const r = await call("admin/remove/baltic-cup-test", {method:"POST"});
+    setMsg($("adminMsg"), true, `Baltic Cup testmängud eemaldatud: ${r.removed || 0}.`);
+    await loadMatchesAndPreds();
     await loadLeaderboard();
     await loadOthersView();
     await loadAdminScreenshotBoard();
