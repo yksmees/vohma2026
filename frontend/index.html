@@ -2233,6 +2233,156 @@
       }
     }
 
+  
+    /* TEAM BASED SCORE INPUTS */
+    .team-score-controls{
+      display:grid !important;
+      grid-template-columns:minmax(92px, 1fr) minmax(92px, 1fr) minmax(112px, auto) !important;
+      gap:8px !important;
+      align-items:end !important;
+      width:100% !important;
+      min-width:0 !important;
+      max-width:100% !important;
+      white-space:normal !important;
+    }
+
+    .score-team-card{
+      display:flex !important;
+      flex-direction:column !important;
+      gap:5px !important;
+      min-width:0 !important;
+      max-width:100% !important;
+      margin:0 !important;
+    }
+
+    .score-team-name{
+      display:block !important;
+      font-size:12px !important;
+      line-height:1.18 !important;
+      font-weight:900 !important;
+      color:var(--muted) !important;
+      min-height:29px !important;
+      overflow-wrap:anywhere !important;
+      white-space:normal !important;
+    }
+
+    .team-score-controls input.small{
+      width:100% !important;
+      min-width:0 !important;
+      max-width:100% !important;
+      text-align:center !important;
+      font-weight:900 !important;
+    }
+
+    .team-score-controls button{
+      align-self:end !important;
+    }
+
+    @media (min-width:761px){
+      #mTable th:nth-child(6),
+      #mTable td:nth-child(6),
+      #mTable .pred-cell{
+        width:330px !important;
+        min-width:330px !important;
+        max-width:330px !important;
+      }
+
+      #mTable .team-score-controls{
+        grid-template-columns:92px 92px 112px !important;
+        width:304px !important;
+        min-width:304px !important;
+        max-width:304px !important;
+      }
+
+      #mTable .score-team-card{
+        width:92px !important;
+      }
+
+      #mTable .score-team-name{
+        min-height:34px !important;
+        max-height:46px !important;
+        overflow:hidden !important;
+      }
+
+      #mTable .team-score-controls input.small{
+        height:42px !important;
+      }
+
+      #mTable .team-score-controls button{
+        width:112px !important;
+        min-width:112px !important;
+        max-width:112px !important;
+        height:42px !important;
+      }
+    }
+
+    @media (max-width:760px){
+      #mTable .team-score-controls{
+        display:grid !important;
+        grid-template-columns:1fr 1fr !important;
+        gap:10px !important;
+        width:100% !important;
+      }
+
+      #mTable .score-team-card{
+        width:100% !important;
+      }
+
+      #mTable .score-team-name{
+        min-height:0 !important;
+        font-size:13px !important;
+        color:#f8fafc !important;
+      }
+
+      #mTable .team-score-controls input.small{
+        height:46px !important;
+        font-size:18px !important;
+      }
+
+      #mTable .team-score-controls button{
+        grid-column:1 / -1 !important;
+        width:100% !important;
+        min-width:0 !important;
+        max-width:100% !important;
+      }
+    }
+
+  
+    /* FINAL OVERRIDE FOR TEAM SCORE INPUTS */
+    #mTable .pred-controls.team-score-controls{
+      display:grid !important;
+      min-width:0 !important;
+      max-width:100% !important;
+      overflow:visible !important;
+      white-space:normal !important;
+    }
+
+    #mTable .pred-controls.team-score-controls .score-team-card{
+      min-width:0 !important;
+      max-width:100% !important;
+      overflow:visible !important;
+    }
+
+    #mTable .pred-controls.team-score-controls .score-team-name{
+      overflow-wrap:anywhere !important;
+      white-space:normal !important;
+    }
+
+    #mTable .pred-controls.team-score-controls input.small{
+      flex:none !important;
+    }
+
+    @media (max-width:760px){
+      #mTable .pred-controls.team-score-controls{
+        grid-template-columns:1fr 1fr !important;
+        width:100% !important;
+      }
+
+      #mTable .pred-controls.team-score-controls button{
+        grid-column:1 / -1 !important;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -3314,9 +3464,15 @@ tr.innerHTML = `
   <td>${locationAndTime} ${lockHint ? `<span class="pill">${lockHint}</span>` : ""}${finalScoreHtml}${advanceHtml}</td>
   <td class="pred-cell">
     <div class="pred-note">${isPlayoffMatch(row) ? "90 min skoor" : ""}</div>
-    <div class="pred-controls">
-      <input class="small" data-mid="${row.id}" data-side="h" value="${pr?pr.pred_home:""}" placeholder="0" ${locked ? "disabled" : ""}>
-      <input class="small" data-mid="${row.id}" data-side="a" value="${pr?pr.pred_away:""}" placeholder="0" ${locked ? "disabled" : ""}>
+    <div class="pred-controls team-score-controls">
+      <label class="score-team-card">
+        <span class="score-team-name">${escapeHtml(row.home || "")}</span>
+        <input class="small" data-mid="${row.id}" data-side="h" value="${pr?pr.pred_home:""}" placeholder="0" inputmode="numeric" ${locked ? "disabled" : ""}>
+      </label>
+      <label class="score-team-card">
+        <span class="score-team-name">${escapeHtml(row.away || "")}</span>
+        <input class="small" data-mid="${row.id}" data-side="a" value="${pr?pr.pred_away:""}" placeholder="0" inputmode="numeric" ${locked ? "disabled" : ""}>
+      </label>
       <button type="button" class="${pr ? "saved" : ""}" data-save="${row.id}" ${locked ? "disabled" : ""}>${pr ? "Salvestatud" : "Salvesta"}</button>
     </div>
     ${predictionWinnerHtml(row, pr, locked)}
