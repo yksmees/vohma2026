@@ -1940,13 +1940,24 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
       const id = pu[1];
       const body = JSON.parse(event.body || "{}");
       const patch = {};
-      if (body.username !== undefined) patch.username = String(body.username).trim();
-      if (body.display_name !== undefined) patch.display_name = String(body.display_name).trim();
+      if (body.username !== undefined) {
+        const username = String(body.username).trim();
+        if (!/^[a-zA-Z0-9_.-]{3,32}$/.test(username)) {
+          return json(400, { error: "Kasutajanimi peab olema 3 kuni 32 märki ja sisaldama ainult tähti, numbreid, punkti, alakriipsu või sidekriipsu." });
+        }
+        patch.username = username;
+      }
+      if (body.display_name !== undefined) {
+        const display_name = String(body.display_name).trim();
+        if (!display_name) return json(400, { error: "Mängija nimi ei tohi olla tühi." });
+        patch.display_name = display_name;
+      }
       if (body.is_admin !== undefined) patch.is_admin = !!body.is_admin;
       if (body.password) {
-        if (String(body.password).length < 6) return json(400, { error: "Parool peab olema vähemalt 6." });
+        if (String(body.password).length < 6) return json(400, { error: "Parool peab olema vähemalt 6 märki." });
         patch.password_hash = await bcrypt.hash(String(body.password), 10);
       }
+      if (!Object.keys(patch).length) return json(400, { error: "Midagi ei muudetud." });
       const upd = await sb.from("players").update(patch).eq("id", id).select("id,username,display_name,is_admin").single();
       if (upd.error) return json(500, { error: upd.error.message });
       return json(200, { ok: true, player: upd.data });

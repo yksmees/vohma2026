@@ -2545,6 +2545,65 @@
       }
     }
 
+  
+    /* ADMIN PLAYER EDIT */
+    .player-actions{
+      white-space:nowrap;
+    }
+
+    .player-edit-row td{
+      background:rgba(255,255,255,.035);
+      padding:10px !important;
+    }
+
+    .player-edit-card{
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:14px;
+      padding:12px;
+      background:rgba(13,20,48,.62);
+    }
+
+    .player-edit-card input,
+    .player-edit-card select{
+      min-width:170px;
+    }
+
+    @media (max-width:760px){
+      #pTable{
+        display:block !important;
+        overflow-x:auto !important;
+        white-space:normal !important;
+      }
+
+      #pTable th,
+      #pTable td{
+        white-space:normal !important;
+        overflow-wrap:anywhere;
+      }
+
+      .player-actions{
+        display:flex;
+        gap:6px;
+        justify-content:flex-end;
+        flex-wrap:wrap;
+      }
+
+      .player-edit-row td{
+        min-width:280px;
+      }
+
+      .player-edit-card .row{
+        align-items:stretch;
+      }
+
+      .player-edit-card input,
+      .player-edit-card select,
+      .player-edit-card button{
+        width:100%;
+        flex:1 1 100%;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -2723,6 +2782,7 @@
   <strong>Admin juhend</strong>
   <div class="sub" style="margin-top:8px">
     <b>API tervis</b> kontrollib, kas server vastab.<br>
+    <b>Mängijad</b> tabelis saad nupuga Muuda muuta mängija nime, username’i ja parooli. Kasutaja ID jääb samaks, seega punktid ja ennustused jäävad alles.<br>
     <b>Lae ametlik mängutabel</b> uuendab FIFA 2026 mängud andmebaasis.<br>
     <b>Lisa U17 testmängud</b> lisab kolm UEFA U17 testmängu ennustusvaate algusesse. <b>Eemalda U17 testmängud</b> kustutab need hiljem koos nende ennustustega.<br>
     <b>Sünkroniseeri ajakava</b> uuendab mänguaegu olemasoleva ajakava järgi.<br>
@@ -2842,7 +2902,7 @@
               <button id="btnAddPlayer" type="button" class="primary">Lisa</button>
             </div>
             <table id="pTable">
-              <thead><tr><th>Username</th><th>Admin</th><th class="right">Tegevus</th></tr></thead>
+              <thead><tr><th>Mängija nimi</th><th>Username</th><th>Admin</th><th class="right">Tegevus</th></tr></thead>
               <tbody></tbody>
             </table>
           </div>
@@ -3851,15 +3911,105 @@ async function loadPlayers(){
   try{
     const r = await call("admin/players", {method:"GET"});
     const rows = r.players || [];
-    tbody.innerHTML = rows.map(p=>`
-      <tr>
-        <td>${escapeHtml(p.username || p.display_name || "")}</td>
-        <td>${p.is_admin ? "jah" : "ei"}</td>
-        <td class="right">
-          <button type="button" data-del-player="${p.id}" ${p.is_admin ? "disabled" : ""}>Kustuta</button>
-        </td>
-      </tr>
-    `).join("");
+
+    tbody.innerHTML = rows.map(p=>{
+      const id = String(p.id || "");
+      const username = escapeHtml(p.username || "");
+      const displayName = escapeHtml(p.display_name || p.username || "");
+
+      return `
+        <tr data-player-row="${id}">
+          <td>${displayName}</td>
+          <td>${username}</td>
+          <td>${p.is_admin ? "jah" : "ei"}</td>
+          <td class="right player-actions">
+            <button type="button" data-edit-player="${id}">Muuda</button>
+            <button type="button" data-del-player="${id}" ${p.is_admin ? "disabled" : ""}>Kustuta</button>
+          </td>
+        </tr>
+        <tr class="player-edit-row hide" data-edit-row="${id}">
+          <td colspan="4">
+            <div class="player-edit-card">
+              <div class="row">
+                <input data-player-display="${id}" value="${displayName}" placeholder="mängija nimi" />
+                <input data-player-username="${id}" value="${username}" placeholder="username" />
+                <input data-player-password="${id}" type="password" placeholder="uus parool, tühjaks jättes ei muuda" />
+                <select data-player-admin="${id}">
+                  <option value="false" ${p.is_admin ? "" : "selected"}>tavaline</option>
+                  <option value="true" ${p.is_admin ? "selected" : ""}>admin</option>
+                </select>
+              </div>
+              <div class="row" style="margin-top:8px">
+                <button type="button" class="primary" data-save-player="${id}">Salvesta muudatus</button>
+                <button type="button" data-cancel-player="${id}">Tühista</button>
+                <span class="sub">Parooli ei muudeta, kui väli jääb tühjaks. Ennustused ja punktid jäävad sama mängija külge.</span>
+              </div>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join("");
+
+    tbody.querySelectorAll("[data-edit-player]").forEach(btn=>{
+      btn.addEventListener("click", (e)=>{
+        e.preventDefault();
+        const id = btn.dataset.editPlayer;
+        const row = tbody.querySelector(`[data-edit-row="${id}"]`);
+        if (!row) return;
+
+        tbody.querySelectorAll(".player-edit-row").forEach(r=>r.classList.add("hide"));
+        row.classList.toggle("hide");
+      });
+    });
+
+    tbody.querySelectorAll("[data-cancel-player]").forEach(btn=>{
+      btn.addEventListener("click", (e)=>{
+        e.preventDefault();
+        const row = tbody.querySelector(`[data-edit-row="${btn.dataset.cancelPlayer}"]`);
+        if (row) row.classList.add("hide");
+      });
+    });
+
+    tbody.querySelectorAll("[data-save-player]").forEach(btn=>{
+      btn.addEventListener("click", async (e)=>{
+        e.preventDefault();
+
+        const id = btn.dataset.savePlayer;
+        const display_name = tbody.querySelector(`[data-player-display="${id}"]`)?.value.trim() || "";
+        const username = tbody.querySelector(`[data-player-username="${id}"]`)?.value.trim() || "";
+        const password = tbody.querySelector(`[data-player-password="${id}"]`)?.value || "";
+        const is_admin = tbody.querySelector(`[data-player-admin="${id}"]`)?.value === "true";
+
+        if (!display_name) return setMsg($("adminMsg"), false, "Mängija nimi ei tohi olla tühi.");
+        if (!username) return setMsg($("adminMsg"), false, "Username ei tohi olla tühi.");
+        if (password && password.length < 6) return setMsg($("adminMsg"), false, "Uus parool peab olema vähemalt 6 märki.");
+
+        try{
+          btn.disabled = true;
+          btn.textContent = "Salvestan...";
+
+          const body = {display_name, username, is_admin};
+          if (password) body.password = password;
+
+          await call(`admin/players/${id}`, {
+            method:"PUT",
+            body: JSON.stringify(body)
+          });
+
+          setMsg($("adminMsg"), true, "Mängija andmed salvestatud.");
+
+          await loadPlayers();
+          await loadLeaderboard();
+          await loadOthersView();
+          await loadAdminScreenshotBoard();
+          if (typeof loadAdminBonus === "function") await loadAdminBonus();
+        }catch(err){
+          setMsg($("adminMsg"), false, err.message);
+          btn.disabled = false;
+          btn.textContent = "Salvesta muudatus";
+        }
+      });
+    });
 
     tbody.querySelectorAll("[data-del-player]").forEach(btn=>{
       btn.addEventListener("click", async (e)=>{
@@ -3868,6 +4018,9 @@ async function loadPlayers(){
         try{
           await call(`admin/players/${btn.dataset.delPlayer}`, {method:"DELETE"});
           await loadPlayers();
+          await loadLeaderboard();
+          await loadOthersView();
+          await loadAdminScreenshotBoard();
         }catch(err){
           setMsg($("adminMsg"), false, err.message);
         }
