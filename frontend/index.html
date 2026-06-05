@@ -2383,6 +2383,138 @@
       }
     }
 
+  
+    /* NO DUPLICATE TEAM SCORE INPUTS */
+    .team-pred-cell{
+      vertical-align:top !important;
+    }
+
+    .team-pred-cell .team-score-input{
+      display:block !important;
+      margin-top:7px !important;
+      width:72px !important;
+      min-width:72px !important;
+      max-width:72px !important;
+      text-align:center !important;
+      font-weight:900 !important;
+    }
+
+    .save-only-controls{
+      display:flex !important;
+      width:100% !important;
+      min-width:0 !important;
+      max-width:100% !important;
+      justify-content:flex-start !important;
+      align-items:center !important;
+    }
+
+    .save-only-controls button{
+      width:100% !important;
+      min-width:118px !important;
+      max-width:160px !important;
+    }
+
+    @media (min-width:761px){
+      #mTable th:nth-child(3),
+      #mTable td:nth-child(3),
+      #mTable th:nth-child(4),
+      #mTable td:nth-child(4){
+        width:150px !important;
+        min-width:150px !important;
+        max-width:150px !important;
+      }
+
+      #mTable th:nth-child(6),
+      #mTable td:nth-child(6),
+      #mTable .pred-cell{
+        width:170px !important;
+        min-width:170px !important;
+        max-width:170px !important;
+      }
+
+      #mTable .save-only-controls{
+        width:150px !important;
+        min-width:150px !important;
+        max-width:150px !important;
+      }
+
+      #mTable .save-only-controls button{
+        width:132px !important;
+        min-width:132px !important;
+        max-width:132px !important;
+        height:42px !important;
+      }
+    }
+
+    @media (max-width:760px){
+      #mTable .team-pred-cell{
+        display:block !important;
+        text-align:left !important;
+      }
+
+      #mTable .team-pred-cell::before{
+        display:block !important;
+        margin-bottom:6px !important;
+        max-width:none !important;
+      }
+
+      #mTable .team-pred-cell .team-advanced,
+      #mTable .team-pred-cell > span{
+        display:block !important;
+        width:100% !important;
+        margin:0 0 8px 0 !important;
+        text-align:left !important;
+      }
+
+      #mTable .team-pred-cell .team-score-input{
+        width:100% !important;
+        min-width:0 !important;
+        max-width:100% !important;
+        height:46px !important;
+        font-size:18px !important;
+        margin-top:8px !important;
+      }
+
+      #mTable .save-only-controls{
+        display:block !important;
+        width:100% !important;
+      }
+
+      #mTable .save-only-controls button{
+        width:100% !important;
+        min-width:0 !important;
+        max-width:100% !important;
+      }
+    }
+
+  
+    /* FINAL NO DUPLICATE OVERRIDE */
+    #mTable .pred-controls.save-only-controls{
+      display:flex !important;
+      grid-template-columns:none !important;
+      width:100% !important;
+      min-width:0 !important;
+      max-width:100% !important;
+    }
+
+    #mTable .pred-controls.save-only-controls button{
+      grid-column:auto !important;
+    }
+
+    #mTable .team-pred-cell input.team-score-input{
+      box-sizing:border-box !important;
+    }
+
+    @media (max-width:760px){
+      #mTable td.team-pred-cell{
+        display:block !important;
+      }
+
+      #mTable td.team-pred-cell input.team-score-input{
+        width:100% !important;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -3459,20 +3591,12 @@ if (finished && colorClass) tr.classList.add("row-finished", colorClass);
 tr.innerHTML = `
   <td>${displayMatchNo(row)}</td>
   <td><span class="pill">${row.stage}</span></td>
-  <td>${teamCellHtml(row, "home")}</td>
-  <td>${teamCellHtml(row, "away")}</td>
+  <td class="team-pred-cell">${teamCellHtml(row, "home")}<input class="small team-score-input" data-mid="${row.id}" data-side="h" value="${pr?pr.pred_home:""}" placeholder="0" inputmode="numeric" ${locked ? "disabled" : ""}></td>
+  <td class="team-pred-cell">${teamCellHtml(row, "away")}<input class="small team-score-input" data-mid="${row.id}" data-side="a" value="${pr?pr.pred_away:""}" placeholder="0" inputmode="numeric" ${locked ? "disabled" : ""}></td>
   <td>${locationAndTime} ${lockHint ? `<span class="pill">${lockHint}</span>` : ""}${finalScoreHtml}${advanceHtml}</td>
   <td class="pred-cell">
     <div class="pred-note">${isPlayoffMatch(row) ? "90 min skoor" : ""}</div>
-    <div class="pred-controls team-score-controls">
-      <label class="score-team-card">
-        <span class="score-team-name">${escapeHtml(row.home || "")}</span>
-        <input class="small" data-mid="${row.id}" data-side="h" value="${pr?pr.pred_home:""}" placeholder="0" inputmode="numeric" ${locked ? "disabled" : ""}>
-      </label>
-      <label class="score-team-card">
-        <span class="score-team-name">${escapeHtml(row.away || "")}</span>
-        <input class="small" data-mid="${row.id}" data-side="a" value="${pr?pr.pred_away:""}" placeholder="0" inputmode="numeric" ${locked ? "disabled" : ""}>
-      </label>
+    <div class="pred-controls save-only-controls">
       <button type="button" class="${pr ? "saved" : ""}" data-save="${row.id}" ${locked ? "disabled" : ""}>${pr ? "Salvestatud" : "Salvesta"}</button>
     </div>
     ${predictionWinnerHtml(row, pr, locked)}
