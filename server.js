@@ -12,40 +12,31 @@ if (!globalThis.WebSocket) {
 }
 
 
-const FALLBACK_SUPABASE_URL = "https://mfjsqqjpwemxdgdmxsxj.supabase.co";
-
-function envAny(names, fallback = "") {
-  for (const name of names) {
-    const value = process.env[name];
-    if (value && String(value).trim()) return String(value).trim();
+function requiredEnv(name) {
+  const value = process.env[name];
+  if (!value || !String(value).trim()) {
+    throw new Error(`Missing required environment variable: ${name}`);
   }
-  return fallback;
+  return String(value).trim();
 }
 
 function getSupabaseUrl() {
-  const raw = envAny([
-    "SUPABASE_URL",
-    "SUPABASE_PROJECT_URL",
-    "NEXT_PUBLIC_SUPABASE_URL",
-    "VITE_SUPABASE_URL"
-  ], FALLBACK_SUPABASE_URL);
-
+  const raw = requiredEnv("SUPABASE_URL");
   return raw.replace(/\/rest\/v1\/?$/i, "").replace(/\/+$/g, "");
 }
 
 function getSupabaseKey() {
-  return envAny([
-    "SUPABASE_SERVICE_ROLE_KEY",
-    "SUPABASE_SERVICE_ROLE",
-    "SUPABASE_KEY",
-    "SERVICE_ROLE_KEY",
-    "SUPABASE_ANON_KEY",
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY"
-  ]);
+  return requiredEnv("SUPABASE_SERVICE_ROLE_KEY");
 }
 
 function getJwtSecret() {
-  return envAny(["JWT_SECRET"], "samsung-mm-2026-secret");
+  return requiredEnv("JWT_SECRET");
+}
+
+function validateRequiredEnv() {
+  getSupabaseUrl();
+  getSupabaseKey();
+  getJwtSecret();
 }
 
 
@@ -261,11 +252,7 @@ async function ensureBonusQuestions(sb){
     const question_text = BONUS_QUESTIONS_SEED[i];
     const row = current.find(q => Number(q.sort_order) === sort_order);
 
-    if (row) {
-      if (String(row.question_text || "").trim() !== question_text) {
-        await sb.from("bonus_questions").update({ question_text }).eq("id", row.id);
-      }
-    } else {
+    if (!row) {
       const ins = await sb.from("bonus_questions").insert({
         question_text,
         sort_order,
@@ -874,6 +861,8 @@ async function syncApiFootballResults(sb, { force=false } = {}){
   };
 }
 
+validateRequiredEnv();
+
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -904,6 +893,9 @@ async function netlifyHandler(event) {
     }
 
     if (event.httpMethod === "GET" && route === "debug/env") {
+      const u = userFrom(event);
+      if (!u || !u.is_admin) return json(403, { error: "Admini õigused puuduvad." });
+
       return json(200, {
         ok: true,
         supabase_url: getSupabaseUrl() ? "OK" : "MISSING",
