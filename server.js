@@ -165,6 +165,32 @@ function userFrom(event) {
   try { return jwt.verify(t, getEnv("JWT_SECRET")); } catch { return null; }
 }
 
+async function freshUserFrom(sb, event) {
+  const tokenUser = userFrom(event);
+  if (!tokenUser?.sub) return null;
+
+  const q = await sb
+    .from("players")
+    .select("id,username,display_name,is_admin")
+    .eq("id", tokenUser.sub)
+    .single();
+
+  if (q.error || !q.data) return null;
+
+  return {
+    sub: q.data.id,
+    id: q.data.id,
+    username: q.data.username,
+    display_name: q.data.display_name,
+    is_admin: !!q.data.is_admin
+  };
+}
+
+async function requireAdmin(sb, event) {
+  const u = await freshUserFrom(sb, event);
+  return u && u.is_admin ? u : null;
+}
+
 function outcome(h,a){ return h>a?1:h<a?-1:0; }
 
 function normalizeWinner(value){
@@ -348,6 +374,28 @@ const API_FOOTBALL_EXTRA_LEAGUES = Array.from(
 
 let lastApiFootballSyncAt = 0;
 
+
+const API_FOOTBALL_FETCH_TIMEOUT_MS = 10 * 1000;
+
+async function fetchApiFootball(url, options = {}) {
+  const timeoutSignal =
+    typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function"
+      ? AbortSignal.timeout(API_FOOTBALL_FETCH_TIMEOUT_MS)
+      : undefined;
+
+  return fetch(url, {
+    ...options,
+    signal: options.signal || timeoutSignal
+  });
+}
+
+function apiFootballFetchErrorMessage(err){
+  const name = String(err?.name || "");
+  if (name === "TimeoutError" || name === "AbortError") return "timeout 10s";
+  return err?.message || String(err || "fetch failed");
+}
+
+
 function normalizeTeamName(name){
   return String(name || "")
     .toLowerCase()
@@ -406,6 +454,32 @@ function apiNormalTimeScore(fx){
   return null;
 }
 
+
+function teamNamesMatch(a, b){
+  const x = normalizeTeamName(a);
+  const y = normalizeTeamName(b);
+  if (!x || !y) return false;
+  if (x === y) return true;
+  if (x.length >= 5 && y.length >= 5 && (x.includes(y) || y.includes(x))) return true;
+  return false;
+}
+
+function fixtureHasTeamNameOverlap(dbMatch, fx){
+  const dbTeams = [
+    { raw: dbMatch.home, normalized: normalizeTeamName(dbMatch.home) },
+    { raw: dbMatch.away, normalized: normalizeTeamName(dbMatch.away) }
+  ].filter(t => t.normalized && !isPlaceholderTeam(t.raw));
+
+  if (!dbTeams.length) return false;
+
+  const apiTeams = [
+    fx?.teams?.home?.name,
+    fx?.teams?.away?.name
+  ];
+
+  return dbTeams.some(db => apiTeams.some(api => teamNamesMatch(db.normalized, api)));
+}
+
 function scoreFixtureMatch(dbMatch, fx){
   let score = 0;
   const dbKick = dbMatch.kickoff_utc ? new Date(dbMatch.kickoff_utc).getTime() : null;
@@ -446,6 +520,8 @@ function chooseFixtureForMatch(dbMatch, fixtures){
   let best = null;
   let bestScore = -1;
   for (const fx of fixtures){
+    if (!fixtureHasTeamNameOverlap(dbMatch, fx)) continue;
+
     const score = scoreFixtureMatch(dbMatch, fx);
     if (score > bestScore){
       best = fx;
@@ -456,11 +532,31 @@ function chooseFixtureForMatch(dbMatch, fixtures){
 }
 
 
-function isoDateOnly(value){
+function dateOnlyInTimeZone(value, timeZone = "UTC"){
   if (!value) return "";
   const d = new Date(value);
   if (!Number.isFinite(d.getTime())) return "";
-  return d.toISOString().slice(0,10);
+
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(d);
+
+  const year = parts.find(p => p.type === "year")?.value;
+  const month = parts.find(p => p.type === "month")?.value;
+  const day = parts.find(p => p.type === "day")?.value;
+
+  return year && month && day ? `${year}-${month}-${day}` : "";
+}
+
+function isoDateOnly(value){
+  return dateOnlyInTimeZone(value, "UTC");
+}
+
+function apiFootballDateOnly(value){
+  return dateOnlyInTimeZone(value, "Europe/Tallinn");
 }
 
 function uniqueList(items){
@@ -474,7 +570,7 @@ async function discoverApiFootballLeagueSources(apiKey, search, season){
   const url = `${API_FOOTBALL_BASE_URL}/leagues?search=${encodeURIComponent(search)}`;
 
   try{
-    const resp = await fetch(url, {
+    const resp = await fetchApiFootball(url, {
       headers: {
         "x-apisports-key": apiKey,
         "Accept": "application/json"
@@ -529,12 +625,18 @@ async function fetchApiFootballFixtures(matchDates = []){
   async function addFixturesFromUrl(url, label){
     requested.push(label);
 
-    const resp = await fetch(url, {
-      headers: {
-        "x-apisports-key": apiKey,
-        "Accept": "application/json"
-      }
-    });
+    let resp;
+    try{
+      resp = await fetchApiFootball(url, {
+        headers: {
+          "x-apisports-key": apiKey,
+          "Accept": "application/json"
+        }
+      });
+    }catch(err){
+      errors.push(`${label}: ${apiFootballFetchErrorMessage(err)}`);
+      return;
+    }
 
     if (!resp.ok){
       const txt = await resp.text().catch(() => "");
@@ -757,7 +859,7 @@ async function syncApiFootballResults(sb, { force=false } = {}){
       const t = new Date(m.kickoff_utc).getTime();
       return Number.isFinite(t) && t <= Date.now() + 24 * 60 * 60 * 1000;
     })
-    .map(m => isoDateOnly(m.kickoff_utc));
+    .map(m => apiFootballDateOnly(m.kickoff_utc));
 
   const fetched = await fetchApiFootballFixtures(matchDates);
   if (!fetched.ok){
@@ -892,9 +994,11 @@ async function netlifyHandler(event) {
       return json(200, { ok: true, time: new Date().toISOString() });
     }
 
+    const sb = sbAdmin();
+
     if (event.httpMethod === "GET" && route === "debug/env") {
-      const u = userFrom(event);
-      if (!u || !u.is_admin) return json(403, { error: "Admini õigused puuduvad." });
+      const u = await requireAdmin(sb, event);
+      if (!u) return json(403, { error: "Admini õigused puuduvad." });
 
       return json(200, {
         ok: true,
@@ -904,8 +1008,6 @@ async function netlifyHandler(event) {
         api_football_key: process.env.API_FOOTBALL_KEY ? "OK" : "MISSING"
       });
     }
-
-    const sb = sbAdmin();
 
     // Setup admin once
     if (event.httpMethod === "POST" && route === "setup/admin") {
@@ -990,10 +1092,15 @@ if (event.httpMethod === "POST" && route === "register") {
 }
 
 if (event.httpMethod === "GET" && route === "me") {
-
-      const u = userFrom(event);
+      const u = await freshUserFrom(sb, event);
       if (!u) return json(401, { error: "Pole sisse logitud." });
-      return json(200, { ok: true, user: u });
+      return json(200, { ok: true, user: {
+        id: u.id,
+        sub: u.sub,
+        username: u.username,
+        display_name: u.display_name,
+        is_admin: u.is_admin
+      }});
     }
 
     // Change password (self)
@@ -1018,7 +1125,6 @@ if (event.httpMethod === "GET" && route === "me") {
 
     // Matches list
     if (event.httpMethod === "GET" && route === "matches") {
-      await syncApiFootballResults(sb, { force:false });
       const m = await sb.from("matches").select("*").order("match_no", { ascending: true });
       if (m.error) return json(500, { error: m.error.message });
       return json(200, { ok: true, matches: m.data });
@@ -1027,8 +1133,8 @@ if (event.httpMethod === "GET" && route === "me") {
 
     // Admin API-Football debug: shows candidate fixtures for a match number
     if (event.httpMethod === "GET" && route === "admin/debug/api-football") {
-      const u = userFrom(event);
-      if (!u || !u.is_admin) return json(403, { error: "Admini õigused puuduvad." });
+      const u = await requireAdmin(sb, event);
+      if (!u) return json(403, { error: "Admini õigused puuduvad." });
 
       const no = Number(event.queryStringParameters?.match_no || 0);
       if (!no) return json(400, { error: "Lisa query: ?match_no=..." });
@@ -1036,7 +1142,7 @@ if (event.httpMethod === "GET" && route === "me") {
       const matchRes = await sb.from("matches").select("*").eq("match_no", no).single();
       if (matchRes.error) return json(500, { error: matchRes.error.message });
 
-      const date = isoDateOnly(matchRes.data.kickoff_utc);
+      const date = apiFootballDateOnly(matchRes.data.kickoff_utc);
       const fetched = await fetchApiFootballFixtures(date ? [date] : []);
       if (!fetched.ok) return json(500, { error: fetched.error || "API-Football viga" });
 
@@ -1060,8 +1166,8 @@ if (event.httpMethod === "GET" && route === "me") {
 
     // Admin bulk manual result import
     if (event.httpMethod === "POST" && route === "admin/results/import") {
-      const u = userFrom(event);
-      if (!u || !u.is_admin) return json(403, { error: "Admini õigused puuduvad." });
+      const u = await requireAdmin(sb, event);
+      if (!u) return json(403, { error: "Admini õigused puuduvad." });
 
       const body = JSON.parse(event.body || "{}");
       const text = String(body.text || "");
@@ -1145,10 +1251,33 @@ if (event.httpMethod === "GET" && route === "me") {
       });
     }
 
+
+    // Optional Railway cron sync. Set CRON_SECRET and send it as Bearer token, x-cron-secret header or ?secret=...
+    if (event.httpMethod === "POST" && route === "cron/sync/results") {
+      const configuredSecret = process.env.CRON_SECRET || "";
+      const h = event.headers || {};
+      const auth = h.authorization || h.Authorization || "";
+      const bearer = auth.match(/^Bearer\s+(.+)$/i)?.[1] || "";
+      const providedSecret =
+        h["x-cron-secret"] ||
+        h["X-Cron-Secret"] ||
+        bearer ||
+        event.queryStringParameters?.secret ||
+        "";
+
+      if (!configuredSecret || providedSecret !== configuredSecret) {
+        return json(403, { error: "Croni õigused puuduvad." });
+      }
+
+      const sync = await syncApiFootballResults(sb, { force:true });
+      if (!sync.ok) return json(500, { error: sync.error || "Tulemuste sünkroniseerimine ebaõnnestus." });
+      return json(200, { ok:true, ...sync });
+    }
+
     // Admin sync results from API-Football
     if (event.httpMethod === "POST" && route === "admin/sync/results") {
-      const u = userFrom(event);
-      if (!u || !u.is_admin) return json(403, { error: "Admini õigused puuduvad." });
+      const u = await requireAdmin(sb, event);
+      if (!u) return json(403, { error: "Admini õigused puuduvad." });
       const sync = await syncApiFootballResults(sb, { force:true });
       if (!sync.ok) return json(500, { error: sync.error || "Tulemuste sünkroniseerimine ebaõnnestus." });
       return json(200, { ok:true, ...sync });
@@ -1157,8 +1286,8 @@ if (event.httpMethod === "GET" && route === "me") {
 
 // Admin seed UEFA U17 test matches
 if (event.httpMethod === "POST" && route === "admin/seed/u17-test") {
-  const u = userFrom(event);
-  if (!u || !u.is_admin) return json(403, { error: "Admini õigused puuduvad." });
+  const u = await requireAdmin(sb, event);
+  if (!u) return json(403, { error: "Admini õigused puuduvad." });
 
   const up = await sb.from("matches").upsert(U17_TEST_MATCHES.map(x => ({...x})), { onConflict: "match_no" }).select("id");
   if (up.error) return json(500, { error: up.error.message });
@@ -1168,8 +1297,8 @@ if (event.httpMethod === "POST" && route === "admin/seed/u17-test") {
 
 // Admin remove UEFA U17 test matches
 if (event.httpMethod === "POST" && route === "admin/remove/u17-test") {
-  const u = userFrom(event);
-  if (!u || !u.is_admin) return json(403, { error: "Admini õigused puuduvad." });
+  const u = await requireAdmin(sb, event);
+  if (!u) return json(403, { error: "Admini õigused puuduvad." });
 
   const idsRes = await sb.from("matches").select("id").eq("stage", "UEFA U17 TEST");
   if (idsRes.error) return json(500, { error: idsRes.error.message });
@@ -1188,8 +1317,8 @@ if (event.httpMethod === "POST" && route === "admin/remove/u17-test") {
 
 // Admin seed Baltic Cup test matches
 if (event.httpMethod === "POST" && route === "admin/seed/baltic-cup-test") {
-  const u = userFrom(event);
-  if (!u || !u.is_admin) return json(403, { error: "Admini õigused puuduvad." });
+  const u = await requireAdmin(sb, event);
+  if (!u) return json(403, { error: "Admini õigused puuduvad." });
 
   const up = await sb.from("matches").upsert(BALTIC_CUP_TEST_MATCHES.map(x => ({...x})), { onConflict: "match_no" }).select("id");
   if (up.error) return json(500, { error: up.error.message });
@@ -1199,8 +1328,8 @@ if (event.httpMethod === "POST" && route === "admin/seed/baltic-cup-test") {
 
 // Admin remove Baltic Cup test matches
 if (event.httpMethod === "POST" && route === "admin/remove/baltic-cup-test") {
-  const u = userFrom(event);
-  if (!u || !u.is_admin) return json(403, { error: "Admini õigused puuduvad." });
+  const u = await requireAdmin(sb, event);
+  if (!u) return json(403, { error: "Admini õigused puuduvad." });
 
   const idsRes = await sb.from("matches").select("id").eq("stage", "BALTIC CUP TEST");
   if (idsRes.error) return json(500, { error: idsRes.error.message });
@@ -1221,8 +1350,8 @@ if (event.httpMethod === "POST" && route === "admin/remove/baltic-cup-test") {
 
     // Admin seed matches (idempotent upsert by match_no)
     if (event.httpMethod === "POST" && route === "admin/seed/matches") {
-      const u = userFrom(event);
-      if (!u || !u.is_admin) return json(403, { error: "Admini õigused puuduvad." });
+      const u = await requireAdmin(sb, event);
+      if (!u) return json(403, { error: "Admini õigused puuduvad." });
 
       const existing = await sb.from("matches").select("id").limit(1);
       if (existing.error) return json(500, { error: existing.error.message });
@@ -1240,8 +1369,8 @@ if (event.httpMethod === "POST" && route === "admin/remove/baltic-cup-test") {
 // Admin import kickoff times (ET) -> stores kickoff_utc
 // POST /api/admin/import/kickoffs  { items: [{match_no, date_et:'YYYY-MM-DD', time_et:'HH:MM'}] }
 if (event.httpMethod === "POST" && route === "admin/import/kickoffs") {
-  const u = userFrom(event);
-  if (!u || !u.is_admin) return json(403, { error: "Admini õigused puuduvad." });
+  const u = await requireAdmin(sb, event);
+  if (!u) return json(403, { error: "Admini õigused puuduvad." });
 
   const body = JSON.parse(event.body || "{}");
   const items = Array.isArray(body.items) ? body.items : [];
@@ -1282,8 +1411,8 @@ if (event.httpMethod === "POST" && route === "admin/import/kickoffs") {
 // Admin: sünkroniseeri ametlik ajakava NBC Sports artiklist (ajad ET)
 // POST /api/admin/sync/schedule
 if (event.httpMethod === "POST" && route === "admin/sync/schedule") {
-  const u = userFrom(event);
-  if (!u || !u.is_admin) return json(403, { error: "Admini õigused puuduvad." });
+  const u = await requireAdmin(sb, event);
+  if (!u) return json(403, { error: "Admini õigused puuduvad." });
 
   const url = "https://www.nbcsports.com/soccer/news/2026-world-cup-schedule-confirmed-dates-times-stadiums-full-details";
   const resp = await fetch(url, { headers: { "user-agent": "Mozilla/5.0" } });
@@ -1373,8 +1502,8 @@ if (event.httpMethod === "POST" && route === "admin/sync/schedule") {
 
 // Admin: delete match by id and its predictions
 if (event.httpMethod === "DELETE" && route.startsWith("admin/matches/")) {
-  const u = userFrom(event);
-  if (!u || !u.is_admin) return json(403, { error: "Admini õigused puuduvad." });
+  const u = await requireAdmin(sb, event);
+  if (!u) return json(403, { error: "Admini õigused puuduvad." });
 
   const id = route.split("/").pop();
   if (!id) return json(400, { error: "Mängu ID puudub." });
@@ -1390,8 +1519,8 @@ if (event.httpMethod === "DELETE" && route.startsWith("admin/matches/")) {
 
 // Admin: update match by match_no (used by manual result/time fields)
 if (event.httpMethod === "PUT" && route.startsWith("admin/matches/by-no/")) {
-  const u = userFrom(event);
-  if (!u || !u.is_admin) return json(403, { error: "Admini õigused puuduvad." });
+  const u = await requireAdmin(sb, event);
+  if (!u) return json(403, { error: "Admini õigused puuduvad." });
 
   const matchNo = Number(route.split("/").pop());
   if (!matchNo) return json(400, { error: "Mängu number puudub." });
@@ -1424,8 +1553,8 @@ if (event.httpMethod === "PUT" && route.startsWith("admin/matches/by-no/")) {
 
     // Admin matches create/update/delete
     if (event.httpMethod === "POST" && route === "admin/matches") {
-      const u = userFrom(event);
-      if (!u || !u.is_admin) return json(403, { error: "Admini õigused puuduvad." });
+      const u = await requireAdmin(sb, event);
+      if (!u) return json(403, { error: "Admini õigused puuduvad." });
       const body = JSON.parse(event.body || "{}");
       const ins = await sb.from("matches").insert(body).select("*").single();
       if (ins.error) return json(500, { error: ins.error.message });
@@ -1434,8 +1563,8 @@ if (event.httpMethod === "PUT" && route.startsWith("admin/matches/by-no/")) {
 
     const mu = route.match(/^admin\/matches\/(\d+)$/);
     if (mu && event.httpMethod === "PUT") {
-      const u = userFrom(event);
-      if (!u || !u.is_admin) return json(403, { error: "Admini õigused puuduvad." });
+      const u = await requireAdmin(sb, event);
+      if (!u) return json(403, { error: "Admini õigused puuduvad." });
       const id = Number(mu[1]);
       const body = JSON.parse(event.body || "{}");
       if (body.winner !== undefined) body.winner = normalizeWinner(body.winner);
@@ -1454,8 +1583,8 @@ if (event.httpMethod === "PUT" && route.startsWith("admin/matches/by-no/")) {
     }
 
     if (mu && event.httpMethod === "DELETE") {
-      const u = userFrom(event);
-      if (!u || !u.is_admin) return json(403, { error: "Admini õigused puuduvad." });
+      const u = await requireAdmin(sb, event);
+      if (!u) return json(403, { error: "Admini õigused puuduvad." });
       const id = Number(mu[1]);
       const del = await sb.from("matches").delete().eq("id", id);
       if (del.error) return json(500, { error: del.error.message });
@@ -1748,8 +1877,8 @@ if (event.httpMethod === "POST" && route === "bonus/answers") {
 
 // Lisa vaikimisi lisaküsimused admini nupuga
 if (event.httpMethod === "POST" && route === "admin/bonus/seed") {
-  const u = userFrom(event);
-  if (!u || !u.is_admin) return json(403, { error: "Admini õigused puuduvad." });
+  const u = await requireAdmin(sb, event);
+  if (!u) return json(403, { error: "Admini õigused puuduvad." });
 
   try{
     await ensureBonusQuestions(sb);
@@ -1769,8 +1898,8 @@ if (event.httpMethod === "POST" && route === "admin/bonus/seed") {
 
 // Lisaküsimused adminile
 if (event.httpMethod === "GET" && route === "admin/bonus") {
-  const u = userFrom(event);
-  if (!u || !u.is_admin) return json(403, { error: "Admini õigused puuduvad." });
+  const u = await requireAdmin(sb, event);
+  if (!u) return json(403, { error: "Admini õigused puuduvad." });
 
   try{
     await ensureBonusQuestions(sb);
@@ -1807,8 +1936,8 @@ if (event.httpMethod === "GET" && route === "admin/bonus") {
 
 // Lisa uus lisaküsimus adminis
 if (event.httpMethod === "POST" && route === "admin/bonus/questions") {
-  const u = userFrom(event);
-  if (!u || !u.is_admin) return json(403, { error: "Admini õigused puuduvad." });
+  const u = await requireAdmin(sb, event);
+  if (!u) return json(403, { error: "Admini õigused puuduvad." });
 
   const body = JSON.parse(event.body || "{}");
   const question_text = String(body.question_text || "").trim();
@@ -1848,8 +1977,8 @@ if (event.httpMethod === "POST" && route === "admin/bonus/questions") {
 {
   const m = route.match(/^admin\/bonus\/questions\/(\d+)$/);
   if (m && event.httpMethod === "PUT") {
-    const u = userFrom(event);
-    if (!u || !u.is_admin) return json(403, { error: "Admini õigused puuduvad." });
+    const u = await requireAdmin(sb, event);
+    if (!u) return json(403, { error: "Admini õigused puuduvad." });
 
     const id = Number(m[1]);
     const body = JSON.parse(event.body || "{}");
@@ -1872,8 +2001,8 @@ if (event.httpMethod === "POST" && route === "admin/bonus/questions") {
 
 // Märgi kasutaja lisavastus õigeks või valeks
 if (event.httpMethod === "PUT" && route === "admin/bonus/answers") {
-  const u = userFrom(event);
-  if (!u || !u.is_admin) return json(403, { error: "Admini õigused puuduvad." });
+  const u = await requireAdmin(sb, event);
+  if (!u) return json(403, { error: "Admini õigused puuduvad." });
 
   const body = JSON.parse(event.body || "{}");
   const player_id = String(body.player_id || "");
@@ -1918,8 +2047,8 @@ if (event.httpMethod === "PUT" && route === "admin/bonus/answers") {
 
 // Admin: recalculate all prediction points using the current scoring rules
 if (event.httpMethod === "POST" && route === "admin/recalc-points") {
-  const u = userFrom(event);
-  if (!u || !u.is_admin) return json(403, { error: "Admini õigused puuduvad." });
+  const u = await requireAdmin(sb, event);
+  if (!u) return json(403, { error: "Admini õigused puuduvad." });
 
   const matches = await sb.from("matches").select("id");
   if (matches.error) return json(500, { error: matches.error.message });
@@ -2033,16 +2162,16 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
 
 // Admin players CRUD
     if (event.httpMethod === "GET" && route === "admin/players") {
-      const u = userFrom(event);
-      if (!u || !u.is_admin) return json(403, { error: "Admini õigused puuduvad." });
+      const u = await requireAdmin(sb, event);
+      if (!u) return json(403, { error: "Admini õigused puuduvad." });
       const q = await sb.from("players").select("id,username,display_name,is_admin,created_at").order("created_at", { ascending: true });
       if (q.error) return json(500, { error: q.error.message });
       return json(200, { ok: true, players: q.data });
     }
 
     if (event.httpMethod === "POST" && route === "admin/players") {
-      const u = userFrom(event);
-      if (!u || !u.is_admin) return json(403, { error: "Admini õigused puuduvad." });
+      const u = await requireAdmin(sb, event);
+      if (!u) return json(403, { error: "Admini õigused puuduvad." });
       const body = JSON.parse(event.body || "{}");
       const username = (body.username || "").toString().trim();
       const display_name = (body.display_name || username).toString().trim();
@@ -2057,8 +2186,8 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
 
     const pu = route.match(/^admin\/players\/([0-9a-fA-F-]+)$/);
     if (pu && event.httpMethod === "PUT") {
-      const u = userFrom(event);
-      if (!u || !u.is_admin) return json(403, { error: "Admini õigused puuduvad." });
+      const u = await requireAdmin(sb, event);
+      if (!u) return json(403, { error: "Admini õigused puuduvad." });
       const id = pu[1];
       const body = JSON.parse(event.body || "{}");
       const patch = {};
@@ -2086,8 +2215,8 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
     }
 
     if (pu && event.httpMethod === "DELETE") {
-      const u = userFrom(event);
-      if (!u || !u.is_admin) return json(403, { error: "Admini õigused puuduvad." });
+      const u = await requireAdmin(sb, event);
+      if (!u) return json(403, { error: "Admini õigused puuduvad." });
       const id = pu[1];
       const del = await sb.from("players").delete().eq("id", id);
       if (del.error) return json(500, { error: del.error.message });
