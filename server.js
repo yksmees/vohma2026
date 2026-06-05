@@ -547,6 +547,92 @@ function parseManualResultLine(line){
   return { match_no, final_home, final_away, winner };
 }
 
+
+function getMatchAdvancement(match){
+  if (!match) return null;
+
+  const fh = match.final_home;
+  const fa = match.final_away;
+  if (fh === null || fa === null || fh === undefined || fa === undefined) return null;
+
+  let winner = normalizeWinner(match.winner);
+  if (!winner && Number(fh) !== Number(fa)) {
+    winner = Number(fh) > Number(fa) ? "home" : "away";
+  }
+
+  if (!winner) return null;
+
+  const loser = winner === "home" ? "away" : "home";
+
+  return {
+    winner,
+    loser,
+    winnerName: winner === "home" ? match.home : match.away,
+    loserName: loser === "home" ? match.home : match.away
+  };
+}
+
+function resolvePlaceholderTeamName(value, byMatchNo){
+  const token = String(value || "").trim();
+  const m = token.match(/^([WL])(-?\d+)$/i);
+  if (!m) return null;
+
+  const type = m[1].toUpperCase();
+  const refNo = Number(m[2]);
+  const refMatch = byMatchNo.get(refNo);
+  const adv = getMatchAdvancement(refMatch);
+  if (!adv) return null;
+
+  return type === "W" ? adv.winnerName : adv.loserName;
+}
+
+async function updateDerivedPlayoffMatches(sb){
+  const matchesRes = await sb
+    .from("matches")
+    .select("id,match_no,stage,home,away,final_home,final_away,winner,is_finished")
+    .order("match_no", { ascending: true });
+
+  if (matchesRes.error) return { updated: 0, error: matchesRes.error.message };
+
+  const matches = matchesRes.data || [];
+  const byNo = new Map(matches.map(m => [Number(m.match_no), m]));
+  const updates = [];
+
+  for (const match of matches){
+    let home = match.home;
+    let away = match.away;
+
+    const resolvedHome = resolvePlaceholderTeamName(home, byNo);
+    const resolvedAway = resolvePlaceholderTeamName(away, byNo);
+
+    if (resolvedHome) home = resolvedHome;
+    if (resolvedAway) away = resolvedAway;
+
+    // U17 testfinaal: võitjad poolfinaalidest -3 ja -2.
+    if (Number(match.match_no) === -1) {
+      const semi1 = getMatchAdvancement(byNo.get(-3));
+      const semi2 = getMatchAdvancement(byNo.get(-2));
+
+      if (semi1?.winnerName) home = semi1.winnerName;
+      if (semi2?.winnerName) away = semi2.winnerName;
+    }
+
+    if (home !== match.home || away !== match.away) {
+      const upd = await sb
+        .from("matches")
+        .update({ home, away })
+        .eq("id", match.id)
+        .select("id,match_no,home,away")
+        .single();
+
+      if (!upd.error) updates.push(upd.data);
+    }
+  }
+
+  return { updated: updates.length, matches: updates };
+}
+
+
 async function recalcPointsForMatch(sb, matchId){
   const matchRes = await sb.from("matches").select("*").eq("id", matchId).single();
   if (matchRes.error || !matchRes.data) return;
@@ -672,6 +758,8 @@ async function syncApiFootballResults(sb, { force=false } = {}){
     }
   }
 
+  const derived = await updateDerivedPlayoffMatches(sb);
+
   return {
     ok:true,
     updated,
@@ -680,6 +768,7 @@ async function syncApiFootballResults(sb, { force=false } = {}){
     finished_found,
     skipped_manual,
     update_errors,
+    derived_updates: derived.updated || 0,
     requested: fetched.requested || [],
     updated_matches: updated_matches.slice(0, 20),
     unmatched: unmatched.slice(0, 20),
@@ -955,10 +1044,13 @@ if (event.httpMethod === "GET" && route === "me") {
         });
       }
 
+      const derived = await updateDerivedPlayoffMatches(sb);
+
       return json(200, {
         ok: true,
         updated_count: updated.length,
         error_count: errors.length,
+        derived_updates: derived.updated || 0,
         updated,
         errors
       });
@@ -981,7 +1073,8 @@ if (event.httpMethod === "POST" && route === "admin/seed/u17-test") {
 
   const up = await sb.from("matches").upsert(U17_TEST_MATCHES.map(x => ({...x})), { onConflict: "match_no" }).select("id");
   if (up.error) return json(500, { error: up.error.message });
-  return json(200, { ok: true, inserted_or_updated: (up.data || []).length });
+  const derived = await updateDerivedPlayoffMatches(sb);
+  return json(200, { ok: true, inserted_or_updated: (up.data || []).length, derived_updates: derived.updated || 0 });
 }
 
 // Admin remove UEFA U17 test matches
@@ -1016,8 +1109,9 @@ if (event.httpMethod === "POST" && route === "admin/remove/u17-test") {
       // Upsert needs unique constraint on match_no
       const up = await sb.from("matches").upsert(payload, { onConflict: "match_no" }).select("id");
       if (up.error) return json(500, { error: up.error.message });
+      const derived = await updateDerivedPlayoffMatches(sb);
 
-      return json(200, { ok: true, inserted_or_updated: up.data.length });
+      return json(200, { ok: true, inserted_or_updated: up.data.length, derived_updates: derived.updated || 0 });
     }
 
 
@@ -1200,6 +1294,7 @@ if (event.httpMethod === "PUT" && route.startsWith("admin/matches/by-no/")) {
   const fa = upd.data.final_away;
   if (fh !== null && fa !== null && fh !== undefined && fa !== undefined) {
     await recalcPointsForMatch(sb, upd.data.id);
+    await updateDerivedPlayoffMatches(sb);
   }
 
   return json(200, { ok: true, match: upd.data });
@@ -1230,6 +1325,7 @@ if (event.httpMethod === "PUT" && route.startsWith("admin/matches/by-no/")) {
       const fa = upd.data.final_away;
       if (fh !== null && fa !== null && fh !== undefined && fa !== undefined) {
         await recalcPointsForMatch(sb, id);
+        await updateDerivedPlayoffMatches(sb);
       }
 
       return json(200, { ok: true, match: upd.data });
