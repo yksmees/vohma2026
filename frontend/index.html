@@ -5244,6 +5244,47 @@ async function fixSchedule(){
 
 
 
+
+async function recalcAllPoints(){
+  if (!(me && me.is_admin)) return setMsg($("adminMsg"), false, "Ainult admin.");
+
+  const btn = $("btnRecalcPoints");
+
+  try{
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Arvutan...";
+    }
+
+    const r = await call("admin/recalc-points", {method:"POST"});
+
+    const parts = [
+      `kontrollitud mänge ${r.checked_matches ?? 0}`,
+      `tulemuseta vahele jäetud ${r.skipped_matches ?? 0}`,
+      `uuendatud ennustusi ${r.updated_predictions ?? 0}`,
+      r.error_count ? `vigu ${r.error_count}` : "",
+      r.errors && r.errors.length ? `vead: ${r.errors.join("; ")}` : ""
+    ].filter(Boolean);
+
+    setMsg($("adminMsg"), !r.error_count, `Punktid ümber arvutatud. ${parts.join(" • ")}`);
+
+    await loadMatchesAndPreds();
+    await loadLeaderboard();
+    await loadOthersView();
+    if (typeof loadAdminScreenshotBoard === "function") await loadAdminScreenshotBoard();
+    if (typeof loadAdminBonus === "function") await loadAdminBonus();
+  }catch(err){
+    setMsg($("adminMsg"), false, err.message);
+  }finally{
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "Arvuta punktid ümber";
+    }
+  }
+}
+
+
+if ($("btnRecalcPoints")) $("btnRecalcPoints").onclick = recalcAllPoints;
 if ($("btnCheckSchedule")) $("btnCheckSchedule").onclick = checkSchedule;
 if ($("btnFixSchedule")) $("btnFixSchedule").onclick = fixSchedule;
 

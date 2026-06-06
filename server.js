@@ -1097,23 +1097,47 @@ async function updateDerivedPlayoffMatches(sb){
 
 async function recalcPointsForMatch(sb, matchId){
   const matchRes = await sb.from("matches").select("*").eq("id", matchId).single();
-  if (matchRes.error || !matchRes.data) return;
+  if (matchRes.error || !matchRes.data) {
+    return { updated_predictions: 0, skipped: true, error: matchRes.error?.message || "Mängu ei leitud." };
+  }
 
   const match = matchRes.data;
   const fh = match.final_home;
   const fa = match.final_away;
-  if (fh===null || fa===null || fh===undefined || fa===undefined) return;
+  if (fh===null || fa===null || fh===undefined || fa===undefined) {
+    return { updated_predictions: 0, skipped: true, reason: "Tulemus puudub." };
+  }
 
   const preds = await sb.from("predictions").select("id,pred_home,pred_away,pred_winner").eq("match_id", matchId);
-  if (preds.error) return;
+  if (preds.error) {
+    return { updated_predictions: 0, skipped: false, error: preds.error.message };
+  }
+
+  let updated_predictions = 0;
+  let error_count = 0;
+  const errors = [];
 
   for (const p of preds.data || []){
     const pts = calcPoints(p.pred_home, p.pred_away, fh, fa, {
       match,
       pred_winner: p.pred_winner
     });
-    await sb.from("predictions").update({ points: pts }).eq("id", p.id);
+    const upd = await sb.from("predictions").update({ points: pts }).eq("id", p.id);
+    if (upd.error) {
+      error_count += 1;
+      if (errors.length < 5) errors.push(upd.error.message);
+    } else {
+      updated_predictions += 1;
+    }
   }
+
+  return {
+    updated_predictions,
+    checked_predictions: (preds.data || []).length,
+    skipped: false,
+    error_count,
+    errors
+  };
 }
 
 async function syncApiFootballResults(sb, { force=false } = {}){
@@ -2376,16 +2400,50 @@ if (event.httpMethod === "POST" && route === "admin/recalc-points") {
   const u = await requireAdmin(sb, event);
   if (!u) return json(403, { error: "Admini õigused puuduvad." });
 
-  const matches = await sb.from("matches").select("id");
+  const matches = await sb.from("matches").select("id,match_no,final_home,final_away").order("match_no", { ascending: true });
   if (matches.error) return json(500, { error: matches.error.message });
 
+  let checked_matches = 0;
   let updated_matches = 0;
+  let skipped_matches = 0;
+  let updated_predictions = 0;
+  let checked_predictions = 0;
+  let error_count = 0;
+  const errors = [];
+
   for (const m of matches.data || []) {
-    await recalcPointsForMatch(sb, m.id);
-    updated_matches += 1;
+    checked_matches += 1;
+    const result = await recalcPointsForMatch(sb, m.id);
+
+    if (result?.skipped) {
+      skipped_matches += 1;
+      continue;
+    }
+
+    if ((result?.checked_predictions || 0) > 0 || (result?.updated_predictions || 0) > 0) {
+      updated_matches += 1;
+    }
+
+    checked_predictions += result?.checked_predictions || 0;
+    updated_predictions += result?.updated_predictions || 0;
+    error_count += result?.error_count || 0;
+
+    if (result?.error && errors.length < 10) errors.push(`#${m.match_no}: ${result.error}`);
+    for (const err of result?.errors || []) {
+      if (errors.length < 10) errors.push(`#${m.match_no}: ${err}`);
+    }
   }
 
-  return json(200, { ok: true, updated_matches });
+  return json(200, {
+    ok: true,
+    checked_matches,
+    updated_matches,
+    skipped_matches,
+    checked_predictions,
+    updated_predictions,
+    error_count,
+    errors
+  });
 }
 
 
