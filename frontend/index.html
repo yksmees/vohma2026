@@ -2638,6 +2638,18 @@
   
     /* PREDICTIONS ORDER: kickoff_utc ASC, match_no ASC */
 
+  
+    /* BONUS MANUAL LOCK */
+    .bonus-manual-lock-card{
+      border-color:rgba(250,204,21,.25) !important;
+      background:rgba(250,204,21,.06) !important;
+    }
+
+    #adminBonusLockStatus{
+      font-weight:900;
+      color:#f8fafc;
+    }
+
   </style>
 </head>
 <body>
@@ -2816,6 +2828,7 @@
   <strong>Admin juhend</strong>
   <div class="sub" style="margin-top:8px">
     <b>API tervis</b> kontrollib, kas server vastab.<br>
+    <b>Kontrolli/Paranda MM ajakava</b> võrdleb live andmebaasi koodis oleva ametliku tabeliga ning parandab ainult olemasolevaid ridu match_no järgi. Mänge ja ennustusi ei kustutata.<br>
     <b>Mängijad</b> tabelis saad nupuga Muuda muuta mängija nime, username’i ja parooli. Kasutaja ID jääb samaks, seega punktid ja ennustused jäävad alles.<br>
     <b>Lae ametlik mängutabel</b> uuendab FIFA 2026 mängud andmebaasis.<br>
     <b>Lisa U17 testmängud</b> lisab kolm UEFA U17 testmängu ennustusvaate algusesse. <b>Eemalda U17 testmängud</b> kustutab need hiljem koos nende ennustustega.<br>
@@ -2865,6 +2878,19 @@
     Siin saad muuta küsimusi, sisestada ametliku vastuse ning märkida kasutajate vastused õigeks või valeks. Õige vastus annab play-off edetabelisse 3 punkti.
   </div>
   <div id="adminBonusMsg" class="msg"></div>
+  <div class="card bonus-manual-lock-card" style="margin-top:10px">
+    <strong>Lisaküsimuste lukk</strong>
+    <div class="sub" style="margin-top:6px">
+      Admin saab kasutajate lisaküsimuste vastamise käsitsi lukku panna. Automaatne 1 tunni lukk jääb endiselt kehtima.
+    </div>
+    <div id="adminBonusLockStatus" class="sub" style="margin-top:8px">Laen seisu...</div>
+    <div class="row" style="margin-top:10px">
+      <button id="btnLockBonusAnswers" type="button" class="primary">Lukusta lisaküsimused</button>
+      <button id="btnUnlockBonusAnswers" type="button">Ava lisaküsimused</button>
+    </div>
+    <div id="adminBonusLockMsg" class="msg"></div>
+  </div>
+
           <button id="btnSeedBonusQuestions" type="button" style="margin-top:8px">Lisa vaikimisi lisaküsimused</button>
 
           <div class="card bonus-add-question-card" style="margin-top:10px">
@@ -2915,6 +2941,8 @@
         <div id="adminMsg" class="msg"></div>
         <div class="row" style="margin-top:10px">
           <button id="btnHealth" type="button">API tervis</button>
+          <button id="btnCheckSchedule" type="button">Kontrolli MM ajakava</button>
+          <button id="btnFixSchedule" type="button">Paranda MM ajakava</button>
           <button id="btnSeed" type="button" class="primary">Lae ametlik mängutabel</button>
           <button id="btnSeedU17" type="button">Lisa U17 testmängud</button>
           <button id="btnRemoveU17" type="button">Eemalda U17 testmängud</button>
@@ -4189,6 +4217,7 @@ function bonusAnswerMap(answers){
 }
 
 function formatBonusLock(r){
+  if (r.manual_locked) return "Lisaküsimused on admini poolt lukus.";
   if (!r.lock_at_utc) return "";
   const d = new Date(r.lock_at_utc);
   const txt = new Intl.DateTimeFormat('et-EE', {
@@ -4730,6 +4759,99 @@ function exportBonusScreenshotJpg(){
   }
 }
 
+
+function renderAdminBonusLock(lock){
+  const status = $("adminBonusLockStatus");
+  const msg = $("adminBonusLockMsg");
+  const lockBtn = $("btnLockBonusAnswers");
+  const unlockBtn = $("btnUnlockBonusAnswers");
+
+  if (!status) return;
+
+  if (lock?.manual_lock_available === false) {
+    status.textContent = "Käsitsi lukk pole veel seadistatud. Käivita Supabase SQL Editoris sql/app_settings_bonus_lock.sql.";
+    if (lockBtn) lockBtn.disabled = true;
+    if (unlockBtn) unlockBtn.disabled = true;
+    if (msg && lock.manual_lock_error) setMsg(msg, false, lock.manual_lock_error);
+    return;
+  }
+
+  const manual = !!lock?.manual_locked;
+  const automatic = !!lock?.auto_locked;
+  const locked = !!lock?.locked;
+
+  status.textContent = locked
+    ? manual
+      ? "Seis: LUKUS admini käsitsi lukuga."
+      : "Seis: LUKUS automaatse 1 tunni reegliga."
+    : "Seis: AVATUD.";
+
+  if (lockBtn) lockBtn.disabled = manual;
+  if (unlockBtn) unlockBtn.disabled = !manual || automatic;
+
+  if (automatic && !manual && msg) {
+    msg.textContent = "Automaatne 1 tunni lukk on aktiivne. Admini avamine seda üle ei kirjuta.";
+  }
+}
+
+async function loadAdminBonusLock(){
+  if (!(me && me.is_admin)) return;
+
+  try{
+    const lock = await call("admin/bonus/lock", {method:"GET"});
+    renderAdminBonusLock(lock);
+  }catch(err){
+    setMsg($("adminBonusLockMsg"), false, err.message);
+  }
+}
+
+async function setAdminBonusLock(locked){
+  if (!(me && me.is_admin)) return setMsg($("adminBonusLockMsg"), false, "Ainult admin.");
+
+  const lockBtn = $("btnLockBonusAnswers");
+  const unlockBtn = $("btnUnlockBonusAnswers");
+
+  try{
+    if (lockBtn) lockBtn.disabled = true;
+    if (unlockBtn) unlockBtn.disabled = true;
+
+    const lock = await call("admin/bonus/lock", {
+      method:"POST",
+      body: JSON.stringify({locked})
+    });
+
+    renderAdminBonusLock(lock);
+    setMsg($("adminBonusLockMsg"), true, locked ? "Lisaküsimused on lukku pandud." : "Lisaküsimused on avatud.");
+
+    if (typeof loadBonusQuestions === "function") await loadBonusQuestions();
+  }catch(err){
+    setMsg($("adminBonusLockMsg"), false, err.message);
+    await loadAdminBonusLock();
+  }
+}
+
+function bindAdminBonusLockButtons(){
+  const lockBtn = $("btnLockBonusAnswers");
+  const unlockBtn = $("btnUnlockBonusAnswers");
+
+  if (lockBtn && lockBtn.dataset.boundBonusLock !== "1") {
+    lockBtn.dataset.boundBonusLock = "1";
+    lockBtn.addEventListener("click", (e)=>{
+      e.preventDefault();
+      setAdminBonusLock(true);
+    });
+  }
+
+  if (unlockBtn && unlockBtn.dataset.boundBonusLock !== "1") {
+    unlockBtn.dataset.boundBonusLock = "1";
+    unlockBtn.addEventListener("click", (e)=>{
+      e.preventDefault();
+      setAdminBonusLock(false);
+    });
+  }
+}
+
+
 async function loadAdminBonus(){
   if (!(me && me.is_admin)) return;
 
@@ -4740,8 +4862,11 @@ async function loadAdminBonus(){
   qBody.innerHTML = "";
   aBody.innerHTML = "";
   $("adminBonusMsg").textContent = "";
+  if ($("adminBonusLockMsg")) $("adminBonusLockMsg").textContent = "";
 
   try{
+    await loadAdminBonusLock();
+
     const data = await call("admin/bonus", {method:"GET"});
     adminBonusData = data;
 
@@ -5038,6 +5163,90 @@ $("btnSetFinal").onclick = async ()=>{
 
 
 
+
+function scheduleDiffSummary(r){
+  const parts = [
+    `kontrollitud ${r.total_existing ?? r.checked ?? 0}`,
+    `erinevusi ${r.diff_count ?? r.diff_count_before ?? 0}`,
+    `puudu ${r.missing_count ?? 0}`,
+    r.updated_count !== undefined ? `uuendatud ${r.updated_count}` : "",
+    r.error_count ? `vigu ${r.error_count}` : ""
+  ].filter(Boolean);
+
+  const examples = (r.diffs || r.updated || [])
+    .slice(0, 8)
+    .map(x=>{
+      const c = x.current || x;
+      const e = x.expected || x;
+      return `#${x.match_no}: ${(c.home || "")} - ${(c.away || "")} → ${(e.home || c.home || "")} - ${(e.away || c.away || "")}`;
+    });
+
+  const missing = (r.missing || [])
+    .slice(0, 5)
+    .map(x=>`puudu #${x.match_no}: ${x.expected?.home || ""} - ${x.expected?.away || ""}`);
+
+  return [parts.join(" • "), examples.length ? `Näited: ${examples.join("; ")}` : "", missing.length ? missing.join("; ") : ""]
+    .filter(Boolean)
+    .join(" • ");
+}
+
+async function checkSchedule(){
+  if (!(me && me.is_admin)) return setMsg($("adminMsg"), false, "Ainult admin.");
+
+  const btn = $("btnCheckSchedule");
+  try{
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Kontrollin...";
+    }
+
+    const r = await call("admin/schedule/check", {method:"GET"});
+    const ok = !r.diff_count && !r.missing_count;
+    setMsg($("adminMsg"), ok, ok ? "MM ajakava on korras." : `MM ajakava vajab parandust. ${scheduleDiffSummary(r)}`);
+  }catch(err){
+    setMsg($("adminMsg"), false, err.message);
+  }finally{
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "Kontrolli MM ajakava";
+    }
+  }
+}
+
+async function fixSchedule(){
+  if (!(me && me.is_admin)) return setMsg($("adminMsg"), false, "Ainult admin.");
+
+  if (!confirm("Parandan MM ajakava olemasolevatel matches ridadel match_no järgi. Mänge ei kustutata, matches.id ja ennustused jäävad alles. Kas jätkan?")) return;
+
+  const btn = $("btnFixSchedule");
+  try{
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Parandan...";
+    }
+
+    const r = await call("admin/schedule/fix", {method:"POST"});
+    setMsg($("adminMsg"), !r.error_count, `MM ajakava parandatud. ${scheduleDiffSummary(r)}`);
+
+    await loadMatchesAndPreds();
+    await loadLeaderboard();
+    await loadOthersView();
+    if (typeof loadAdminScreenshotBoard === "function") await loadAdminScreenshotBoard();
+  }catch(err){
+    setMsg($("adminMsg"), false, err.message);
+  }finally{
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "Paranda MM ajakava";
+    }
+  }
+}
+
+
+
+if ($("btnCheckSchedule")) $("btnCheckSchedule").onclick = checkSchedule;
+if ($("btnFixSchedule")) $("btnFixSchedule").onclick = fixSchedule;
+
 if ($("btnSeedU17")) $("btnSeedU17").onclick = async (e)=>{
   if (e) e.preventDefault();
   if (!(me && me.is_admin)) return setMsg($("adminMsg"), false, "Ainult admin.");
@@ -5157,6 +5366,7 @@ if ($("btnSyncResults")) $("btnSyncResults").onclick = async (e)=>{
       (r.updated_matches && r.updated_matches.length) ? `uuendatud: ${r.updated_matches.join("; ")}` : "",
       (r.unmatched && r.unmatched.length) ? `sidumata: ${r.unmatched.join("; ")}` : "",
       (r.api_errors && r.api_errors.length) ? `API teated: ${r.api_errors.join("; ")}` : "",
+      (r.fixture_id_mismatches && r.fixture_id_mismatches.length) ? `fixture-id ei klappinud: ${r.fixture_id_mismatches.join("; ")}` : "",
       (r.update_error_examples && r.update_error_examples.length) ? `vead: ${r.update_error_examples.join("; ")}` : ""
     ].filter(Boolean);
 
@@ -5209,6 +5419,7 @@ if ($("btnRefreshScreenshotBoard") && typeof loadAdminScreenshotBoard === "funct
 
 bindBonusExportButton();
 bindBonusButtons();
+bindAdminBonusLockButtons();
 bindAuthButtons();
 bindLogoutButtons();
 loadAll();

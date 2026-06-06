@@ -318,6 +318,82 @@ async function ensureBonusQuestions(sb){
   }
 }
 
+
+function isMissingSupabaseTableError(error){
+  const text = `${error?.message || ""} ${error?.details || ""} ${error?.hint || ""} ${error?.code || ""}`.toLowerCase();
+  return (
+    text.includes("does not exist") ||
+    text.includes("could not find the table") ||
+    text.includes("relation") && text.includes("does not exist") ||
+    text.includes("42p01")
+  );
+}
+
+function parseSettingBool(value){
+  if (typeof value === "boolean") return value;
+  const v = String(value ?? "").trim().toLowerCase();
+  return ["true", "1", "yes", "jah", "on"].includes(v);
+}
+
+async function getBonusManualLockInfo(sb){
+  const res = await sb
+    .from("app_settings")
+    .select("value,updated_at")
+    .eq("key", "bonus_manual_locked")
+    .maybeSingle();
+
+  if (res.error) {
+    if (isMissingSupabaseTableError(res.error)) {
+      return {
+        manual_locked: false,
+        manual_lock_available: false,
+        manual_lock_error: "Puudub app_settings tabel. Käivita sql/app_settings_bonus_lock.sql"
+      };
+    }
+    return {
+      manual_locked: false,
+      manual_lock_available: false,
+      manual_lock_error: res.error.message
+    };
+  }
+
+  return {
+    manual_locked: parseSettingBool(res.data?.value),
+    manual_lock_available: true,
+    manual_lock_updated_at: res.data?.updated_at || null,
+    manual_lock_error: null
+  };
+}
+
+async function setBonusManualLock(sb, locked){
+  const payload = {
+    key: "bonus_manual_locked",
+    value: locked ? "true" : "false",
+    updated_at: new Date().toISOString()
+  };
+
+  const res = await sb
+    .from("app_settings")
+    .upsert(payload, { onConflict: "key" })
+    .select("value,updated_at")
+    .single();
+
+  if (res.error) {
+    if (isMissingSupabaseTableError(res.error)) {
+      throw new Error("Puudub app_settings tabel. Käivita Supabase SQL Editoris sql/app_settings_bonus_lock.sql");
+    }
+    throw new Error(res.error.message);
+  }
+
+  return {
+    manual_locked: parseSettingBool(res.data?.value),
+    manual_lock_available: true,
+    manual_lock_updated_at: res.data?.updated_at || null,
+    manual_lock_error: null
+  };
+}
+
+
 async function getBonusLockInfo(sb){
   const first = await sb
     .from("matches")
@@ -332,12 +408,18 @@ async function getBonusLockInfo(sb){
   const kickoff = first.data?.[0]?.kickoff_utc || null;
   const kickoffMs = kickoff ? new Date(kickoff).getTime() : null;
   const lockAtMs = Number.isFinite(kickoffMs) ? kickoffMs - 60 * 60 * 1000 : null;
-  const locked = Number.isFinite(lockAtMs) ? Date.now() >= lockAtMs : false;
+  const autoLocked = Number.isFinite(lockAtMs) ? Date.now() >= lockAtMs : false;
+  const manual = await getBonusManualLockInfo(sb);
 
   return {
     first_kickoff_utc: kickoff,
     lock_at_utc: Number.isFinite(lockAtMs) ? new Date(lockAtMs).toISOString() : null,
-    locked
+    auto_locked: autoLocked,
+    manual_locked: !!manual.manual_locked,
+    manual_lock_available: !!manual.manual_lock_available,
+    manual_lock_updated_at: manual.manual_lock_updated_at || null,
+    manual_lock_error: manual.manual_lock_error || null,
+    locked: autoLocked || !!manual.manual_locked
   };
 }
 
@@ -539,10 +621,18 @@ function scoreFixtureMatch(dbMatch, fx){
   return score;
 }
 
+
+function fixtureDisplayName(fx){
+  const id = fx?.fixture?.id || "";
+  const home = fx?.teams?.home?.name || "";
+  const away = fx?.teams?.away?.name || "";
+  return `${id ? "#" + id + " " : ""}${home} - ${away}`.trim();
+}
+
 function chooseFixtureForMatch(dbMatch, fixtures){
   if (dbMatch.api_football_fixture_id){
     const exact = fixtures.find(fx => Number(fx?.fixture?.id) === Number(dbMatch.api_football_fixture_id));
-    if (exact) return exact;
+    if (exact && fixtureHasTeamNameOverlap(dbMatch, exact)) return exact;
   }
 
   let best = null;
@@ -783,6 +873,152 @@ function resolvePlaceholderTeamName(value, byMatchNo){
   return type === "W" ? adv.winnerName : adv.loserName;
 }
 
+
+function normalizeScheduleText(value){
+  return String(value ?? "").trim();
+}
+
+function normalizeScheduleTime(value){
+  if (!value) return "";
+  const d = new Date(value);
+  return Number.isFinite(d.getTime()) ? d.toISOString() : "";
+}
+
+function seedMatchByNoMap(){
+  return new Map(SEED_MATCHES.map(m => [Number(m.match_no), m]));
+}
+
+function compareMatchToSeed(row, seed){
+  const diffs = [];
+  const fields = [
+    ["stage", "Alagrupp/faas"],
+    ["home", "Kodumeeskond"],
+    ["away", "Võõrsil"],
+    ["location", "Asukoht"]
+  ];
+
+  for (const [field, label] of fields) {
+    if (normalizeScheduleText(row?.[field]) !== normalizeScheduleText(seed?.[field])) {
+      diffs.push({ field, label, current: row?.[field] ?? "", expected: seed?.[field] ?? "" });
+    }
+  }
+
+  if (normalizeScheduleTime(row?.kickoff_utc) !== normalizeScheduleTime(seed?.kickoff_utc)) {
+    diffs.push({ field: "kickoff_utc", label: "Algusaeg", current: row?.kickoff_utc ?? "", expected: seed?.kickoff_utc ?? "" });
+  }
+
+  return diffs;
+}
+
+async function getScheduleDiffs(sb){
+  const current = await sb
+    .from("matches")
+    .select("id,match_no,stage,home,away,kickoff_utc,location")
+    .gte("match_no", 1)
+    .lte("match_no", 104)
+    .order("match_no", { ascending: true });
+
+  if (current.error) throw new Error(current.error.message);
+
+  const currentByNo = new Map((current.data || []).map(m => [Number(m.match_no), m]));
+  const diffs = [];
+  const missing = [];
+
+  for (const seed of SEED_MATCHES) {
+    const no = Number(seed.match_no);
+    if (!Number.isFinite(no) || no < 1 || no > 104) continue;
+
+    const row = currentByNo.get(no);
+    if (!row) {
+      missing.push({
+        match_no: no,
+        expected: {
+          stage: seed.stage,
+          home: seed.home,
+          away: seed.away,
+          kickoff_utc: seed.kickoff_utc,
+          location: seed.location
+        }
+      });
+      continue;
+    }
+
+    const rowDiffs = compareMatchToSeed(row, seed);
+    if (rowDiffs.length) {
+      diffs.push({
+        id: row.id,
+        match_no: no,
+        current: {
+          stage: row.stage,
+          home: row.home,
+          away: row.away,
+          kickoff_utc: row.kickoff_utc,
+          location: row.location
+        },
+        expected: {
+          stage: seed.stage,
+          home: seed.home,
+          away: seed.away,
+          kickoff_utc: seed.kickoff_utc,
+          location: seed.location
+        },
+        diffs: rowDiffs
+      });
+    }
+  }
+
+  return {
+    total_seed: SEED_MATCHES.filter(m => Number(m.match_no) >= 1 && Number(m.match_no) <= 104).length,
+    total_existing: current.data?.length || 0,
+    diff_count: diffs.length,
+    missing_count: missing.length,
+    diffs,
+    missing
+  };
+}
+
+async function fixScheduleFromSeed(sb){
+  const before = await getScheduleDiffs(sb);
+  const seedByNo = seedMatchByNoMap();
+  const updated = [];
+  const errors = [];
+
+  for (const item of before.diffs) {
+    const seed = seedByNo.get(Number(item.match_no));
+    if (!seed) continue;
+
+    const patch = {
+      stage: seed.stage,
+      home: seed.home,
+      away: seed.away,
+      kickoff_utc: seed.kickoff_utc,
+      location: seed.location
+    };
+
+    const upd = await sb
+      .from("matches")
+      .update(patch)
+      .eq("id", item.id)
+      .select("id,match_no,stage,home,away,kickoff_utc,location")
+      .single();
+
+    if (upd.error) errors.push(`#${item.match_no}: ${upd.error.message}`);
+    else updated.push(upd.data);
+  }
+
+  return {
+    checked: before.total_existing,
+    diff_count_before: before.diff_count,
+    missing_count: before.missing_count,
+    updated_count: updated.length,
+    error_count: errors.length,
+    updated,
+    errors,
+    missing: before.missing
+  };
+}
+
+
 async function updateDerivedPlayoffMatches(sb){
   const matchesRes = await sb
     .from("matches")
@@ -901,6 +1137,7 @@ async function syncApiFootballResults(sb, { force=false } = {}){
   let skipped_manual = 0;
   let update_errors = 0;
   const unmatched = [];
+  const fixture_id_mismatches = [];
   const updated_matches = [];
   const update_error_examples = [];
 
@@ -908,6 +1145,13 @@ async function syncApiFootballResults(sb, { force=false } = {}){
     if (match.manual_result_override) {
       skipped_manual += 1;
       continue;
+    }
+
+    if (match.api_football_fixture_id) {
+      const exactFixture = fixtures.find(fx => Number(fx?.fixture?.id) === Number(match.api_football_fixture_id));
+      if (exactFixture && !fixtureHasTeamNameOverlap(match, exactFixture)) {
+        fixture_id_mismatches.push(`#${match.match_no} ${match.home} - ${match.away}: olemasolev fixture ${fixtureDisplayName(exactFixture)} ei klapi tiiminimega`);
+      }
     }
 
     const fx = chooseFixtureForMatch(match, fixtures);
@@ -986,6 +1230,7 @@ async function syncApiFootballResults(sb, { force=false } = {}){
     requested: fetched.requested || [],
     updated_matches: updated_matches.slice(0, 20),
     unmatched: unmatched.slice(0, 20),
+    fixture_id_mismatches: fixture_id_mismatches.slice(0, 20),
     update_error_examples: update_error_examples.slice(0, 10),
     api_errors: fetched.errors || []
   };
@@ -1375,6 +1620,24 @@ if (event.httpMethod === "POST" && route === "admin/remove/baltic-cup-test") {
 }
 
 
+
+
+// Admin schedule check/fix. Does not delete rows, create rows, change matches.id or touch predictions.
+if (event.httpMethod === "GET" && route === "admin/schedule/check") {
+  const u = await requireAdmin(sb, event);
+  if (!u) return json(403, { error: "Admini õigused puuduvad." });
+
+  const result = await getScheduleDiffs(sb);
+  return json(200, { ok: true, ...result });
+}
+
+if (event.httpMethod === "POST" && route === "admin/schedule/fix") {
+  const u = await requireAdmin(sb, event);
+  if (!u) return json(403, { error: "Admini õigused puuduvad." });
+
+  const result = await fixScheduleFromSeed(sb);
+  return json(200, { ok: true, ...result });
+}
 
     // Admin seed matches (idempotent upsert by match_no)
     if (event.httpMethod === "POST" && route === "admin/seed/matches") {
@@ -1901,6 +2164,29 @@ if (event.httpMethod === "POST" && route === "bonus/answers") {
   if (saved.error) return json(500, { error: saved.error.message });
 
   return json(200, { ok: true, saved_count: rows.length, answers: saved.data || [] });
+}
+
+
+// Admin lisaküsimuste käsitsi lukk
+if (event.httpMethod === "GET" && route === "admin/bonus/lock") {
+  const u = await requireAdmin(sb, event);
+  if (!u) return json(403, { error: "Admini õigused puuduvad." });
+
+  const lock = await getBonusLockInfo(sb);
+  return json(200, { ok: true, ...lock });
+}
+
+if (event.httpMethod === "POST" && route === "admin/bonus/lock") {
+  const u = await requireAdmin(sb, event);
+  if (!u) return json(403, { error: "Admini õigused puuduvad." });
+
+  const body = JSON.parse(event.body || "{}");
+  const locked = !!body.locked;
+
+  await setBonusManualLock(sb, locked);
+  const lock = await getBonusLockInfo(sb);
+
+  return json(200, { ok: true, ...lock });
 }
 
 // Lisa vaikimisi lisaküsimused admini nupuga
