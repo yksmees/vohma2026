@@ -243,6 +243,20 @@ function isPlayoffMatch(match){
   return true;
 }
 
+function predictedAdvancerFromPrediction(ph, pa, predWinner){
+  if (ph > pa) return "home";
+  if (ph < pa) return "away";
+  return normalizeWinner(predWinner);
+}
+
+function actualAdvancerFromResult(fh, fa, winner){
+  const normalizedWinner = normalizeWinner(winner);
+  if (normalizedWinner) return normalizedWinner;
+  if (fh > fa) return "home";
+  if (fh < fa) return "away";
+  return null;
+}
+
 function calcPoints(ph, pa, fh, fa, options = {}){
   if (fh===null || fa===null || fh===undefined || fa===undefined) return 0;
 
@@ -260,13 +274,11 @@ function calcPoints(ph, pa, fh, fa, options = {}){
 
   const match = options.match || {};
   const playoff = options.is_playoff === true || isPlayoffMatch(match);
-  const actualWinner = normalizeWinner(options.winner ?? match.winner);
-  const predictedWinner = normalizeWinner(options.pred_winner);
+  const actualWinner = actualAdvancerFromResult(fh, fa, options.winner ?? match.winner);
+  const predictedWinner = predictedAdvancerFromPrediction(ph, pa, options.pred_winner);
 
   if (
     playoff &&
-    fh === fa &&
-    ph === pa &&
     actualWinner &&
     predictedWinner &&
     actualWinner === predictedWinner
