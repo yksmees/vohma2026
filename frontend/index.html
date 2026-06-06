@@ -2635,6 +2635,9 @@
       box-shadow:0 0 0 2px rgba(34,197,94,.35) inset;
     }
 
+  
+    /* PREDICTIONS ORDER: kickoff_utc ASC, match_no ASC */
+
   </style>
 </head>
 <body>
@@ -3679,6 +3682,27 @@ function toggleAdminTab(){
   }
 }
 
+
+function sortMatchesByKickoffForPredictions(matches){
+  return [...(matches || [])].sort((a, b)=>{
+    const at = a?.kickoff_utc ? new Date(a.kickoff_utc).getTime() : Number.POSITIVE_INFINITY;
+    const bt = b?.kickoff_utc ? new Date(b.kickoff_utc).getTime() : Number.POSITIVE_INFINITY;
+
+    const safeAt = Number.isFinite(at) ? at : Number.POSITIVE_INFINITY;
+    const safeBt = Number.isFinite(bt) ? bt : Number.POSITIVE_INFINITY;
+
+    if (safeAt !== safeBt) return safeAt - safeBt;
+
+    const an = Number(a?.match_no);
+    const bn = Number(b?.match_no);
+    const safeAn = Number.isFinite(an) ? an : Number.POSITIVE_INFINITY;
+    const safeBn = Number.isFinite(bn) ? bn : Number.POSITIVE_INFINITY;
+
+    return safeAn - safeBn;
+  });
+}
+
+
 async function loadMatchesAndPreds(){
   const tbody = $("mTable").querySelector("tbody");
   tbody.innerHTML = "";
@@ -3693,7 +3717,10 @@ async function loadMatchesAndPreds(){
     const publicMap = pub.predictions_by_match || {};
     populateAdminMatchSelects(m.matches || []);
     populateResultMatchSelects(m.matches || []);
-    for (const row of m.matches){
+
+    const predictionMatches = sortMatchesByKickoffForPredictions(m.matches || []);
+
+    for (const row of predictionMatches){
       const pr = map.get(row.id);
       const tr = document.createElement("tr");
       if (row.kickoff_utc) {
