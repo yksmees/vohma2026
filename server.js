@@ -257,6 +257,20 @@ function actualAdvancerFromResult(fh, fa, winner){
   return null;
 }
 
+function truthyDbBool(value){
+  return value === true || String(value || "").trim().toLowerCase() === "true";
+}
+
+function matchWentExtra(match){
+  return truthyDbBool(match?.went_extra);
+}
+
+function inferWentExtraFromResult(match, fh, fa, winner){
+  if (!isPlayoffMatch(match)) return false;
+  if (Number(fh) !== Number(fa)) return false;
+  return !!normalizeWinner(winner ?? match?.winner);
+}
+
 function calcPoints(ph, pa, fh, fa, options = {}){
   if (fh===null || fa===null || fh===undefined || fa===undefined) return 0;
 
@@ -276,9 +290,11 @@ function calcPoints(ph, pa, fh, fa, options = {}){
   const playoff = options.is_playoff === true || isPlayoffMatch(match);
   const actualWinner = actualAdvancerFromResult(fh, fa, options.winner ?? match.winner);
   const predictedWinner = predictedAdvancerFromPrediction(ph, pa, options.pred_winner);
+  const extraOrPenalties = matchWentExtra(match) || inferWentExtraFromResult(match, fh, fa, options.winner ?? match.winner);
 
   if (
     playoff &&
+    extraOrPenalties &&
     actualWinner &&
     predictedWinner &&
     actualWinner === predictedWinner
@@ -540,9 +556,17 @@ function isPlaceholderTeam(name){
   return /^[WL]\d+$/i.test(s) || /^[123][A-Z]+$/i.test(s) || /^[12][A-L]$/i.test(s) || /^3[A-Z]+$/i.test(s);
 }
 
+function apiStatusShort(fx){
+  return String(fx?.fixture?.status?.short || "").trim().toUpperCase();
+}
+
 function apiFixtureFinished(fx){
-  const short = fx?.fixture?.status?.short || "";
+  const short = apiStatusShort(fx);
   return ["FT", "AET", "PEN", "AWD", "WO"].includes(short);
+}
+
+function apiFixtureWentExtra(fx){
+  return ["AET", "PEN"].includes(apiStatusShort(fx));
 }
 
 
@@ -566,6 +590,8 @@ function apiNormalTimeScore(fx){
   if (fh !== null && fa !== null && fh !== undefined && fa !== undefined) {
     return { home: Number(fh), away: Number(fa) };
   }
+
+  if (apiFixtureWentExtra(fx)) return null;
 
   const gh = fx?.goals?.home;
   const ga = fx?.goals?.away;
@@ -1108,6 +1134,12 @@ async function recalcPointsForMatch(sb, matchId){
     return { updated_predictions: 0, skipped: true, reason: "Tulemus puudub." };
   }
 
+  const inferredWentExtra = inferWentExtraFromResult(match, fh, fa, match.winner);
+  if (inferredWentExtra && !truthyDbBool(match.went_extra)) {
+    const extraUpd = await sb.from("matches").update({ went_extra: true }).eq("id", matchId).select("went_extra").single();
+    if (!extraUpd.error) match.went_extra = true;
+  }
+
   const preds = await sb.from("predictions").select("id,pred_home,pred_away,pred_winner").eq("match_id", matchId);
   if (preds.error) {
     return { updated_predictions: 0, skipped: false, error: preds.error.message };
@@ -1222,17 +1254,23 @@ async function syncApiFootballResults(sb, { force=false } = {}){
         const homeGoals = score.home;
         const awayGoals = score.away;
         const apiWinner = apiFixtureWinner(fx);
+        const statusShort = apiStatusShort(fx);
+        const wentExtra = apiFixtureWentExtra(fx);
 
         const changed =
           Number(match.final_home) !== homeGoals ||
           Number(match.final_away) !== awayGoals ||
           normalizeWinner(match.winner) !== apiWinner ||
+          String(match.api_status_short || "") !== statusShort ||
+          truthyDbBool(match.went_extra) !== wentExtra ||
           !match.is_finished;
 
         const resultPatch = {
           final_home: homeGoals,
           final_away: awayGoals,
-          is_finished: true
+          is_finished: true,
+          api_status_short: statusShort,
+          went_extra: wentExtra
         };
         if (apiWinner) resultPatch.winner = apiWinner;
 
@@ -1240,7 +1278,7 @@ async function syncApiFootballResults(sb, { force=false } = {}){
 
         if (!upd.error){
           updated += 1;
-          updated_matches.push(`#${match.match_no} ${match.home} - ${match.away} ${homeGoals}:${awayGoals}`);
+          updated_matches.push(`#${match.match_no} ${match.home} - ${match.away} ${homeGoals}:${awayGoals}${wentExtra ? " lisa/pen" : ""}`);
           if (changed){
             await recalcPointsForMatch(sb, match.id);
           }
@@ -1520,7 +1558,9 @@ if (event.httpMethod === "GET" && route === "me") {
           final_home: parsed.final_home,
           final_away: parsed.final_away,
           is_finished: true,
-          manual_result_override: true
+          manual_result_override: true,
+          api_status_short: "",
+          went_extra: isPlayoff && isDraw && !!winner
         };
 
         if (winner) patch.winner = winner;
@@ -1862,7 +1902,16 @@ if (event.httpMethod === "PUT" && route.startsWith("admin/matches/by-no/")) {
   if (body.final_home !== undefined) patch.final_home = body.final_home === null ? null : Number(body.final_home);
   if (body.final_away !== undefined) patch.final_away = body.final_away === null ? null : Number(body.final_away);
   if (body.winner !== undefined) patch.winner = normalizeWinner(body.winner);
-  if (body.final_home !== undefined || body.final_away !== undefined || body.winner !== undefined) patch.manual_result_override = true;
+  if (body.final_home !== undefined || body.final_away !== undefined || body.winner !== undefined) {
+    patch.manual_result_override = true;
+    patch.api_status_short = "";
+    const fhForExtra = patch.final_home;
+    const faForExtra = patch.final_away;
+    if (Number.isFinite(fhForExtra) && Number.isFinite(faForExtra)) {
+      const tempMatch = { match_no: matchNo, stage: patch.stage || "" };
+      patch.went_extra = inferWentExtraFromResult(tempMatch, fhForExtra, faForExtra, patch.winner);
+    }
+  }
   if (body.is_finished !== undefined) patch.is_finished = !!body.is_finished;
 
   const upd = await sb.from("matches").update(patch).eq("match_no", matchNo).select("*").single();
@@ -1895,18 +1944,30 @@ if (event.httpMethod === "PUT" && route.startsWith("admin/matches/by-no/")) {
       const id = Number(mu[1]);
       const body = JSON.parse(event.body || "{}");
       if (body.winner !== undefined) body.winner = normalizeWinner(body.winner);
-      if (body.final_home !== undefined || body.final_away !== undefined || body.winner !== undefined) body.manual_result_override = true;
+      const resultChanged = body.final_home !== undefined || body.final_away !== undefined || body.winner !== undefined;
+      if (resultChanged) {
+        body.manual_result_override = true;
+        body.api_status_short = "";
+      }
       const upd = await sb.from("matches").update(body).eq("id", id).select("*").single();
       if (upd.error) return json(500, { error: upd.error.message });
 
-      const fh = upd.data.final_home;
-      const fa = upd.data.final_away;
+      let updatedMatch = upd.data;
+      const fh = updatedMatch.final_home;
+      const fa = updatedMatch.final_away;
+
+      if (resultChanged && fh !== null && fa !== null && fh !== undefined && fa !== undefined) {
+        const wentExtra = inferWentExtraFromResult(updatedMatch, fh, fa, updatedMatch.winner);
+        const extraUpd = await sb.from("matches").update({ went_extra: wentExtra }).eq("id", id).select("*").single();
+        if (!extraUpd.error && extraUpd.data) updatedMatch = extraUpd.data;
+      }
+
       if (fh !== null && fa !== null && fh !== undefined && fa !== undefined) {
         await recalcPointsForMatch(sb, id);
         await updateDerivedPlayoffMatches(sb);
       }
 
-      return json(200, { ok: true, match: upd.data });
+      return json(200, { ok: true, match: updatedMatch });
     }
 
     if (mu && event.httpMethod === "DELETE") {
