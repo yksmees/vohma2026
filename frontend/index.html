@@ -2650,6 +2650,275 @@
       color:#f8fafc;
     }
 
+  
+    .others-points-help{
+      background:rgba(11,18,32,.95);
+      border:1px solid rgba(148,163,184,.22);
+      border-radius:14px;
+      overflow:hidden;
+      margin-top:10px;
+      margin-bottom:10px;
+    }
+
+    .others-points-help summary{
+      cursor:pointer;
+      list-style:none;
+      padding:11px 12px;
+      font-size:13px;
+      font-weight:900;
+      color:#f8fafc;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+
+    .others-points-help summary::-webkit-details-marker{
+      display:none;
+    }
+
+    .others-points-help summary::after{
+      content:"⌄";
+      color:#94a3b8;
+      font-size:16px;
+    }
+
+    .others-points-help[open] summary::after{
+      content:"⌃";
+    }
+
+    .others-help-body{
+      border-top:1px solid rgba(148,163,184,.16);
+      padding:10px 12px 12px;
+      display:grid;
+      gap:7px;
+    }
+
+    .others-help-title{
+      font-size:12px;
+      font-weight:900;
+      color:#f8fafc;
+      margin-top:8px;
+    }
+
+    .others-help-title:first-child{
+      margin-top:0;
+    }
+
+    .others-help-row{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      color:#cbd5e1;
+      font-size:12px;
+      line-height:1.25;
+    }
+
+    .others-quick-points{
+      display:flex;
+      align-items:center;
+      gap:6px;
+      overflow-x:auto;
+      padding:10px 0 2px;
+      -webkit-overflow-scrolling:touch;
+    }
+
+    .others-quick-label{
+      flex:0 0 auto;
+      color:#cbd5e1;
+      font-size:12px;
+      font-weight:900;
+      margin-right:2px;
+    }
+
+    .others-points-badge{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:4px;
+      min-width:34px;
+      border-radius:999px;
+      padding:4px 8px;
+      border:1px solid rgba(148,163,184,.25);
+      font-weight:950;
+      font-size:11px;
+      white-space:nowrap;
+      line-height:1;
+    }
+
+    .others-points-badge.points-5{
+      background:#bbf7d0;
+      color:#052e16;
+      border-color:#86efac;
+    }
+
+    .others-points-badge.points-4{
+      background:#166534;
+      color:#dcfce7;
+      border-color:#22c55e;
+    }
+
+    .others-points-badge.points-3{
+      background:#1d4ed8;
+      color:#dbeafe;
+      border-color:#60a5fa;
+    }
+
+    .others-points-badge.points-2{
+      background:#facc15;
+      color:#422006;
+      border-color:#fde047;
+    }
+
+    .others-points-badge.points-1{
+      background:#f97316;
+      color:#431407;
+      border-color:#fdba74;
+    }
+
+    .others-points-badge.points-0{
+      background:#991b1b;
+      color:#fee2e2;
+      border-color:#fca5a5;
+    }
+
+    .others-points-badge.points-neutral{
+      background:#1f2937;
+      color:#e5e7eb;
+      border-color:#64748b;
+    }
+
+    .others-advance-marker{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width:17px;
+      height:17px;
+      border-radius:999px;
+      background:#16a34a;
+      color:#ffffff;
+      font-weight:950;
+      font-size:13px;
+      line-height:1;
+      vertical-align:middle;
+    }
+
+    .others-board-table th.others-match-head{
+      min-width:104px;
+      max-width:128px;
+      white-space:normal;
+      vertical-align:top;
+    }
+
+    .others-board-table .others-head-teams{
+      display:grid;
+      gap:2px;
+      line-height:1.12;
+      font-size:12px;
+      font-weight:900;
+      margin-top:3px;
+    }
+
+    .others-board-table .others-team-line{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:3px;
+      min-width:0;
+    }
+
+    .others-board-table .others-team-name{
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+      max-width:82px;
+    }
+
+    .others-board-table .matrix-final-score{
+      display:inline-flex;
+      margin-top:5px;
+      padding:3px 7px;
+      border-radius:999px;
+      background:rgba(255,255,255,.12);
+      color:#fff;
+      font-weight:900;
+      white-space:nowrap;
+      font-size:11px;
+    }
+
+    .others-board-table .matrix-lock-note{
+      display:inline-flex;
+      margin-top:5px;
+      padding:3px 7px;
+      border-radius:999px;
+      background:rgba(250,204,21,.20);
+      color:#fde68a;
+      font-weight:900;
+      white-space:nowrap;
+      font-size:11px;
+    }
+
+    .others-pred-cell{
+      min-width:104px;
+      max-width:124px;
+      background:#0b1220 !important;
+      color:#e5e7eb !important;
+      font-weight:900;
+    }
+
+    .others-pred-wrap{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:5px;
+      flex-wrap:wrap;
+    }
+
+    .others-pred-score{
+      white-space:nowrap;
+      font-weight:950;
+      color:#f8fafc;
+    }
+
+    .others-pred-winner{
+      white-space:nowrap;
+      font-size:11px;
+      font-weight:900;
+      color:#cbd5e1;
+    }
+
+    .others-no-pred{
+      color:#64748b;
+      font-weight:900;
+    }
+
+    @media (max-width:760px){
+      .others-board-table .sticky-col{
+        min-width:92px !important;
+        max-width:92px !important;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+      }
+
+      .others-board-table th,
+      .others-board-table td{
+        padding:8px 7px !important;
+        font-size:12px !important;
+      }
+
+      .others-board-table th.others-match-head,
+      .others-pred-cell{
+        min-width:104px !important;
+        max-width:104px !important;
+      }
+
+      .others-board-table .others-team-name{
+        max-width:70px;
+      }
+    }
+
+
   </style>
 </head>
 <body>
@@ -2798,8 +3067,45 @@
 
 
 <div id="others" class="hide" style="margin-top:8px">
-  
+
   <div id="othersMsg" class="msg"></div>
+
+  <details class="others-points-help">
+    <summary>Punktide, värvide ja ikoonide tähendus</summary>
+    <div class="others-help-body">
+      <div class="others-help-title">Punktisüsteem</div>
+      <div class="others-help-row"><span class="others-points-badge points-neutral">2p</span><span>õige võitja või õige viik</span></div>
+      <div class="others-help-row"><span class="others-points-badge points-neutral">+1p</span><span>õige kodutiimi väravate arv</span></div>
+      <div class="others-help-row"><span class="others-points-badge points-neutral">+1p</span><span>õige võõrsiltiimi väravate arv</span></div>
+      <div class="others-help-row"><span class="others-points-badge points-4">4p</span><span>täpne skoor</span></div>
+      <div class="others-help-row"><span class="others-points-badge points-5">4+1p</span><span>play-offis täpne skoor ja õige edasipääseja, kui mäng läks lisaajale või penaltitele</span></div>
+
+      <div class="others-help-title">Värvid</div>
+      <div class="others-help-row"><span class="others-points-badge points-5">4+1p</span><span>heleroheline: õige skoor ja lisapunkt edasipääseja eest</span></div>
+      <div class="others-help-row"><span class="others-points-badge points-4">4p</span><span>roheline: õige skoor</span></div>
+      <div class="others-help-row"><span class="others-points-badge points-3">3p</span><span>sinine: õige võitja või viik ja üks õige väravate arv</span></div>
+      <div class="others-help-row"><span class="others-points-badge points-2">2p</span><span>kollane: õige võitja või õige viik</span></div>
+      <div class="others-help-row"><span class="others-points-badge points-1">1p</span><span>oranž: üks õige väravate arv</span></div>
+      <div class="others-help-row"><span class="others-points-badge points-0">0p</span><span>punane: kõik vale</span></div>
+
+      <div class="others-help-title">Ikoonid</div>
+      <div class="others-help-row"><span class="others-advance-marker">↑</span><span>meeskond pääses edasi</span></div>
+      <div class="others-help-row"><span class="others-points-badge points-neutral">→LTU</span><span>viigilise ennustuse korral valitud edasipääseja</span></div>
+      <div class="others-help-row"><span class="others-points-badge points-neutral">+</span><span>lisapunkt edasipääseja eest ainult siis, kui mäng läks lisaajale või penaltitele</span></div>
+    </div>
+  </details>
+
+  <div class="others-quick-points">
+    <span class="others-quick-label">Kiirvaade</span>
+    <span class="others-points-badge points-5">4+1p</span>
+    <span class="others-points-badge points-4">4p</span>
+    <span class="others-points-badge points-3">3p</span>
+    <span class="others-points-badge points-2">2p</span>
+    <span class="others-points-badge points-1">1p</span>
+    <span class="others-points-badge points-0">0p</span>
+    <span class="others-points-badge points-neutral"><span class="others-advance-marker">↑</span> edasi</span>
+    <span class="others-points-badge points-neutral">→ valik</span>
+  </div>
 
   <div class="others-board-section" style="margin-top:12px">
     <strong>Alagrupimängud</strong>
@@ -3931,13 +4237,141 @@ function finalScoreText(row){
   return hasFinalScore(row) ? `${row.final_home}:${row.final_away}` : "";
 }
 
-function othersHeaderResultHtml(row){
-  if (hasFinalScore(row)) {
-    return `<br><span class="matrix-final-score">Lõpp skoor: <b>${finalScoreText(row)}</b></span>`;
-  }
-  return `<br><span class="matrix-lock-note">Lukus</span>`;
+function normalizeOthersWinner(value){
+  const v = String(value || "").trim().toLowerCase();
+  return v === "home" || v === "away" ? v : "";
 }
 
+function othersBool(value){
+  return value === true || String(value || "").trim().toLowerCase() === "true";
+}
+
+function othersWentExtra(row){
+  if (othersBool(row?.went_extra)) return true;
+  const winner = actualMatchWinner(row);
+  return !!(isPlayoffMatch(row) && hasFinalScore(row) && Number(row.final_home) === Number(row.final_away) && winner);
+}
+
+function othersPredictedWinner(row, pr){
+  if (!pr) return "";
+  const ph = Number(pr.pred_home);
+  const pa = Number(pr.pred_away);
+  if (!Number.isFinite(ph) || !Number.isFinite(pa)) return "";
+  if (ph > pa) return "home";
+  if (ph < pa) return "away";
+  return normalizeOthersWinner(pr.pred_winner);
+}
+
+function othersTeamCode(name){
+  const clean = String(name || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^A-Za-z0-9 ]/g, " ")
+    .trim();
+
+  const parts = clean.split(/\s+/).filter(Boolean);
+  if (!parts.length) return "";
+
+  if (parts.length >= 2) {
+    return parts.map(p=>p[0]).join("").slice(0, 3).toUpperCase();
+  }
+
+  return parts[0].slice(0, 3).toUpperCase();
+}
+
+function othersWinnerCode(row, winner){
+  if (winner === "home") return othersTeamCode(row?.home);
+  if (winner === "away") return othersTeamCode(row?.away);
+  return "";
+}
+
+function othersBasePoints(row, pr){
+  if (!hasFinalScore(row) || !pr) return null;
+
+  const fh = Number(row.final_home);
+  const fa = Number(row.final_away);
+  const ph = Number(pr.pred_home);
+  const pa = Number(pr.pred_away);
+  if (![fh, fa, ph, pa].every(Number.isFinite)) return null;
+
+  const out = (h,a)=> h>a ? 1 : h<a ? -1 : 0;
+  let points = 0;
+
+  if (out(fh, fa) === out(ph, pa)) points += 2;
+  if (fh === ph) points += 1;
+  if (fa === pa) points += 1;
+
+  return points;
+}
+
+function othersHasAdvancerBonus(row, pr){
+  if (!isPlayoffMatch(row) || !othersWentExtra(row) || !pr) return false;
+  const actual = actualMatchWinner(row);
+  const predicted = othersPredictedWinner(row, pr);
+  return !!(actual && predicted && actual === predicted);
+}
+
+function othersPointsClass(row, pr){
+  const base = othersBasePoints(row, pr);
+  if (base === null) return "";
+
+  const bonus = othersHasAdvancerBonus(row, pr);
+  if (base === 4 && bonus) return "points-5";
+  if (base === 4) return "points-4";
+  if (base === 3) return "points-3";
+  if (base === 2) return "points-2";
+  if (base === 1 || bonus) return "points-1";
+  return "points-0";
+}
+
+function othersPointsLabel(row, pr){
+  const base = othersBasePoints(row, pr);
+  if (base === null) return "";
+
+  const bonus = othersHasAdvancerBonus(row, pr);
+  return bonus ? `${base}+1p` : `${base}p`;
+}
+
+function othersPredictionCellHtml(row, pr){
+  if (!pr) return `<span class="others-no-pred">-</span>`;
+
+  const score = `${pr.pred_home}:${pr.pred_away}`;
+  const ph = Number(pr.pred_home);
+  const pa = Number(pr.pred_away);
+  const showPickedWinner = isPlayoffMatch(row) && Number.isFinite(ph) && Number.isFinite(pa) && ph === pa && normalizeOthersWinner(pr.pred_winner);
+  const pickedWinner = showPickedWinner ? othersWinnerCode(row, normalizeOthersWinner(pr.pred_winner)) : "";
+  const pointsClass = othersPointsClass(row, pr);
+  const pointsLabel = othersPointsLabel(row, pr);
+
+  return `
+    <div class="others-pred-wrap">
+      <span class="others-pred-score">${score}</span>
+      ${pickedWinner ? `<span class="others-pred-winner">→${escapeHtml(pickedWinner)}</span>` : ""}
+      ${pointsLabel ? `<span class="others-points-badge ${pointsClass}">${pointsLabel}</span>` : ""}
+    </div>
+  `;
+}
+
+function othersHeaderTeamHtml(row){
+  const winner = actualMatchWinner(row);
+  const isDone = isPlayoffMatch(row) && winner && (row.is_finished || hasFinalScore(row));
+  const homeAdvance = isDone && winner === "home";
+  const awayAdvance = isDone && winner === "away";
+
+  return `
+    <div class="others-head-teams">
+      <span class="others-team-line"><span class="others-team-name">${escapeHtml(row.home || "")}</span>${homeAdvance ? `<span class="others-advance-marker">↑</span>` : ""}</span>
+      <span class="others-team-line"><span class="others-team-name">${escapeHtml(row.away || "")}</span>${awayAdvance ? `<span class="others-advance-marker">↑</span>` : ""}</span>
+    </div>
+  `;
+}
+
+function othersHeaderResultHtml(row){
+  if (hasFinalScore(row)) {
+    return `<span class="matrix-final-score">${finalScoreText(row)}</span>`;
+  }
+  return `<span class="matrix-lock-note">Lukus</span>`;
+}
 
 function renderOthersMatrix(table, matches, players, predictions){
   if (!table) return;
@@ -3954,16 +4388,14 @@ function renderOthersMatrix(table, matches, players, predictions){
   thead.innerHTML = `
     <tr>
       <th class="sticky-col">Kasutaja</th>
-      ${matches.map(m=>`<th>#${displayMatchNo(m)}<br>${escapeHtml(m.home)} - ${escapeHtml(m.away)}${othersHeaderResultHtml(m)}</th>`).join("")}
+      ${matches.map(m=>`<th class="others-match-head">#${displayMatchNo(m)}${othersHeaderTeamHtml(m)}${othersHeaderResultHtml(m)}</th>`).join("")}
     </tr>
   `;
 
   tbody.innerHTML = players.map(p=>{
     const cells = matches.map(m=>{
       const pr = getPredictionFor(predictions, m.id, p.id);
-      const score = pr ? `${pr.pred_home}:${pr.pred_away}` : "-";
-      const cls = pr ? scoreCellClass(m, pr) : "";
-      return `<td class="${cls}">${score}</td>`;
+      return `<td class="others-pred-cell">${othersPredictionCellHtml(m, pr)}</td>`;
     }).join("");
     return `<tr><th class="sticky-col">${escapeHtml(p.display_name || "")}</th>${cells}</tr>`;
   }).join("");

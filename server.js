@@ -2050,7 +2050,7 @@ if (event.httpMethod === "GET" && route === "predictions/matrix") {
 
   const matchesRes = await sb
     .from("matches")
-    .select("id,match_no,stage,home,away,location,kickoff_utc,final_home,final_away,winner,is_finished")
+    .select("id,match_no,stage,home,away,location,kickoff_utc,final_home,final_away,winner,is_finished,went_extra")
     .order("match_no", { ascending: true });
 
   if (matchesRes.error) return json(500, { error: matchesRes.error.message });
