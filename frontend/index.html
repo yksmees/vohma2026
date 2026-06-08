@@ -4242,26 +4242,6 @@ function normalizeOthersWinner(value){
   return v === "home" || v === "away" ? v : "";
 }
 
-function othersBool(value){
-  return value === true || String(value || "").trim().toLowerCase() === "true";
-}
-
-function othersWentExtra(row){
-  if (othersBool(row?.went_extra)) return true;
-  const winner = actualMatchWinner(row);
-  return !!(isPlayoffMatch(row) && hasFinalScore(row) && Number(row.final_home) === Number(row.final_away) && winner);
-}
-
-function othersPredictedWinner(row, pr){
-  if (!pr) return "";
-  const ph = Number(pr.pred_home);
-  const pa = Number(pr.pred_away);
-  if (!Number.isFinite(ph) || !Number.isFinite(pa)) return "";
-  if (ph > pa) return "home";
-  if (ph < pa) return "away";
-  return normalizeOthersWinner(pr.pred_winner);
-}
-
 function othersTeamCode(name){
   const clean = String(name || "")
     .normalize("NFD")
@@ -4285,51 +4265,22 @@ function othersWinnerCode(row, winner){
   return "";
 }
 
-function othersBasePoints(row, pr){
-  if (!hasFinalScore(row) || !pr) return null;
-
-  const fh = Number(row.final_home);
-  const fa = Number(row.final_away);
-  const ph = Number(pr.pred_home);
-  const pa = Number(pr.pred_away);
-  if (![fh, fa, ph, pa].every(Number.isFinite)) return null;
-
-  const out = (h,a)=> h>a ? 1 : h<a ? -1 : 0;
-  let points = 0;
-
-  if (out(fh, fa) === out(ph, pa)) points += 2;
-  if (fh === ph) points += 1;
-  if (fa === pa) points += 1;
-
-  return points;
-}
-
-function othersHasAdvancerBonus(row, pr){
-  if (!isPlayoffMatch(row) || !othersWentExtra(row) || !pr) return false;
-  const actual = actualMatchWinner(row);
-  const predicted = othersPredictedWinner(row, pr);
-  return !!(actual && predicted && actual === predicted);
-}
-
-function othersPointsClass(row, pr){
-  const base = othersBasePoints(row, pr);
-  if (base === null) return "";
-
-  const bonus = othersHasAdvancerBonus(row, pr);
-  if (base === 4 && bonus) return "points-5";
-  if (base === 4) return "points-4";
-  if (base === 3) return "points-3";
-  if (base === 2) return "points-2";
-  if (base === 1 || bonus) return "points-1";
+function othersPointsClassFromSaved(points){
+  const p = Number(points);
+  if (!Number.isFinite(p)) return "";
+  if (p >= 5) return "points-5";
+  if (p === 4) return "points-4";
+  if (p === 3) return "points-3";
+  if (p === 2) return "points-2";
+  if (p === 1) return "points-1";
   return "points-0";
 }
 
-function othersPointsLabel(row, pr){
-  const base = othersBasePoints(row, pr);
-  if (base === null) return "";
-
-  const bonus = othersHasAdvancerBonus(row, pr);
-  return bonus ? `${base}+1p` : `${base}p`;
+function othersPointsLabelFromSaved(points){
+  const p = Number(points);
+  if (!Number.isFinite(p)) return "";
+  if (p >= 5) return "4+1p";
+  return `${p}p`;
 }
 
 function othersPredictionCellHtml(row, pr){
@@ -4340,8 +4291,8 @@ function othersPredictionCellHtml(row, pr){
   const pa = Number(pr.pred_away);
   const showPickedWinner = isPlayoffMatch(row) && Number.isFinite(ph) && Number.isFinite(pa) && ph === pa && normalizeOthersWinner(pr.pred_winner);
   const pickedWinner = showPickedWinner ? othersWinnerCode(row, normalizeOthersWinner(pr.pred_winner)) : "";
-  const pointsClass = othersPointsClass(row, pr);
-  const pointsLabel = othersPointsLabel(row, pr);
+  const pointsClass = hasFinalScore(row) ? othersPointsClassFromSaved(pr.points) : "";
+  const pointsLabel = hasFinalScore(row) ? othersPointsLabelFromSaved(pr.points) : "";
 
   return `
     <div class="others-pred-wrap">
