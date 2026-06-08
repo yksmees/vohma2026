@@ -219,6 +219,28 @@ async function requireAdmin(sb, event) {
   return u && u.is_admin ? u : null;
 }
 
+
+const DEFAULT_RULES_TEXT = "Reeglid\n\nSiin on kõik väga lihtsalt kirjas.\n\n1. Ennusta mängu skoori\n\nIga mängu juures pane kirja, mitu väravat lööb kodumeeskond ja mitu väravat lööb võõrsilmeeskond.\n\nNäide:\nEesti 2 : 1 Läti\n\nSee tähendab, et arvad, et Eesti lööb 2 väravat ja Läti lööb 1 värava.\n\n2. Punktid mängude eest\n\nÕige võitja või õige viik annab 2 punkti.\n\nNäide:\nSina ennustad 2 : 1\nMäng lõpeb 1 : 0\nVõitja on õige, saad 2 punkti.\n\nÕige kodutiimi väravate arv annab 1 punkti.\n\nNäide:\nSina ennustad 2 : 1\nMäng lõpeb 2 : 0\nKodutiimi väravate arv oli õige, saad 1 punkti.\n\nÕige võõrsiltiimi väravate arv annab 1 punkti.\n\nNäide:\nSina ennustad 2 : 1\nMäng lõpeb 3 : 1\nVõõrsiltiimi väravate arv oli õige, saad 1 punkti.\n\nTäpne skoor annab kokku 4 punkti.\n\nNäide:\nSina ennustad 2 : 1\nMäng lõpeb 2 : 1\nKõik oli õige, saad 4 punkti.\n\n3. Play-off mängud\n\nPlay-offis ennustame 90 minuti skoori.\n\nKui mäng lõpeb 90 minutiga, siis punkte saad sama moodi nagu tavalises mängus.\n\nKui play-off mäng läheb lisaajale või penaltitele, siis saad 1 lisapunkti, kui arvasid õige edasipääseja.\n\nNäide:\nSina ennustad 1 : 1 ja valid, et edasi saab Eesti.\nMäng on 90 minuti järel 1 : 1 ja Eesti pääseb edasi.\nSaad täpse skoori eest 4 punkti ja edasipääseja eest 1 punkti.\nKokku 5 punkti.\n\nTabelis näed seda nii:\n4+1p\n\nSee tähendab:\n4 punkti skoori eest\n1 punkt edasipääseja eest\n\n4. Millal teiste ennustusi näeb?\n\nTeiste ennustusi näeb siis, kui mäng on lukus.\n\nMäng läheb lukku 1 tund enne mängu algust.\n\nPärast seda ei saa selle mängu ennustust enam muuta.\n\n5. Lisaküsimused\n\nLisaküsimused annavad lisapunkte play-off edetabelisse.\n\nIga õigesti vastatud lisaküsimus annab 3 punkti.\n\n6. Edetabelid\n\nAlagrupiturniiri edetabel näitab ainult alagrupimängude punkte.\n\nPlay-off edetabel näitab play-off mängude punkte ja lisaküsimuste punkte.\n\nÜldtabel näitab kõik punktid kokku:\nalagrupimängud + play-off mängud + lisaküsimused.\n\n7. Auhinnarahad\n\nAlagrupi turna 550€\n1. koht 300€\n2. koht 150€\n3. koht 100€\n\nRehamängude turna 550€\n1. koht 300€\n2. koht 150€\n3. koht 100€\n\nLisaks 90€ kahe turniiri punktisumma üldvõitjale.\n";
+
+async function getRulesText(sb){
+  try {
+    const q = await sb
+      .from("app_settings")
+      .select("value")
+      .eq("key", "rules_text")
+      .maybeSingle();
+
+    if (!q.error && q.data && typeof q.data.value === "string") {
+      return { text: q.data.value, settings_available: true };
+    }
+
+    return { text: DEFAULT_RULES_TEXT, settings_available: !q.error, settings_error: q.error?.message || null };
+  } catch (err) {
+    return { text: DEFAULT_RULES_TEXT, settings_available: false, settings_error: err.message };
+  }
+}
+
+
 function outcome(h,a){ return h>a?1:h<a?-1:0; }
 
 function normalizeWinner(value){
@@ -1337,11 +1359,41 @@ async function netlifyHandler(event) {
 
     const route = parseRoute(event);
 
-    if (event.httpMethod === "GET" && route === "health") {
-      return json(200, { ok: true, time: new Date().toISOString() });
+    if (event.httpMethod === "GET" && route === "rules") {
+      const sb = sbAdmin();
+      const rules = await getRulesText(sb);
+      return json(200, { ok: true, text: rules.text, settings_available: rules.settings_available !== false, settings_error: rules.settings_error || null });
     }
 
     const sb = sbAdmin();
+
+    if (event.httpMethod === "POST" && route === "admin/rules") {
+      const u = await requireAdmin(sb, event);
+      if (!u) return json(403, { error: "Admini õigused puuduvad." });
+
+      const body = JSON.parse(event.body || "{}");
+      const text = String(body.text || "").trim();
+
+      if (!text) return json(400, { error: "Reeglite tekst ei tohi olla tühi." });
+      if (text.length > 30000) return json(400, { error: "Reeglite tekst on liiga pikk." });
+
+      const upd = await sb
+        .from("app_settings")
+        .upsert({
+          key: "rules_text",
+          value: text,
+          updated_at: new Date().toISOString()
+        }, { onConflict: "key" })
+        .select("key,value")
+        .single();
+
+      if (upd.error) {
+        return json(500, { error: upd.error.message + " Käivita vajadusel Supabase SQL Editoris sql/app_settings_rules.sql." });
+      }
+
+      return json(200, { ok: true, text: upd.data.value });
+    }
+
 
     if (event.httpMethod === "GET" && route === "debug/env") {
       const u = await requireAdmin(sb, event);

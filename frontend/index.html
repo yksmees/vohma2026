@@ -2920,6 +2920,48 @@
     }
 
 
+  
+    .rules-card{
+      display:grid;
+      gap:14px;
+      line-height:1.55;
+    }
+
+    .rules-content{
+      white-space:pre-line;
+      background:rgba(255,255,255,.035);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:16px;
+      padding:14px;
+      color:#f8fafc;
+      font-size:15px;
+    }
+
+    .rules-content strong,
+    .rules-prize-title{
+      font-weight:900;
+    }
+
+    #adminRulesText{
+      width:100%;
+      min-height:360px;
+      resize:vertical;
+      line-height:1.45;
+      font-family:Arial, Helvetica, sans-serif;
+    }
+
+    @media (max-width:760px){
+      .rules-content{
+        font-size:14px;
+        padding:12px;
+      }
+
+      #adminRulesText{
+        min-height:420px;
+      }
+    }
+
+
   </style>
 </head>
 <body>
@@ -2989,6 +3031,7 @@
             <button class="tab" data-tab="lb">Edetabel</button>
             <button class="tab" data-tab="bonus">Lisaküsimused</button>
             <button class="tab" data-tab="others">Teiste ennustused</button>
+            <button class="tab" data-tab="rules">Reeglid</button>
             <button class="tab" data-tab="account">Minu konto</button>
             <button class="tab hide" data-tab="admin">Admin</button>
           </div>
@@ -3058,6 +3101,17 @@
   <div id="bonusList" class="bonus-list"></div>
   <button id="btnSaveBonus" type="button" class="primary" style="margin-top:10px">Salvesta lisaküsimused</button>
   <div id="bonusMsg" class="msg"></div>
+</div>
+
+
+
+
+<div id="rules" class="hide" style="margin-top:8px">
+  <div class="card rules-card">
+    <strong>Reeglid</strong>
+    <div id="rulesMsg" class="msg"></div>
+    <div id="rulesContent" class="rules-content">Laen reegleid...</div>
+  </div>
 </div>
 
 
@@ -3158,6 +3212,20 @@
     <b>Lisa uus mäng</b> sisesta mängu nr, meeskonnad, kuupäev DD:MM:YY, kellaaeg HH:MM ja asukoht. Etappi eraldi sisestama ei pea.<br>
     <b>Import ajad (FIFA ajakava)</b> on admini abivahend, kuhu saab kleepida mitu mänguaega korraga kujul <code>mängu_nr,YYYY-MM-DD,HH:MM</code>. See uuendab olemasolevate mängude algusaegu massina, kui FIFA ajakavas on vaja kellaaegu korraga parandada.
   </div>
+</div>
+
+
+<div class="card" id="adminRulesCard" style="margin-top:10px">
+  <strong>Reeglite muutmine</strong>
+  <div class="sub" style="margin-top:8px">
+    Siin saad muuta vaate “Reeglid” teksti. Kasutajatele kuvatakse tekst samas järjekorras ja reavahedega.
+  </div>
+  <textarea id="adminRulesText" placeholder="Reeglite tekst"></textarea>
+  <div class="row" style="margin-top:10px">
+    <button id="btnSaveRules" type="button" class="primary">Salvesta reeglid</button>
+    <button id="btnReloadRulesAdmin" type="button">Lae uuesti</button>
+  </div>
+  <div id="adminRulesMsg" class="msg"></div>
 </div>
 
 <div class="card" id="adminScreenshotCard" style="margin-top:10px">
@@ -3932,7 +4000,7 @@ function doLogout(){
   setWho();
 
   if ($("viewsCard")) $("viewsCard").classList.add("hide");
-  ["pred","lb","bonus","others","account","admin"].forEach(id=>{
+  ["pred","lb","bonus","others","rules","account","admin"].forEach(id=>{
     const el = $(id);
     if (el) el.classList.add("hide");
   });
@@ -3986,9 +4054,11 @@ async function loadAll(){
   if (typeof loadLeaderboard === "function") await loadLeaderboard();
   if (typeof loadBonusQuestions === "function") await loadBonusQuestions();
   if (typeof loadOthersView === "function") await loadOthersView();
+  if (typeof loadRulesView === "function") await loadRulesView();
   if (typeof loadPlayers === "function") await loadPlayers();
   if (typeof loadAdminScreenshotBoard === "function") await loadAdminScreenshotBoard();
   if (typeof loadAdminBonus === "function") await loadAdminBonus();
+  if (typeof loadAdminRules === "function") await loadAdminRules();
 
   toggleAdminTab();
   const activeTab = document.querySelector(".tab.active")?.getAttribute("data-tab") || "pred";
@@ -4018,7 +4088,7 @@ function toggleAdminTab(){
       document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
       const predTab = document.querySelector('[data-tab="pred"]');
       if (predTab) predTab.classList.add("active");
-      ["pred","lb","bonus","others","account"].forEach(id=>{
+      ["pred","lb","bonus","others","rules","account"].forEach(id=>{
         const el = $(id);
         if (el) el.classList.add("hide");
       });
@@ -4209,6 +4279,100 @@ function scoreCellClass(match, pr){
   if (exactHome || exactAway) return "score-orange";
   return "score-red";
 }
+
+
+async function loadRulesView(){
+  const content = $("rulesContent");
+  if (!content || !token) return;
+
+  if ($("rulesMsg")) $("rulesMsg").textContent = "";
+
+  try{
+    const r = await call("rules", {method:"GET"});
+    content.textContent = r.text || "";
+    if (r.settings_available === false && $("rulesMsg")) {
+      setMsg($("rulesMsg"), false, "Kuvatakse vaikimisi reegleid. Admin saab püsiva teksti jaoks käivitada sql/app_settings_rules.sql.");
+    }
+  }catch(err){
+    setMsg($("rulesMsg"), false, err.message);
+  }
+}
+
+async function loadAdminRules(){
+  if (!(me && me.is_admin)) return;
+
+  const textarea = $("adminRulesText");
+  if (!textarea) return;
+
+  if ($("adminRulesMsg")) $("adminRulesMsg").textContent = "";
+
+  try{
+    const r = await call("rules", {method:"GET"});
+    textarea.value = r.text || "";
+    if (r.settings_available === false && $("adminRulesMsg")) {
+      setMsg($("adminRulesMsg"), false, "Püsivaks salvestamiseks käivita Supabase SQL Editoris sql/app_settings_rules.sql.");
+    }
+  }catch(err){
+    setMsg($("adminRulesMsg"), false, err.message);
+  }
+}
+
+async function saveAdminRules(){
+  if (!(me && me.is_admin)) return setMsg($("adminRulesMsg"), false, "Ainult admin.");
+
+  const textarea = $("adminRulesText");
+  const btn = $("btnSaveRules");
+  const text = String(textarea?.value || "").trim();
+
+  if (!text) return setMsg($("adminRulesMsg"), false, "Reeglite tekst ei tohi olla tühi.");
+
+  try{
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Salvestan...";
+    }
+
+    const r = await call("admin/rules", {
+      method:"POST",
+      body: JSON.stringify({text})
+    });
+
+    if (textarea) textarea.value = r.text || text;
+    if ($("rulesContent")) $("rulesContent").textContent = r.text || text;
+
+    setMsg($("adminRulesMsg"), true, "Reeglid salvestatud.");
+    if ($("rulesMsg")) $("rulesMsg").textContent = "";
+  }catch(err){
+    setMsg($("adminRulesMsg"), false, err.message);
+  }finally{
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "Salvesta reeglid";
+    }
+  }
+}
+
+function bindRulesButtons(){
+  const saveBtn = $("btnSaveRules");
+  const reloadBtn = $("btnReloadRulesAdmin");
+
+  if (saveBtn && saveBtn.dataset.boundRules !== "1") {
+    saveBtn.dataset.boundRules = "1";
+    saveBtn.addEventListener("click", (e)=>{
+      e.preventDefault();
+      saveAdminRules();
+    });
+  }
+
+  if (reloadBtn && reloadBtn.dataset.boundRules !== "1") {
+    reloadBtn.dataset.boundRules = "1";
+    reloadBtn.addEventListener("click", (e)=>{
+      e.preventDefault();
+      loadAdminRules();
+    });
+  }
+}
+
 
 async function loadLeaderboard(){
   const groupBody = $("lbGroupTable")?.querySelector("tbody");
@@ -5837,10 +6001,11 @@ document.querySelectorAll(".tab").forEach(t=>{
       toggleAdminTab();
       return;
     }
-    ["pred","lb","bonus","others","account","admin"].forEach(id=>{ const el=$(id); if (el) el.classList.add("hide"); });
+    ["pred","lb","bonus","others","rules","account","admin"].forEach(id=>{ const el=$(id); if (el) el.classList.add("hide"); });
     const target = $(name); if (target) target.classList.remove("hide");
     if (name === "bonus") loadBonusQuestions();
-    if (name === "admin") loadAdminBonus();
+    if (name === "rules") loadRulesView();
+    if (name === "admin") { loadAdminBonus(); loadAdminRules(); }
     updateImportTimesVisibility(name);
   });
 });
@@ -5860,6 +6025,7 @@ if ($("btnRefreshScreenshotBoard") && typeof loadAdminScreenshotBoard === "funct
 bindBonusExportButton();
 bindBonusButtons();
 bindAdminBonusLockButtons();
+bindRulesButtons();
 bindAuthButtons();
 bindLogoutButtons();
 loadAll();
