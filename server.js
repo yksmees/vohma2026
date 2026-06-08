@@ -2541,9 +2541,11 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
 
   const groupFinished = finishedMatches.filter(isGroupMatchForLeaderboard);
   const playoffFinished = finishedMatches.filter(isPlayoffMatchForLeaderboard);
+  const allLeaderboardFinished = finishedMatches.filter(m => isGroupMatchForLeaderboard(m) || isPlayoffMatchForLeaderboard(m));
 
   const latestGroup = groupFinished.length ? groupFinished[groupFinished.length - 1] : null;
   const latestPlayoff = playoffFinished.length ? playoffFinished[playoffFinished.length - 1] : null;
+  const latestOverall = allLeaderboardFinished.length ? allLeaderboardFinished[allLeaderboardFinished.length - 1] : null;
 
   function makeRows(kind, excludeMatchId = null) {
     const map = new Map();
@@ -2553,8 +2555,10 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
         player_id: p.id,
         display_name: p.display_name,
         points: 0,
+        group_points: 0,
         match_points: 0,
-        bonus_points: kind === "playoff" ? (bonusMap.get(p.id) || 0) : 0
+        playoff_match_points: 0,
+        bonus_points: kind === "group" ? 0 : (bonusMap.get(p.id) || 0)
       });
     }
 
@@ -2564,21 +2568,37 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
       const match = matchMap.get(pr.match_id);
       if (!match) continue;
 
+      const isGroup = isGroupMatchForLeaderboard(match);
+      const isPlayoff = isPlayoffMatchForLeaderboard(match);
       const include =
         kind === "group"
-          ? isGroupMatchForLeaderboard(match)
-          : isPlayoffMatchForLeaderboard(match);
+          ? isGroup
+          : kind === "playoff"
+            ? isPlayoff
+            : (isGroup || isPlayoff);
 
       if (!include) continue;
 
       const row = map.get(pr.player_id);
-      if (row) {
-        row.match_points += (Number(pr.points) || 0);
-      }
+      if (!row) continue;
+
+      const pts = Number(pr.points) || 0;
+      if (isGroup) row.group_points += pts;
+      if (isPlayoff) row.playoff_match_points += pts;
     }
 
     for (const row of map.values()) {
-      row.points = row.match_points + (kind === "playoff" ? row.bonus_points : 0);
+      if (kind === "group") {
+        row.match_points = row.group_points;
+        row.bonus_points = 0;
+        row.points = row.group_points;
+      } else if (kind === "playoff") {
+        row.match_points = row.playoff_match_points;
+        row.points = row.playoff_match_points + row.bonus_points;
+      } else {
+        row.match_points = row.group_points + row.playoff_match_points;
+        row.points = row.group_points + row.playoff_match_points + row.bonus_points;
+      }
     }
 
     return Array.from(map.values()).sort((a,b) => {
@@ -2593,14 +2613,19 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
   const playoffCurrent = makeRows("playoff", null);
   const playoffPrevious = latestPlayoff ? makeRows("playoff", latestPlayoff.id) : playoffCurrent;
 
+  const overallCurrent = makeRows("overall", null);
+  const overallPrevious = latestOverall ? makeRows("overall", latestOverall.id) : overallCurrent;
+
   const group_leaderboard = addRankMovement(groupCurrent, groupPrevious);
   const playoff_leaderboard = addRankMovement(playoffCurrent, playoffPrevious);
+  const overall_leaderboard = addRankMovement(overallCurrent, overallPrevious);
 
   return json(200, {
     ok: true,
     leaderboard: group_leaderboard,
     group_leaderboard,
-    playoff_leaderboard
+    playoff_leaderboard,
+    overall_leaderboard
   });
 }
 

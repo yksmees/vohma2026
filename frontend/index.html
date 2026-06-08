@@ -1544,6 +1544,7 @@
 
   #lbGroupTable,
   #lbPlayoffTable,
+  #lbOverallTable,
   #adminBonusQuestionsTable,
   #adminBonusAnswersTable{
     display:block;
@@ -3018,12 +3019,13 @@
 
       
 <div id="lb" class="hide" style="margin-top:8px">
-  <div class="sub">Ennustusvõistlusel on kaks eraldi edetabelit: alagrupiturniir ja play-off. Lisaküsimuste punktid lisatakse ainult play-off edetabelisse.</div>
+  <div class="sub">Ennustusvõistlusel on kolm edetabelit: alagrupiturniir, play-off koos lisaküsimustega ja üldtabel kogu seisu jaoks.</div>
   <div id="lbMsg" class="msg"></div>
 
-  <div class="grid cols2" style="margin-top:10px">
+  <div class="grid cols2 leaderboard-grid" style="margin-top:10px">
     <div class="card">
       <strong>Alagrupiturniiri edetabel</strong>
+      <div class="sub" style="margin-top:6px">Arvestab ainult alagrupimängude punkte.</div>
       <table id="lbGroupTable">
         <thead><tr><th>Koht</th><th>Mängija</th><th class="right">Punktid</th></tr></thead>
         <tbody></tbody>
@@ -3035,6 +3037,15 @@
       <div class="sub" style="margin-top:6px">Sisaldab play-off mängude punkte ja lisaküsimuste punkte.</div>
       <table id="lbPlayoffTable">
         <thead><tr><th>Koht</th><th>Mängija</th><th class="right">Mängud</th><th class="right">Lisa</th><th class="right">Kokku</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <strong>Üldtabel</strong>
+      <div class="sub" style="margin-top:6px">Alagrupiturniir + play-off mängud + lisaküsimused.</div>
+      <table id="lbOverallTable">
+        <thead><tr><th>Koht</th><th>Mängija</th><th class="right">Alagrupp</th><th class="right">Play-off</th><th class="right">Lisa</th><th class="right">Kokku</th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -4202,14 +4213,17 @@ function scoreCellClass(match, pr){
 async function loadLeaderboard(){
   const groupBody = $("lbGroupTable")?.querySelector("tbody");
   const playoffBody = $("lbPlayoffTable")?.querySelector("tbody");
+  const overallBody = $("lbOverallTable")?.querySelector("tbody");
   if (groupBody) groupBody.innerHTML = "";
   if (playoffBody) playoffBody.innerHTML = "";
+  if (overallBody) overallBody.innerHTML = "";
   if ($("lbMsg")) $("lbMsg").textContent = "";
 
   try{
     const r = await call("leaderboard", {method:"GET"});
     if (groupBody) renderLeaderboardTable(groupBody, r.group_leaderboard || r.leaderboard || [], "group");
     if (playoffBody) renderLeaderboardTable(playoffBody, r.playoff_leaderboard || [], "playoff");
+    if (overallBody) renderLeaderboardTable(overallBody, r.overall_leaderboard || [], "overall");
   }catch(e){
     if ($("lbMsg")) setMsg($("lbMsg"), false, e.message);
   }
@@ -4585,6 +4599,8 @@ function renderLeaderboardTable(tbody, rows, type){
 
     if (type === "playoff"){
       tr.innerHTML = `<td>${idx + 1}.</td><td>${row.display_name}${moveHtml}${crown}${frog}</td><td class="right">${row.match_points || 0}</td><td class="right">${row.bonus_points || 0}</td><td class="right">${row.points || 0}</td>`;
+    } else if (type === "overall"){
+      tr.innerHTML = `<td>${idx + 1}.</td><td>${row.display_name}${moveHtml}${crown}${frog}</td><td class="right">${row.group_points || 0}</td><td class="right">${row.playoff_match_points || 0}</td><td class="right">${row.bonus_points || 0}</td><td class="right">${row.points || 0}</td>`;
     } else {
       tr.innerHTML = `<td>${idx + 1}.</td><td>${row.display_name}${moveHtml}${crown}${frog}</td><td class="right">${row.points || 0}</td>`;
     }
