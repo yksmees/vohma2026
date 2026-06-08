@@ -2962,6 +2962,96 @@
     }
 
 
+  
+    .screenshot-board th.others-match-head{
+      min-width:112px;
+      max-width:150px;
+      white-space:normal;
+      vertical-align:top;
+      background:#0d1430 !important;
+      color:#f8fafc !important;
+    }
+
+    .screenshot-board .others-head-teams{
+      display:grid;
+      gap:2px;
+      line-height:1.12;
+      font-size:12px;
+      font-weight:900;
+      margin-top:3px;
+    }
+
+    .screenshot-board .others-team-line{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:3px;
+      min-width:0;
+    }
+
+    .screenshot-board .others-team-name{
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+      max-width:92px;
+    }
+
+    .screenshot-board .matrix-final-score,
+    .screenshot-board .matrix-lock-note{
+      display:inline-flex;
+      margin-top:5px;
+      padding:3px 7px;
+      border-radius:999px;
+      font-weight:900;
+      white-space:nowrap;
+      font-size:11px;
+    }
+
+    .screenshot-board .matrix-final-score{
+      background:rgba(255,255,255,.12);
+      color:#ffffff;
+    }
+
+    .screenshot-board .matrix-lock-note{
+      background:rgba(250,204,21,.20);
+      color:#fde68a;
+    }
+
+    .screenshot-board .others-pred-cell{
+      min-width:112px;
+      max-width:140px;
+      background:#0b1220 !important;
+      color:#e5e7eb !important;
+      font-weight:900;
+    }
+
+    .screenshot-board .others-pred-wrap{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:5px;
+      flex-wrap:wrap;
+    }
+
+    .screenshot-board .others-pred-score{
+      white-space:nowrap;
+      font-weight:950;
+      color:#f8fafc;
+    }
+
+    .screenshot-board .others-pred-winner{
+      white-space:nowrap;
+      font-size:11px;
+      font-weight:900;
+      color:#cbd5e1;
+    }
+
+    .screenshot-board .others-no-pred{
+      color:#64748b;
+      font-weight:900;
+    }
+
+
   </style>
 </head>
 <body>
@@ -3198,19 +3288,28 @@
 <div class="card" style="margin-top:10px">
   <strong>Admin juhend</strong>
   <div class="sub" style="margin-top:8px">
-    <b>API tervis</b> kontrollib, kas server vastab.<br>
-    <b>Kontrolli/Paranda MM ajakava</b> võrdleb live andmebaasi koodis oleva ametliku tabeliga ning parandab ainult olemasolevaid ridu match_no järgi. Mänge ja ennustusi ei kustutata.<br>
-    <b>Mängijad</b> tabelis saad nupuga Muuda muuta mängija nime, username’i ja parooli. Kasutaja ID jääb samaks, seega punktid ja ennustused jäävad alles.<br>
-    <b>Lae ametlik mängutabel</b> uuendab FIFA 2026 mängud andmebaasis.<br>
-    <b>Lisa U17 testmängud</b> lisab kolm UEFA U17 testmängu ennustusvaate algusesse. <b>Eemalda U17 testmängud</b> kustutab need hiljem koos nende ennustustega.<br>
-    <b>Lisa Baltic Cup testmängud</b> lisab neli Baltic Cup 2026 play-off testmängu. <b>Eemalda Baltic Cup testmängud</b> kustutab need hiljem koos nende ennustustega.<br>
-    <b>Sünkroniseeri ajakava</b> uuendab mänguaegu olemasoleva ajakava järgi.<br>
-    <b>Sünkroniseeri tulemused</b> tõmbab API-Footballist lõppenud mängude skoorid.<br>
-    <b>Käsitsi tulemus</b> vali mäng dropdownist või sisesta mängu number käsitsi. <b>Impordi tulemused korraga</b> võimaldab mitu tulemust korraga kleepida kujul <code>mängu_nr skoor</code>, näiteks <code>-3 1:2</code> või play-off viigi puhul <code>-2 0:0 home</code>.<br>
-    <b>Käsitsi mänguaeg</b> sisesta kuupäev kujul DD:MM:YY ja kellaaeg HH:MM Eesti aja järgi, et testida 1 tunni lukku.<br>
-    <b>Kustuta mäng</b> vali mäng dropdown-listist. See kustutab ka selle mängu ennustused.<br>
-    <b>Lisa uus mäng</b> sisesta mängu nr, meeskonnad, kuupäev DD:MM:YY, kellaaeg HH:MM ja asukoht. Etappi eraldi sisestama ei pea.<br>
-    <b>Import ajad (FIFA ajakava)</b> on admini abivahend, kuhu saab kleepida mitu mänguaega korraga kujul <code>mängu_nr,YYYY-MM-DD,HH:MM</code>. See uuendab olemasolevate mängude algusaegu massina, kui FIFA ajakavas on vaja kellaaegu korraga parandada.
+    <b>API tervis</b> kontrollib, kas server vastab ja Railway rakendus töötab.<br>
+    <b>Kontrolli MM ajakava</b> võrdleb andmebaasis olevaid MM mänge koodis oleva ametliku ajakavaga. See on kontroll, mitte parandamine.<br>
+    <b>Paranda MM ajakava</b> uuendab olemasolevaid MM mänguridu <code>match_no</code> järgi. Kasutajaid, mängude ID-sid ja ennustusi ei kustutata.<br>
+    <b>Lae ametlik mängutabel</b> laadib või uuendab FIFA MM 2026 mängude tabeli. Kasuta seda ettevaatlikult ja kontrolli pärast ajakava üle.<br>
+    <b>Mängijad</b> plokis saad nupuga <b>Muuda</b> muuta mängija nime, kasutajanime, parooli ja admini õigust. Mängija ID jääb samaks, seega tema ennustused ja punktid jäävad alles.<br>
+    <b>Lisa U17 testmängud</b> lisab kolm U17 testmängu. <b>Eemalda U17 testmängud</b> kustutab need hiljem koos nende testennustustega.<br>
+    <b>Lisa Baltic Cup testmängud</b> lisab neli Baltic Cup 2026 play-off testmängu. <b>Eemalda Baltic Cup testmängud</b> kustutab need hiljem koos nende testennustustega.<br>
+    <b>Sünkroniseeri ajakava</b> uuendab mängude algusaegu olemasoleva ajakava järgi.<br>
+    <b>Sünkroniseeri tulemused</b> tõmbab API-Footballist lõppenud mängude tulemused. API staatustest <code>FT</code> tähendab 90 minutiga lõppenud mängu, <code>AET</code> lisaaega ja <code>PEN</code> penalteid.<br>
+    <b>Play-off punktid</b> arvestavad 90 minuti skoori. Edasipääseja eest saab +1 punkti ainult siis, kui mäng läks lisaajale või penaltitele ja edasipääseja oli õigesti ennustatud.<br>
+    <b>Arvuta punktid ümber</b> arvutab olemasolevate ennustuste punktid uuesti juba sisestatud tulemuste põhjal. Kasuta seda pärast punktireegli või tulemuste parandust.<br>
+    <b>Käsitsi tulemus</b> võimaldab sisestada ühe mängu tulemuse käsitsi. Play-off viigi puhul vali või sisesta ka edasipääseja, näiteks <code>-2 0:0 home</code>.<br>
+    <b>Impordi tulemused korraga</b> võimaldab mitu tulemust korraga kleepida kujul <code>mängu_nr skoor</code>, näiteks <code>12 2:1</code> või <code>-2 0:0 home</code>.<br>
+    <b>Käsitsi mänguaeg</b> muudab ühe mängu algusaega. Kasuta kuupäeva kujul DD:MM:YY ja kellaaega HH:MM Eesti aja järgi.<br>
+    <b>Kustuta mäng</b> kustutab valitud mängu ja selle mängu ennustused. Kasuta seda ainult testmängude või valesti lisatud mängude puhul.<br>
+    <b>Lisa uus mäng</b> lisab ühe mängu käsitsi. Etappi eraldi sisestama ei pea, see tuletatakse mängu numbri põhjal.<br>
+    <b>Import ajad</b> võimaldab mitu algusaega korraga parandada kujul <code>mängu_nr,YYYY-MM-DD,HH:MM</code>.<br>
+    <b>Lisaküsimused admin</b> plokis saad lisada küsimusi, muuta õiged vastused ja märkida kasutajate vastused õigeks või valeks. Õige lisaküsimus annab 3 punkti play-off edetabelisse.<br>
+    <b>Lisaküsimuste lukk</b> paneb lisaküsimuste vastamise käsitsi lukku või avab selle. Automaatne 1 tunni lukk jääb endiselt kehtima.<br>
+    <b>Reeglite muutmine</b> muudab kasutajatele kuvatavat vaadet <b>Reeglid</b>. Kui salvestamine annab app_settings vea, käivita Supabase SQL Editoris <code>sql/app_settings_rules.sql</code>.<br>
+    <b>Teiste ennustused screenshotiks</b> teeb adminile kompaktse tabeli samas loogikas nagu kasutajate vaade <b>Teiste ennustused</b>: punktid badge'ina, <code>4+1p</code>, <code>↑</code> edasipääsejale ja viigi puhul <code>→LTU</code> tüüpi valik.<br>
+    <b>Lisaküsimused screenshotiks</b> teeb eraldi kompaktse tabeli lisaküsimuste vastustest ja punktidest.
   </div>
 </div>
 
@@ -3231,7 +3330,7 @@
 <div class="card" id="adminScreenshotCard" style="margin-top:10px">
   <strong>Teiste ennustused screenshotiks</strong>
   <div class="sub" style="margin-top:8px">
-    Vali lõppenud mäng või märgi “mitu mängu kõrvuti”. Tabel näitab õiget tulemust ja kõigi mitte-admin kasutajate ennustusi tähestiku järjekorras.
+    Vali lukus või lõppenud mäng või märgi “mitu mängu kõrvuti”. Tabel kasutab sama kuvamisloogikat nagu vaade “Teiste ennustused”: punktid badge’ina, play-off edasipääseja ↑ märgiga ja viigilise ennustuse valik kujul →LTU.
   </div>
   <div class="screenshot-tools">
   <label>Vaade</label>
@@ -4727,17 +4826,21 @@ function renderScreenshotBoard(){
   }
 
   if (!chosen.length){
-    tbody.innerHTML = `<tr><td>Lõppenud mänge veel ei ole.</td></tr>`;
+    tbody.innerHTML = `<tr><td>Lukus või lõppenud mänge veel ei ole.</td></tr>`;
     return;
   }
 
-  const header = `<tr class="teams"><th>Kasutaja</th>${chosen.map(m=>`<th>#${displayMatchNo(m)}<br>${escapeHtml(m.home)} - ${escapeHtml(m.away)}<br><b>${m.final_home ?? ""}:${m.final_away ?? ""}</b></th>`).join("")}</tr>`;
+  const header = `
+    <tr class="teams">
+      <th>Kasutaja</th>
+      ${chosen.map(m=>`<th class="others-match-head">#${displayMatchNo(m)}${othersHeaderTeamHtml(m)}${othersHeaderResultHtml(m)}</th>`).join("")}
+    </tr>
+  `;
+
   const rows = players.map(p=>{
     const cells = chosen.map(m=>{
       const pr = getPredictionFor(predictions, m.id, p.id);
-      const score = pr ? `${pr.pred_home}:${pr.pred_away}` : "-";
-      const cls = pr ? scoreCellClass(m, pr) : "";
-      return `<td class="${cls}">${score}</td>`;
+      return `<td class="others-pred-cell">${othersPredictionCellHtml(m, pr)}</td>`;
     }).join("");
     return `<tr><th>${escapeHtml(p.display_name || "")}</th>${cells}</tr>`;
   }).join("");
