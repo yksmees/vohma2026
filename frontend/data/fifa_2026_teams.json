@@ -1,0 +1,242 @@
+[
+  {
+    "value": "ALG",
+    "label": "Algeria",
+    "code": "ALG"
+  },
+  {
+    "value": "ARG",
+    "label": "Argentina",
+    "code": "ARG"
+  },
+  {
+    "value": "AUS",
+    "label": "Australia",
+    "code": "AUS"
+  },
+  {
+    "value": "AUT",
+    "label": "Austria",
+    "code": "AUT"
+  },
+  {
+    "value": "BEL",
+    "label": "Belgium",
+    "code": "BEL"
+  },
+  {
+    "value": "BIH",
+    "label": "Bosnia And Herzegovina",
+    "code": "BIH"
+  },
+  {
+    "value": "BRA",
+    "label": "Brazil",
+    "code": "BRA"
+  },
+  {
+    "value": "CPV",
+    "label": "Cabo Verde",
+    "code": "CPV"
+  },
+  {
+    "value": "CAN",
+    "label": "Canada",
+    "code": "CAN"
+  },
+  {
+    "value": "COL",
+    "label": "Colombia",
+    "code": "COL"
+  },
+  {
+    "value": "COD",
+    "label": "Congo DR",
+    "code": "COD"
+  },
+  {
+    "value": "CIV",
+    "label": "Côte D'Ivoire",
+    "code": "CIV"
+  },
+  {
+    "value": "CRO",
+    "label": "Croatia",
+    "code": "CRO"
+  },
+  {
+    "value": "CUW",
+    "label": "Curaçao",
+    "code": "CUW"
+  },
+  {
+    "value": "CZE",
+    "label": "Czechia",
+    "code": "CZE"
+  },
+  {
+    "value": "ECU",
+    "label": "Ecuador",
+    "code": "ECU"
+  },
+  {
+    "value": "EGY",
+    "label": "Egypt",
+    "code": "EGY"
+  },
+  {
+    "value": "ENG",
+    "label": "England",
+    "code": "ENG"
+  },
+  {
+    "value": "FRA",
+    "label": "France",
+    "code": "FRA"
+  },
+  {
+    "value": "GER",
+    "label": "Germany",
+    "code": "GER"
+  },
+  {
+    "value": "GHA",
+    "label": "Ghana",
+    "code": "GHA"
+  },
+  {
+    "value": "HAI",
+    "label": "Haiti",
+    "code": "HAI"
+  },
+  {
+    "value": "IRN",
+    "label": "IR Iran",
+    "code": "IRN"
+  },
+  {
+    "value": "IRQ",
+    "label": "Iraq",
+    "code": "IRQ"
+  },
+  {
+    "value": "JPN",
+    "label": "Japan",
+    "code": "JPN"
+  },
+  {
+    "value": "JOR",
+    "label": "Jordan",
+    "code": "JOR"
+  },
+  {
+    "value": "KOR",
+    "label": "Korea Republic",
+    "code": "KOR"
+  },
+  {
+    "value": "MEX",
+    "label": "Mexico",
+    "code": "MEX"
+  },
+  {
+    "value": "MAR",
+    "label": "Morocco",
+    "code": "MAR"
+  },
+  {
+    "value": "NED",
+    "label": "Netherlands",
+    "code": "NED"
+  },
+  {
+    "value": "NZL",
+    "label": "New Zealand",
+    "code": "NZL"
+  },
+  {
+    "value": "NOR",
+    "label": "Norway",
+    "code": "NOR"
+  },
+  {
+    "value": "PAN",
+    "label": "Panama",
+    "code": "PAN"
+  },
+  {
+    "value": "PAR",
+    "label": "Paraguay",
+    "code": "PAR"
+  },
+  {
+    "value": "POR",
+    "label": "Portugal",
+    "code": "POR"
+  },
+  {
+    "value": "QAT",
+    "label": "Qatar",
+    "code": "QAT"
+  },
+  {
+    "value": "KSA",
+    "label": "Saudi Arabia",
+    "code": "KSA"
+  },
+  {
+    "value": "SCO",
+    "label": "Scotland",
+    "code": "SCO"
+  },
+  {
+    "value": "SEN",
+    "label": "Senegal",
+    "code": "SEN"
+  },
+  {
+    "value": "RSA",
+    "label": "South Africa",
+    "code": "RSA"
+  },
+  {
+    "value": "ESP",
+    "label": "Spain",
+    "code": "ESP"
+  },
+  {
+    "value": "SWE",
+    "label": "Sweden",
+    "code": "SWE"
+  },
+  {
+    "value": "SUI",
+    "label": "Switzerland",
+    "code": "SUI"
+  },
+  {
+    "value": "TUN",
+    "label": "Tunisia",
+    "code": "TUN"
+  },
+  {
+    "value": "TUR",
+    "label": "Türkiye",
+    "code": "TUR"
+  },
+  {
+    "value": "URU",
+    "label": "Uruguay",
+    "code": "URU"
+  },
+  {
+    "value": "USA",
+    "label": "USA",
+    "code": "USA"
+  },
+  {
+    "value": "UZB",
+    "label": "Uzbekistan",
+    "code": "UZB"
+  }
+]

@@ -328,18 +328,37 @@ function calcPoints(ph, pa, fh, fa, options = {}){
 }
 
 const BONUS_QUESTIONS_SEED = [
-  "Milline koondis tuleb maailmameistriks?",
-  "Kes on turniiri suurim väravakütt?",
-  "Mitu väravat lööb oma viimasel suurturniiril Messi?",
-  "Mitu väravat lööb oma viimasel suurturniiril Ronaldo?",
-  "Kes võidab meie alagrupiturniiri ennustuse?",
-  "Kes jääb meie alagrupiturniiri ennustuses viimaseks?"
+  { question_text: "Milline koondis tuleb maailmameistriks?", answer_type: "team", options_source: "fifa_2026_teams" },
+  { question_text: "Kes on turniiri suurim väravakütt?", answer_type: "player", options_source: "fifa_2026_players" },
+  { question_text: "Mitu väravat lööb oma viimasel suurturniiril Messi?", answer_type: "number", options_source: "number_0_20" },
+  { question_text: "Mitu väravat lööb oma viimasel suurturniiril Ronaldo?", answer_type: "number", options_source: "number_0_20" },
+  { question_text: "Kes võidab meie alagrupiturniiri ennustuse?", answer_type: "registered_user", options_source: "registered_users" },
+  { question_text: "Kes jääb meie alagrupiturniiri ennustuses viimaseks?", answer_type: "registered_user", options_source: "registered_users" }
 ];
+
+function inferBonusAnswerType(questionText){
+  const q = String(questionText || "").toLowerCase();
+  if (q.includes("maailmameistriks")) return { answer_type: "team", options_source: "fifa_2026_teams" };
+  if (q.includes("suurim väravakütt")) return { answer_type: "player", options_source: "fifa_2026_players" };
+  if (q.includes("messi")) return { answer_type: "number", options_source: "number_0_20" };
+  if (q.includes("ronaldo")) return { answer_type: "number", options_source: "number_0_20" };
+  if (q.includes("võidab meie alagrupiturniiri")) return { answer_type: "registered_user", options_source: "registered_users" };
+  if (q.includes("jääb meie alagrupiturniiri")) return { answer_type: "registered_user", options_source: "registered_users" };
+  return { answer_type: "text", options_source: "" };
+}
+
+function normalizeBonusCompare(value){
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+}
 
 async function ensureBonusQuestions(sb){
   const existing = await sb
     .from("bonus_questions")
-    .select("id,question_text,sort_order")
+    .select("*")
     .order("sort_order", { ascending: true });
 
   if (existing.error) {
@@ -353,7 +372,9 @@ async function ensureBonusQuestions(sb){
 
   for (let i = 0; i < BONUS_QUESTIONS_SEED.length; i++) {
     const sort_order = i + 1;
-    const question_text = BONUS_QUESTIONS_SEED[i];
+    const seed = BONUS_QUESTIONS_SEED[i];
+    const question_text = typeof seed === "string" ? seed : seed.question_text;
+    const typeInfo = typeof seed === "string" ? inferBonusAnswerType(question_text) : seed;
     const row = current.find(q => Number(q.sort_order) === sort_order);
 
     if (!row) {
@@ -361,7 +382,9 @@ async function ensureBonusQuestions(sb){
         question_text,
         sort_order,
         points: 3,
-        active: true
+        active: true,
+        answer_type: typeInfo.answer_type || "text",
+        options_source: typeInfo.options_source || null
       });
       if (ins.error) throw new Error(ins.error.message);
     }
@@ -2225,7 +2248,7 @@ if (event.httpMethod === "GET" && route === "bonus/questions") {
 
   const questions = await sb
     .from("bonus_questions")
-    .select("id,question_text,points,sort_order,active")
+    .select("*")
     .eq("active", true)
     .order("sort_order", { ascending: true });
 
@@ -2233,16 +2256,24 @@ if (event.httpMethod === "GET" && route === "bonus/questions") {
 
   const answers = await sb
     .from("bonus_answers")
-    .select("question_id,answer_text,is_correct,points")
+    .select("question_id,answer_text,answer_value,is_correct,points")
     .eq("player_id", u.sub);
 
   if (answers.error) return json(500, { error: answers.error.message });
+
+  const players = await sb
+    .from("players")
+    .select("id,display_name,is_admin")
+    .order("display_name", { ascending: true });
+
+  if (players.error) return json(500, { error: players.error.message });
 
   return json(200, {
     ok: true,
     ...lock,
     questions: questions.data || [],
-    answers: answers.data || []
+    answers: answers.data || [],
+    players: (players.data || []).filter(p => !p.is_admin)
   });
 }
 
@@ -2276,7 +2307,8 @@ if (event.httpMethod === "POST" && route === "bonus/answers") {
     .map(a => ({
       player_id: u.sub,
       question_id: Number(a.question_id),
-      answer_text: String(a.answer_text || "").normalize("NFC").trim()
+      answer_text: String(a.answer_text || "").normalize("NFC").trim(),
+      answer_value: String(a.answer_value || "").normalize("NFC").trim()
     }))
     .filter(a => Number.isFinite(a.question_id) && validQuestionIds.has(a.question_id));
 
@@ -2285,17 +2317,21 @@ if (event.httpMethod === "POST" && route === "bonus/answers") {
   for (const row of rows) {
     const existing = await sb
       .from("bonus_answers")
-      .select("is_correct,points")
+      .select("answer_text,answer_value,is_correct,points")
       .eq("player_id", row.player_id)
       .eq("question_id", row.question_id)
       .maybeSingle();
 
     if (existing.error) return json(500, { error: existing.error.message });
 
+    const changed =
+      String(existing.data?.answer_text || "") !== row.answer_text ||
+      String(existing.data?.answer_value || "") !== row.answer_value;
+
     const payload = {
       ...row,
-      is_correct: existing.data?.is_correct || false,
-      points: existing.data?.points || 0
+      is_correct: changed ? false : (existing.data?.is_correct || false),
+      points: changed ? 0 : (existing.data?.points || 0)
     };
 
     const up = await sb
@@ -2307,7 +2343,7 @@ if (event.httpMethod === "POST" && route === "bonus/answers") {
 
   const saved = await sb
     .from("bonus_answers")
-    .select("question_id,answer_text,is_correct,points")
+    .select("question_id,answer_text,answer_value,is_correct,points")
     .eq("player_id", u.sub);
 
   if (saved.error) return json(500, { error: saved.error.message });
@@ -2351,7 +2387,7 @@ if (event.httpMethod === "POST" && route === "admin/bonus/seed") {
 
   const questions = await sb
     .from("bonus_questions")
-    .select("id,question_text,correct_answer,points,sort_order,active")
+    .select("*")
     .order("sort_order", { ascending: true });
 
   if (questions.error) return json(500, { error: questions.error.message });
@@ -2372,7 +2408,7 @@ if (event.httpMethod === "GET" && route === "admin/bonus") {
 
   const questions = await sb
     .from("bonus_questions")
-    .select("id,question_text,correct_answer,points,sort_order,active")
+    .select("*")
     .order("sort_order", { ascending: true });
 
   const players = await sb
@@ -2382,7 +2418,7 @@ if (event.httpMethod === "GET" && route === "admin/bonus") {
 
   const answers = await sb
     .from("bonus_answers")
-    .select("player_id,question_id,answer_text,is_correct,points");
+    .select("player_id,question_id,answer_text,answer_value,is_correct,points");
 
   if (questions.error || players.error || answers.error) {
     return json(500, { error: (questions.error || players.error || answers.error).message });
@@ -2405,6 +2441,10 @@ if (event.httpMethod === "POST" && route === "admin/bonus/questions") {
   const body = JSON.parse(event.body || "{}");
   const question_text = String(body.question_text || "").trim();
   const correct_answer = String(body.correct_answer || "").trim();
+  const correct_answer_value = String(body.correct_answer_value || "").trim();
+  const typeInfo = inferBonusAnswerType(question_text);
+  const answer_type = String(body.answer_type || typeInfo.answer_type || "text").trim();
+  const options_source = String(body.options_source || typeInfo.options_source || "").trim();
   const points = Number(body.points) || 3;
 
   if (!question_text) return json(400, { error: "Sisesta küsimuse tekst." });
@@ -2424,11 +2464,14 @@ if (event.httpMethod === "POST" && route === "admin/bonus/questions") {
     .insert({
       question_text,
       correct_answer,
+      correct_answer_value,
+      answer_type,
+      options_source: options_source || null,
       points,
       sort_order,
       active: true
     })
-    .select("id,question_text,correct_answer,points,sort_order,active")
+    .select("*")
     .single();
 
   if (ins.error) return json(500, { error: ins.error.message });
@@ -2449,6 +2492,9 @@ if (event.httpMethod === "POST" && route === "admin/bonus/questions") {
 
     if (body.question_text !== undefined) patch.question_text = String(body.question_text || "").trim();
     if (body.correct_answer !== undefined) patch.correct_answer = String(body.correct_answer || "").trim();
+    if (body.correct_answer_value !== undefined) patch.correct_answer_value = String(body.correct_answer_value || "").trim();
+    if (body.answer_type !== undefined) patch.answer_type = String(body.answer_type || "text").trim();
+    if (body.options_source !== undefined) patch.options_source = String(body.options_source || "").trim() || null;
     if (body.points !== undefined) patch.points = Number(body.points) || 3;
     if (body.active !== undefined) patch.active = !!body.active;
     if (body.sort_order !== undefined) patch.sort_order = Number(body.sort_order) || 0;
@@ -2481,7 +2527,7 @@ if (event.httpMethod === "PUT" && route === "admin/bonus/answers") {
 
   const current = await sb
     .from("bonus_answers")
-    .select("answer_text")
+    .select("answer_text,answer_value")
     .eq("player_id", player_id)
     .eq("question_id", question_id)
     .maybeSingle();
@@ -2497,15 +2543,84 @@ if (event.httpMethod === "PUT" && route === "admin/bonus/answers") {
       player_id,
       question_id,
       answer_text,
+      answer_value: current.data?.answer_value || "",
       is_correct,
       points
     }, { onConflict: "player_id,question_id" })
-    .select("player_id,question_id,answer_text,is_correct,points")
+    .select("player_id,question_id,answer_text,answer_value,is_correct,points")
     .single();
 
   if (upd.error) return json(500, { error: upd.error.message });
 
   return json(200, { ok: true, answer: upd.data });
+}
+
+
+// Kontrolli ühe lisaküsimuse vastused automaatselt
+{
+  const m = route.match(/^admin\/bonus\/questions\/(\d+)\/autograde$/);
+  if (m && event.httpMethod === "POST") {
+    const u = await requireAdmin(sb, event);
+    if (!u) return json(403, { error: "Admini õigused puuduvad." });
+
+    const question_id = Number(m[1]);
+
+    const q = await sb
+      .from("bonus_questions")
+      .select("*")
+      .eq("id", question_id)
+      .single();
+
+    if (q.error || !q.data) return json(404, { error: "Lisaküsimust ei leitud." });
+
+    const correctValue = String(q.data.correct_answer_value || "").trim();
+    const correctText = String(q.data.correct_answer || "").trim();
+
+    if (!correctValue && !correctText) {
+      return json(400, { error: "Õige vastus puudub. Salvesta enne õige vastus." });
+    }
+
+    const answers = await sb
+      .from("bonus_answers")
+      .select("*")
+      .eq("question_id", question_id);
+
+    if (answers.error) return json(500, { error: answers.error.message });
+
+    let updated = 0;
+    let correct = 0;
+    let wrong = 0;
+    let missing = 0;
+    const pointsForCorrect = Number(q.data.points) || 3;
+
+    for (const a of answers.data || []) {
+      const answerValue = String(a.answer_value || "").trim();
+      const answerText = String(a.answer_text || "").trim();
+
+      if (!answerValue && !answerText) {
+        missing += 1;
+        continue;
+      }
+
+      const isCorrect = correctValue
+        ? normalizeBonusCompare(answerValue) === normalizeBonusCompare(correctValue)
+        : normalizeBonusCompare(answerText) === normalizeBonusCompare(correctText);
+
+      const upd = await sb
+        .from("bonus_answers")
+        .update({ is_correct: isCorrect, points: isCorrect ? pointsForCorrect : 0 })
+        .eq("player_id", a.player_id)
+        .eq("question_id", question_id);
+
+      if (upd.error) return json(500, { error: upd.error.message });
+
+      updated += 1;
+      if (isCorrect) correct += 1;
+      else wrong += 1;
+    }
+
+    return json(200, { ok: true, updated, correct, wrong, missing });
+  }
 }
 
 // Admin: recalculate all prediction points using the current scoring rules

@@ -3144,6 +3144,30 @@
     }
 
 
+  
+    /* BONUS DROPDOWN AND ADMIN REVIEW */
+    .bonus-choice{ position:relative; width:100%; }
+    .bonus-choice-menu{ position:absolute; left:0; right:0; top:calc(100% + 4px); z-index:20; max-height:240px; overflow:auto; background:#0f172a; border:1px solid rgba(148,163,184,.35); border-radius:12px; box-shadow:0 18px 40px rgba(0,0,0,.35); display:none; }
+    .bonus-choice.open .bonus-choice-menu{ display:block; }
+    .bonus-choice-option{ padding:9px 10px; cursor:pointer; border-bottom:1px solid rgba(148,163,184,.12); }
+    .bonus-choice-option:hover{ background:rgba(96,165,250,.18); }
+    .bonus-choice-option strong{ display:block; color:#f8fafc; font-size:13px; }
+    .bonus-choice-option span{ display:block; color:#94a3b8; font-size:12px; margin-top:2px; }
+    .bonus-choice-empty{ padding:10px; color:#94a3b8; font-size:12px; }
+    .admin-bonus-review-card{ margin-top:12px; }
+    .admin-bonus-review-top{ display:grid; grid-template-columns:1.5fr 1fr auto; gap:10px; align-items:end; }
+    .admin-bonus-review-stats{ display:flex; gap:8px; overflow:auto; margin-top:10px; padding-bottom:2px; }
+    .admin-bonus-stat{ min-width:92px; border:1px solid rgba(148,163,184,.20); background:rgba(255,255,255,.035); border-radius:14px; padding:9px; }
+    .admin-bonus-stat strong{ display:block; color:#f8fafc; font-size:17px; }
+    .admin-bonus-stat span{ color:#94a3b8; font-size:12px; }
+    .bonus-status-badge{ display:inline-flex; align-items:center; justify-content:center; border-radius:999px; padding:5px 9px; font-size:12px; font-weight:950; white-space:nowrap; }
+    .bonus-status-ok{ background:#bbf7d0; color:#052e16; border:1px solid #86efac; }
+    .bonus-status-wrong{ background:#fecaca; color:#450a0a; border:1px solid #f87171; }
+    .bonus-status-pending{ background:#fef3c7; color:#422006; border:1px solid #facc15; }
+    .bonus-review-actions{ display:flex; gap:6px; flex-wrap:wrap; }
+    .bonus-review-actions button{ min-height:34px; padding:6px 9px; font-size:12px; }
+    @media (max-width:760px){ .admin-bonus-review-top{ grid-template-columns:1fr; } }
+
   </style>
 </head>
 <body>
@@ -3484,18 +3508,24 @@
   <div class="table-wrap" style="margin-top:10px">
     <table id="adminBonusQuestionsTable">
       <thead>
-        <tr><th>#</th><th>Küsimus</th><th>Õige vastus</th><th class="right">Punktid</th><th class="right">Tegevus</th></tr>
+        <tr><th>#</th><th>Küsimus</th><th>Tüüp</th><th>Õige vastus</th><th class="right">Punktid</th><th class="right">Tegevus</th></tr>
       </thead>
       <tbody></tbody>
     </table>
   </div>
 
-  <div class="sub" style="margin-top:14px">Kasutajate vastused</div>
-  <div class="table-wrap bonus-admin-matrix-wrap admin-bonus-answers-wrap">
-    <table id="adminBonusAnswersTable" class="bonus-admin-matrix admin-bonus-answers-table">
-      <thead></thead>
-      <tbody></tbody>
-    </table>
+  <div class="card admin-bonus-review-card">
+    <strong>Kasutajate vastused</strong>
+    <div class="sub" style="margin-top:6px">Vaikimisi kontrolli vastuseid küsimuse kaupa. Automaatkontroll kasutab salvestatud õiget vastust, käsitsi märkimine jääb alles.</div>
+    <div class="admin-bonus-review-top" style="margin-top:10px">
+      <div><label>Vali küsimus</label><select id="adminBonusReviewQuestionSelect"></select></div>
+      <div><label>Filter</label><select id="adminBonusReviewFilter"><option value="all">Kõik</option><option value="pending">Ainult kontrollimata</option><option value="correct">Ainult õiged</option><option value="wrong">Ainult valed</option><option value="missing">Vastus puudub</option></select></div>
+      <button id="btnAdminBonusAutograde" type="button" class="primary">Kontrolli automaatselt</button>
+    </div>
+    <div id="adminBonusReviewStats" class="admin-bonus-review-stats"></div>
+    <div class="table-wrap bonus-admin-matrix-wrap admin-bonus-answers-wrap" style="margin-top:10px">
+      <table id="adminBonusAnswersTable" class="bonus-admin-matrix admin-bonus-answers-table"><thead></thead><tbody></tbody></table>
+    </div>
   </div>
 </div>
 
@@ -5232,6 +5262,25 @@ function renderLeaderboardTable(tbody, rows, type){
   });
 }
 
+
+let fifa2026TeamOptionsCache = null;
+let fifa2026PlayerOptionsCache = null;
+function normalizeChoiceText(value){ return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim(); }
+function inferBonusAnswerTypeClient(questionText){ const q=String(questionText||"").toLowerCase(); if(q.includes("maailmameistriks")) return "team"; if(q.includes("suurim väravakütt")) return "player"; if(q.includes("messi")) return "number"; if(q.includes("ronaldo")) return "number"; if(q.includes("võidab meie alagrupiturniiri")) return "registered_user"; if(q.includes("jääb meie alagrupiturniiri")) return "registered_user"; return "text"; }
+function bonusQuestionType(q){ return String(q?.answer_type || inferBonusAnswerTypeClient(q?.question_text) || "text").trim(); }
+async function loadJsonOptions(path){ const res=await fetch(path,{cache:"no-store"}); if(!res.ok) throw new Error(`Valikute faili ei saanud laadida: ${path}`); return await res.json(); }
+async function loadFifa2026TeamOptions(){ if(fifa2026TeamOptionsCache) return fifa2026TeamOptionsCache; const rows=await loadJsonOptions("/data/fifa_2026_teams.json"); fifa2026TeamOptionsCache=(rows||[]).filter(x=>x&&x.value&&x.label).map(x=>({value:String(x.value),label:String(x.label),meta:String(x.code||x.value)})).sort((a,b)=>a.label.localeCompare(b.label,"et")); return fifa2026TeamOptionsCache; }
+async function loadFifa2026PlayerOptions(){ if(fifa2026PlayerOptionsCache) return fifa2026PlayerOptionsCache; const rows=await loadJsonOptions("/data/fifa_2026_players.json"); fifa2026PlayerOptionsCache=(rows||[]).filter(x=>x&&x.value&&x.label).map(x=>({value:String(x.value),label:String(x.label),meta:x.team?String(x.team):""})).sort((a,b)=>a.label.localeCompare(b.label,"et")); return fifa2026PlayerOptionsCache; }
+function buildNumberOptions(min=0,max=20){ const out=[]; for(let i=min;i<=max;i++) out.push({value:String(i),label:String(i),meta:"väravat"}); return out; }
+function buildRegisteredUserOptions(players){ return (players||[]).filter(p=>!p.is_admin).map(p=>({value:String(p.id),label:String(p.display_name||"Mängija"),meta:"kasutaja"})).sort((a,b)=>a.label.localeCompare(b.label,"et")); }
+async function getBonusOptionsForQuestion(q,context={}){ const type=bonusQuestionType(q); if(type==="team") return await loadFifa2026TeamOptions(); if(type==="player") return await loadFifa2026PlayerOptions(); if(type==="number") return buildNumberOptions(0,20); if(type==="registered_user") return buildRegisteredUserOptions(context.players||[]); return []; }
+function findChoiceOption(options,valueOrLabel){ const raw=String(valueOrLabel||"").trim(); if(!raw) return null; const norm=normalizeChoiceText(raw); return (options||[]).find(o=>String(o.value)===raw) || (options||[]).find(o=>normalizeChoiceText(o.label)===norm) || null; }
+function renderSearchChoice({wrapper,options,selectedValue="",selectedText="",placeholder="Hakka kirjutama ja vali nimekirjast...",disabled=false}){ if(!wrapper) return; const selected=findChoiceOption(options,selectedValue)||findChoiceOption(options,selectedText); const label=selected?selected.label:String(selectedText||""); const value=selected?selected.value:String(selectedValue||""); wrapper.innerHTML=`<div class="bonus-choice"><input class="bonus-choice-input" type="text" value="${escapeHtml(label)}" placeholder="${escapeHtml(placeholder)}" autocomplete="off" ${disabled?"disabled":""}><input class="bonus-choice-value" type="hidden" value="${escapeHtml(value)}"><div class="bonus-choice-menu"></div></div>`; const box=wrapper.querySelector(".bonus-choice"); const input=wrapper.querySelector(".bonus-choice-input"); const hidden=wrapper.querySelector(".bonus-choice-value"); const menu=wrapper.querySelector(".bonus-choice-menu"); function close(){box.classList.remove("open");} function choose(opt){input.value=opt.label; hidden.value=opt.value; close(); input.dispatchEvent(new Event("change",{bubbles:true}));} function renderMenu(){ const q=normalizeChoiceText(input.value); hidden.value=""; const filtered=(options||[]).map(opt=>({opt,score:normalizeChoiceText(opt.label).startsWith(q)?0:normalizeChoiceText(opt.label).includes(q)?1:normalizeChoiceText(opt.meta).includes(q)?2:9})).filter(x=>!q||x.score<9).sort((a,b)=>a.score-b.score||a.opt.label.localeCompare(b.opt.label,"et")).slice(0,30).map(x=>x.opt); if(!filtered.length){menu.innerHTML=`<div class="bonus-choice-empty">Valikut ei leitud</div>`; box.classList.add("open"); return;} menu.innerHTML=filtered.map((opt,idx)=>`<div class="bonus-choice-option" data-choice-index="${idx}"><strong>${escapeHtml(opt.label)}</strong>${opt.meta?`<span>${escapeHtml(opt.meta)}</span>`:""}</div>`).join(""); filtered.forEach((opt,idx)=>{ const el=menu.querySelector(`[data-choice-index="${idx}"]`); if(el) el.addEventListener("mousedown",e=>{e.preventDefault(); choose(opt);}); }); box.classList.add("open"); } input.addEventListener("input",renderMenu); input.addEventListener("focus",renderMenu); input.addEventListener("blur",()=>{ const exact=findChoiceOption(options,input.value); if(exact){input.value=exact.label; hidden.value=exact.value;} setTimeout(close,150); }); }
+function getRenderedChoice(wrapper,options){ const input=wrapper?.querySelector(".bonus-choice-input"); const hidden=wrapper?.querySelector(".bonus-choice-value"); const label=String(input?.value||"").trim(); let value=String(hidden?.value||"").trim(); if(!label) return {answer_text:"",answer_value:""}; let opt=value?findChoiceOption(options,value):null; if(!opt) opt=findChoiceOption(options,label); if(!opt) throw new Error("Vali vastus nimekirjast, ära jäta poolikut teksti."); return {answer_text:opt.label,answer_value:opt.value}; }
+async function renderBonusAnswerInput(q,answer,context={}){ const wrapper=document.querySelector(`[data-bonus-answer-wrap="${q.id}"]`); if(!wrapper) return; const type=bonusQuestionType(q); const disabled=!!context.locked||!!q.fallback; if(type==="text"){ wrapper.innerHTML=`<input type="text" lang="et" autocomplete="off" autocapitalize="sentences" spellcheck="true" data-bonus-answer-text="${q.id}" value="${escapeHtml(answer?.answer_text||"")}" placeholder="Sisesta vastus" ${disabled?"disabled":""}>`; return;} const options=await getBonusOptionsForQuestion(q,context); renderSearchChoice({wrapper,options,selectedValue:answer?.answer_value||"",selectedText:answer?.answer_text||"",disabled,placeholder:type==="player"?"Kirjuta näiteks Messi...":type==="team"?"Kirjuta näiteks Portugal...":"Hakka kirjutama ja vali nimekirjast..."}); }
+async function collectBonusAnswer(q,context={}){ const type=bonusQuestionType(q); if(type==="text"){ const input=document.querySelector(`[data-bonus-answer-text="${q.id}"]`); return {question_id:Number(q.id),answer_text:normalizeBonusText(input?.value||""),answer_value:""}; } const wrapper=document.querySelector(`[data-bonus-answer-wrap="${q.id}"]`); const options=await getBonusOptionsForQuestion(q,context); const picked=getRenderedChoice(wrapper,options); return {question_id:Number(q.id),...picked}; }
+function bonusStatusBadge(a){ const hasAnswer=String(a?.answer_text||"").trim()!==""; if(!hasAnswer) return `<span class="bonus-status-badge bonus-status-pending">Vastus puudub</span>`; if(a?.is_correct) return `<span class="bonus-status-badge bonus-status-ok">Õige ${Number(a.points)||0}p</span>`; if(Number(a?.points||0)===0&&a?.is_correct===false) return `<span class="bonus-status-badge bonus-status-wrong">Vale 0p</span>`; return `<span class="bonus-status-badge bonus-status-pending">Kontrollimata</span>`; }
+
 function bonusAnswerMap(answers){
   const map = new Map();
   for (const a of answers || []) map.set(String(a.question_id), a);
@@ -5256,72 +5305,25 @@ function formatBonusLock(r){
 async function loadBonusQuestions(){
   const list = $("bonusList");
   if (!list || !token) return;
-
   list.innerHTML = "";
   $("bonusMsg").textContent = "";
   $("bonusLockMsg").textContent = "";
-
   try{
     const r = await call("bonus/questions", {method:"GET"});
     const answers = bonusAnswerMap(r.answers || []);
     const locked = !!r.locked;
-
+    const players = r.players || [];
     $("bonusLockMsg").textContent = formatBonusLock(r);
-
-    const questions = (r.questions || []).length
-      ? (r.questions || [])
-      : BONUS_QUESTIONS_FALLBACK.map((question_text, index) => ({
-          id: `fallback_${index + 1}`,
-          question_text,
-          points: 3,
-          sort_order: index + 1,
-          fallback: true
-        }));
-
-    list.innerHTML = questions.map(q=>{
-      const a = answers.get(String(q.id));
-      const value = a?.answer_text || "";
-      const disabled = locked || q.fallback;
-      return `
-        <div class="bonus-question-card ${locked ? "locked" : ""}">
-          <label for="bonus_${q.id}">${q.question_text}</label>
-          <input id="bonus_${q.id}" type="text" lang="et" autocomplete="off" autocapitalize="sentences" spellcheck="true" data-bonus-answer="${q.id}" value="${escapeHtml(value)}" placeholder="Sisesta vastus" ${disabled ? "disabled" : ""}>
-          ${q.fallback ? `<div class="sub" style="margin-top:6px">Küsimused vajavad andmebaasi lisamist. Käivita sql/bonus_questions_migration.sql ja ava vaade uuesti.</div>` : ""}
-          ${locked ? `<div class="sub" style="margin-top:6px">Lukus</div>` : ""}
-        </div>
-      `;
-    }).join("");
-
-    document.querySelectorAll("[data-bonus-answer]").forEach(inp=>{
-      inp.addEventListener("input", ()=>{
-        const btn = $("btnSaveBonus");
-        if (btn) {
-          btn.textContent = "Salvesta lisaküsimused";
-          btn.classList.remove("saved");
-        }
-        const msg = $("bonusMsg");
-        if (msg) msg.textContent = "";
-      });
-    });
-
+    const questions = (r.questions || []).length ? (r.questions || []) : BONUS_QUESTIONS_FALLBACK.map((question_text, index) => ({id: `fallback_${index + 1}`, question_text, points: 3, sort_order: index + 1, fallback: true}));
+    list.innerHTML = questions.map(q=>`<div class="bonus-question-card ${locked ? "locked" : ""}"><label for="bonus_${q.id}">${q.question_text}</label><div data-bonus-answer-wrap="${q.id}"></div>${q.fallback ? `<div class="sub" style="margin-top:6px">Küsimused vajavad andmebaasi lisamist. Käivita sql/bonus_questions_migration.sql ja ava vaade uuesti.</div>` : ""}${locked ? `<div class="sub" style="margin-top:6px">Lukus</div>` : ""}</div>`).join("");
+    for (const q of questions) await renderBonusAnswerInput(q, answers.get(String(q.id)), {locked, players});
+    document.querySelectorAll(".bonus-choice-input,[data-bonus-answer-text]").forEach(inp=>{ inp.addEventListener("input", ()=>{ const btn=$("btnSaveBonus"); if(btn){btn.textContent="Salvesta lisaküsimused"; btn.classList.remove("saved");} const msg=$("bonusMsg"); if(msg) msg.textContent=""; }); });
+    window.currentBonusQuestions = questions.filter(q=>!q.fallback);
+    window.currentBonusContext = {players};
     if ($("btnSaveBonus")) $("btnSaveBonus").disabled = locked || !(r.questions || []).length;
   }catch(e){
-    const fallbackQuestions = BONUS_QUESTIONS_FALLBACK.map((question_text, index) => ({
-      id: `fallback_${index + 1}`,
-      question_text,
-      points: 3,
-      sort_order: index + 1,
-      fallback: true
-    }));
-
-    list.innerHTML = fallbackQuestions.map(q=>`
-      <div class="bonus-question-card">
-        <label>${q.question_text}</label>
-        <input value="" placeholder="Sisesta vastus" disabled>
-        <div class="sub" style="margin-top:6px">Küsimuste salvestamiseks käivita Supabase SQL Editoris sql/bonus_questions_migration.sql.</div>
-      </div>
-    `).join("");
-
+    const fallbackQuestions = BONUS_QUESTIONS_FALLBACK.map((question_text, index) => ({id: `fallback_${index + 1}`, question_text, points: 3, sort_order: index + 1, fallback: true}));
+    list.innerHTML = fallbackQuestions.map(q=>`<div class="bonus-question-card"><label>${q.question_text}</label><input value="" placeholder="Sisesta vastus" disabled><div class="sub" style="margin-top:6px">Küsimuste salvestamiseks käivita Supabase SQL Editoris sql/bonus_questions_migration.sql.</div></div>`).join("");
     if ($("btnSaveBonus")) $("btnSaveBonus").disabled = true;
     setMsg($("bonusMsg"), false, e.message);
   }
@@ -5341,47 +5343,21 @@ function normalizeBonusText(value){
 
 async function saveBonusAnswers(){
   const btn = $("btnSaveBonus");
-  const inputs = Array.from(document.querySelectorAll("[data-bonus-answer]"));
-  const answers = inputs
-    .filter(inp => !String(inp.dataset.bonusAnswer || "").startsWith("fallback_"))
-    .map(inp => ({
-      question_id: Number(inp.dataset.bonusAnswer),
-      answer_text: normalizeBonusText(inp.value)
-    }));
-
-  if (!answers.length) {
-    return setMsg($("bonusMsg"), false, "Lisaküsimusi ei saa salvestada. Kontrolli, et SQL migratsioon oleks käivitatud.");
-  }
-
+  const questions = window.currentBonusQuestions || [];
+  const context = window.currentBonusContext || {};
+  if (!questions.length) return setMsg($("bonusMsg"), false, "Lisaküsimusi ei saa salvestada. Kontrolli, et SQL migratsioon oleks käivitatud.");
   try{
-    if (btn) {
-      btn.disabled = true;
-      btn.textContent = "Salvestan...";
-      btn.classList.remove("saved");
-    }
-
+    const answers = [];
+    for (const q of questions) answers.push(await collectBonusAnswer(q, context));
+    if (answers.some(a=>!String(a.answer_text || "").trim())) return setMsg($("bonusMsg"), false, "Palun vali või sisesta kõik lisaküsimuste vastused.");
+    if (btn) { btn.disabled = true; btn.textContent = "Salvestan..."; btn.classList.remove("saved"); }
     const r = await call("bonus/answers", {method:"POST", body: JSON.stringify({answers})});
-
     const savedCount = r.saved_count ?? answers.length;
     setMsg($("bonusMsg"), true, `Lisaküsimuste vastused on salvestatud (${savedCount} vastust).`);
-
-    if (btn) {
-      btn.classList.add("saved");
-      btn.textContent = "Vastused salvestatud";
-      btn.disabled = false;
-    }
-
-    setTimeout(()=>{
-      if (btn) {
-        btn.textContent = "Salvesta lisaküsimused";
-        btn.classList.remove("saved");
-      }
-    }, 2500);
+    if (btn) { btn.classList.add("saved"); btn.textContent = "Vastused salvestatud"; btn.disabled = false; }
+    setTimeout(()=>{ if (btn) { btn.textContent = "Salvesta lisaküsimused"; btn.classList.remove("saved"); } }, 2500);
   }catch(e){
-    if (btn) {
-      btn.textContent = "Salvesta lisaküsimused";
-      btn.disabled = false;
-    }
+    if (btn) { btn.textContent = "Salvesta lisaküsimused"; btn.disabled = false; }
     setMsg($("bonusMsg"), false, e.message);
   }
 }
@@ -5454,98 +5430,39 @@ function renderBonusScreenshot(data){
 
 function renderAdminBonusAnswers(){
   if (!(me && me.is_admin) || !adminBonusData) return;
-
   const table = $("adminBonusAnswersTable");
   const aHead = table?.querySelector("thead");
   const aBody = table?.querySelector("tbody");
-  if (!aHead || !aBody) return;
-
+  const qSelect = $("adminBonusReviewQuestionSelect");
+  const filterSelect = $("adminBonusReviewFilter");
+  const statsBox = $("adminBonusReviewStats");
+  const autoBtn = $("btnAdminBonusAutograde");
+  if (!aHead || !aBody || !qSelect || !filterSelect) return;
   const questions = adminBonusData.questions || [];
   const players = adminBonusData.players || [];
   const answers = adminBonusData.answers || [];
   const answerMap = new Map();
-
   for (const a of answers) answerMap.set(`${a.player_id}:${a.question_id}`, a);
-
-  const totals = new Map(players.map(p => [p.id, 0]));
-  for (const a of answers) {
-    totals.set(a.player_id, (totals.get(a.player_id) || 0) + (Number(a.points) || 0));
-  }
-
-  aHead.innerHTML = `<tr><th>Küsimus</th><th>Õige vastus</th>${players.map(p=>`<th>${escapeHtml(p.display_name || "")}</th>`).join("")}</tr>`;
-
-  const rows = questions.map((q, idx)=>{
-    const cells = players.map(p=>{
-      const a = answerMap.get(`${p.id}:${q.id}`) || {
-        player_id: p.id,
-        question_id: q.id,
-        answer_text: "",
-        is_correct: false,
-        points: 0
-      };
-
-      const hasAnswer = String(a.answer_text || "").trim() !== "";
-      const cls = a.is_correct ? "bonus-correct-cell" : "";
-      const disabled = hasAnswer ? "" : "disabled";
-      const checked = a.is_correct ? "checked" : "";
-
-      return `
-        <td class="bonus-answer-cell ${cls}">
-          <div class="bonus-answer-text">${escapeHtml(a.answer_text || "") || `<span class="sub">Vastus puudub</span>`}</div>
-          <label class="bonus-check">
-            <input type="checkbox" data-bonus-correct="${p.id}:${q.id}" ${checked} ${disabled}>
-            Õige
-          </label>
-        </td>
-      `;
-    }).join("");
-
-    const correctText = getBonusCorrectAnswerText(q, players, answerMap);
-    return `<tr><th class="bonus-question-text">${idx + 1}. ${escapeHtml(q.question_text || "")}</th><td class="correct-answer-cell">${escapeHtml(correctText)}</td>${cells}</tr>`;
-  }).join("");
-
-  const totalRow = `<tr class="bonus-total-row"><th>Kokku</th><td></td>${players.map(p=>`<td><strong>${totals.get(p.id) || 0}p</strong></td>`).join("")}</tr>`;
-
-  aBody.innerHTML = rows + totalRow;
-
-  aBody.querySelectorAll("[data-bonus-correct]").forEach(inp=>{
-    inp.addEventListener("change", async (e)=>{
-      e.preventDefault();
-
-      const [player_id, question_id] = inp.dataset.bonusCorrect.split(":");
-      const cell = inp.closest("td");
-      const originalChecked = !inp.checked;
-
-      try{
-        inp.disabled = true;
-
-        await call("admin/bonus/answers", {
-          method:"PUT",
-          body: JSON.stringify({
-            player_id,
-            question_id:Number(question_id),
-            is_correct: inp.checked
-          })
-        });
-
-        setMsg($("adminBonusMsg"), true, "Vastus uuendatud.");
-
-        const fresh = await call("admin/bonus", {method:"GET"});
-        adminBonusData = fresh;
-
-        renderAdminBonusAnswers();
-        renderBonusScreenshot(fresh);
-
-        if (typeof loadLeaderboard === "function") await loadLeaderboard();
-      }catch(err){
-        inp.checked = originalChecked;
-        if (cell) cell.classList.toggle("bonus-correct-cell", originalChecked);
-        setMsg($("adminBonusMsg"), false, err.message);
-        inp.disabled = false;
-      }
-    });
-  });
+  const currentQuestionId = qSelect.value || String(questions[0]?.id || "");
+  qSelect.innerHTML = questions.map((q, idx)=>`<option value="${q.id}">${idx + 1}. ${escapeHtml(q.question_text || "")}</option>`).join("");
+  if (currentQuestionId) qSelect.value = currentQuestionId;
+  if (!qSelect.value && questions[0]) qSelect.value = String(questions[0].id);
+  const selectedQuestionId = Number(qSelect.value);
+  const selectedQuestion = questions.find(q=>Number(q.id) === selectedQuestionId);
+  if (!selectedQuestion){ aHead.innerHTML = ""; aBody.innerHTML = `<tr><td>Lisaküsimusi ei ole.</td></tr>`; return; }
+  const filter = filterSelect.value || "all";
+  const rowsData = players.map(p=>{ const a = answerMap.get(`${p.id}:${selectedQuestion.id}`) || {player_id:p.id, question_id:selectedQuestion.id, answer_text:"", answer_value:"", is_correct:false, points:0}; const hasAnswer=String(a.answer_text||"").trim()!==""; const isCorrect=!!a.is_correct; const isWrong=hasAnswer && !isCorrect && Number(a.points||0)===0; return {player:p, answer:a, hasAnswer, isCorrect, isWrong}; });
+  const stats = {total:rowsData.length, correct:rowsData.filter(x=>x.isCorrect).length, wrong:rowsData.filter(x=>x.isWrong).length, missing:rowsData.filter(x=>!x.hasAnswer).length, pending:rowsData.filter(x=>x.hasAnswer&&!x.isCorrect&&!x.isWrong).length};
+  if (statsBox) statsBox.innerHTML = `<div class="admin-bonus-stat"><strong>${stats.total}</strong><span>vastajat</span></div><div class="admin-bonus-stat"><strong>${stats.correct}</strong><span>õiged</span></div><div class="admin-bonus-stat"><strong>${stats.wrong}</strong><span>valed</span></div><div class="admin-bonus-stat"><strong>${stats.pending}</strong><span>kontrollimata</span></div><div class="admin-bonus-stat"><strong>${stats.missing}</strong><span>vastus puudub</span></div>`;
+  const filtered = rowsData.filter(x=>{ if(filter==="correct") return x.isCorrect; if(filter==="wrong") return x.isWrong; if(filter==="missing") return !x.hasAnswer; if(filter==="pending") return x.hasAnswer&&!x.isCorrect&&!x.isWrong; return true; });
+  aHead.innerHTML = `<tr><th>Kasutaja</th><th>Vastus</th><th>Staatus</th><th>Käsitsi märkimine</th></tr>`;
+  aBody.innerHTML = filtered.map(({player,answer,hasAnswer})=>{ const answerText=hasAnswer?escapeHtml(answer.answer_text||""):`<span class="sub">Vastus puudub</span>`; const disabled=hasAnswer?"":"disabled"; return `<tr><th>${escapeHtml(player.display_name||"")}</th><td class="bonus-answer-cell"><div class="bonus-answer-text">${answerText}</div></td><td>${bonusStatusBadge(answer)}</td><td><div class="bonus-review-actions"><button type="button" data-bonus-correct="${player.id}:${selectedQuestion.id}:true" ${disabled}>Õige</button><button type="button" data-bonus-correct="${player.id}:${selectedQuestion.id}:false" ${disabled}>Vale</button></div></td></tr>`; }).join("") || `<tr><td colspan="4">Selle filtriga vastuseid ei ole.</td></tr>`;
+  if (qSelect.dataset.boundReview !== "1") { qSelect.dataset.boundReview = "1"; qSelect.addEventListener("change", renderAdminBonusAnswers); }
+  if (filterSelect.dataset.boundReview !== "1") { filterSelect.dataset.boundReview = "1"; filterSelect.addEventListener("change", renderAdminBonusAnswers); }
+  if (autoBtn && autoBtn.dataset.boundAutograde !== "1") { autoBtn.dataset.boundAutograde = "1"; autoBtn.addEventListener("click", async (e)=>{ e.preventDefault(); const qid=Number($("adminBonusReviewQuestionSelect")?.value); if(!qid) return setMsg($("adminBonusMsg"),false,"Vali küsimus."); try{ autoBtn.disabled=true; autoBtn.textContent="Kontrollin..."; const r=await call(`admin/bonus/questions/${qid}/autograde`,{method:"POST"}); setMsg($("adminBonusMsg"),true,`Automaatkontroll tehtud: õiged ${r.correct||0}, valed ${r.wrong||0}, vastus puudub ${r.missing||0}.`); const fresh=await call("admin/bonus",{method:"GET"}); adminBonusData=fresh; renderAdminBonusAnswers(); renderBonusScreenshot(fresh); if(typeof loadLeaderboard==="function") await loadLeaderboard(); }catch(err){ setMsg($("adminBonusMsg"),false,err.message); }finally{ autoBtn.disabled=false; autoBtn.textContent="Kontrolli automaatselt"; } }); }
+  aBody.querySelectorAll("[data-bonus-correct]").forEach(btn=>{ btn.addEventListener("click", async (e)=>{ e.preventDefault(); const [player_id, question_id, value]=btn.dataset.bonusCorrect.split(":"); const is_correct=value==="true"; try{ btn.disabled=true; await call("admin/bonus/answers",{method:"PUT",body:JSON.stringify({player_id,question_id:Number(question_id),is_correct})}); setMsg($("adminBonusMsg"),true,"Vastus uuendatud."); const fresh=await call("admin/bonus",{method:"GET"}); adminBonusData=fresh; renderAdminBonusAnswers(); renderBonusScreenshot(fresh); if(typeof loadLeaderboard==="function") await loadLeaderboard(); }catch(err){ setMsg($("adminBonusMsg"),false,err.message); btn.disabled=false; } }); });
 }
+
 
 
 
@@ -5876,6 +5793,30 @@ function bindAdminBonusLockButtons(){
 }
 
 
+
+async function renderAdminCorrectAnswerInput(q, context = {}){
+  const wrapper = document.querySelector(`[data-admin-correct-answer-wrap="${q.id}"]`);
+  if (!wrapper) return;
+  const type = bonusQuestionType(q);
+  if (type === "text") {
+    wrapper.innerHTML = `<input data-admin-correct-answer-text="${q.id}" value="${escapeHtml(q.correct_answer || "")}" placeholder="Õige vastus">`;
+    return;
+  }
+  const options = await getBonusOptionsForQuestion(q, context);
+  renderSearchChoice({wrapper, options, selectedValue: q.correct_answer_value || "", selectedText: q.correct_answer || "", placeholder: "Vali õige vastus..."});
+}
+async function collectAdminCorrectAnswer(q, context = {}){
+  const type = bonusQuestionType(q);
+  if (type === "text") {
+    const input = document.querySelector(`[data-admin-correct-answer-text="${q.id}"]`);
+    return {correct_answer: String(input?.value || "").trim(), correct_answer_value:""};
+  }
+  const wrapper = document.querySelector(`[data-admin-correct-answer-wrap="${q.id}"]`);
+  const options = await getBonusOptionsForQuestion(q, context);
+  const picked = getRenderedChoice(wrapper, options);
+  return {correct_answer: picked.answer_text, correct_answer_value: picked.answer_value};
+}
+
 async function loadAdminBonus(){
   if (!(me && me.is_admin)) return;
 
@@ -5902,19 +5843,29 @@ async function loadAdminBonus(){
       <tr>
         <td>${idx + 1}</td>
         <td><input data-bonus-q-text="${q.id}" value="${escapeHtml(q.question_text)}"></td>
-        <td><input data-bonus-q-correct="${q.id}" value="${escapeHtml(q.correct_answer || "")}" placeholder="Õige vastus"></td>
+        <td><select data-bonus-q-type="${q.id}"><option value="team" ${bonusQuestionType(q) === "team" ? "selected" : ""}>koondis</option><option value="player" ${bonusQuestionType(q) === "player" ? "selected" : ""}>mängija</option><option value="number" ${bonusQuestionType(q) === "number" ? "selected" : ""}>number</option><option value="registered_user" ${bonusQuestionType(q) === "registered_user" ? "selected" : ""}>registreeritud kasutaja</option><option value="text" ${bonusQuestionType(q) === "text" ? "selected" : ""}>vabatekst</option></select></td>
+        <td><div data-admin-correct-answer-wrap="${q.id}"></div></td>
         <td class="right"><input class="small" data-bonus-q-points="${q.id}" value="${q.points || 3}"></td>
         <td class="right"><button type="button" data-save-bonus-q="${q.id}">Salvesta</button></td>
       </tr>
     `).join("");
+    for (const q of questions) await renderAdminCorrectAnswerInput(q, {players: data.players || []});
+    qBody.querySelectorAll("[data-bonus-q-type]").forEach(sel=>{ sel.addEventListener("change", async ()=>{ const id=sel.dataset.bonusQType; const q=questions.find(x=>String(x.id)===String(id)); if(!q) return; q.answer_type=sel.value; q.options_source=sel.value==="team"?"fifa_2026_teams":sel.value==="player"?"fifa_2026_players":sel.value==="number"?"number_0_20":sel.value==="registered_user"?"registered_users":""; q.correct_answer=""; q.correct_answer_value=""; await renderAdminCorrectAnswerInput(q,{players:data.players||[]}); }); });
 
     qBody.querySelectorAll("[data-save-bonus-q]").forEach(btn=>{
       btn.addEventListener("click", async (e)=>{
         e.preventDefault();
 
         const id = btn.dataset.saveBonusQ;
+        const question = adminBonusData.questions.find(q=>String(q.id) === String(id)) || {id};
+        const answer_type = qBody.querySelector(`[data-bonus-q-type="${id}"]`)?.value || bonusQuestionType(question);
+        const options_source = answer_type === "team" ? "fifa_2026_teams" : answer_type === "player" ? "fifa_2026_players" : answer_type === "number" ? "number_0_20" : answer_type === "registered_user" ? "registered_users" : "";
+        question.answer_type = answer_type;
+        question.options_source = options_source;
         const question_text = qBody.querySelector(`[data-bonus-q-text="${id}"]`)?.value || "";
-        const correct_answer = qBody.querySelector(`[data-bonus-q-correct="${id}"]`)?.value || "";
+        const correct = await collectAdminCorrectAnswer(question, {players: adminBonusData.players || []});
+        const correct_answer = correct.correct_answer;
+        const correct_answer_value = correct.correct_answer_value;
         const points = Number(qBody.querySelector(`[data-bonus-q-points="${id}"]`)?.value || 3);
 
         try{
@@ -5923,7 +5874,7 @@ async function loadAdminBonus(){
 
           await call(`admin/bonus/questions/${id}`, {
             method:"PUT",
-            body: JSON.stringify({question_text, correct_answer, points})
+            body: JSON.stringify({question_text, correct_answer, correct_answer_value, answer_type, options_source, points})
           });
 
           setMsg($("adminBonusMsg"), true, "Küsimus salvestatud.");
