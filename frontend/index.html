@@ -3213,6 +3213,143 @@
     }
 
 
+  
+    /* ADMIN MOBILE USABILITY */
+    @media (max-width:760px){
+      #admin{
+        max-width:100%;
+        overflow:hidden;
+      }
+
+      #admin .card{
+        padding:12px !important;
+        border-radius:16px !important;
+        margin-top:10px !important;
+      }
+
+      #admin .sub,
+      #admin .msg{
+        font-size:13px !important;
+        line-height:1.45 !important;
+      }
+
+      #admin .row{
+        display:grid !important;
+        grid-template-columns:1fr !important;
+        gap:8px !important;
+        align-items:stretch !important;
+      }
+
+      #admin input:not([type="checkbox"]):not([type="radio"]),
+      #admin select,
+      #admin textarea,
+      #admin button{
+        width:100% !important;
+        max-width:100% !important;
+        min-width:0 !important;
+        min-height:44px !important;
+        font-size:15px !important;
+      }
+
+      #admin input.small,
+      #admin .small{
+        width:100% !important;
+        min-width:0 !important;
+        max-width:100% !important;
+      }
+
+      #admin .table-wrap,
+      #admin .screenshot-board-wrap,
+      #admin .bonus-admin-matrix-wrap{
+        width:100% !important;
+        max-width:100% !important;
+        overflow-x:auto !important;
+        overflow-y:visible !important;
+        -webkit-overflow-scrolling:touch;
+        border-radius:14px !important;
+        padding-bottom:6px;
+      }
+
+      #admin table{
+        width:max-content !important;
+        min-width:680px;
+        table-layout:auto;
+      }
+
+      #admin #pTable{
+        min-width:620px;
+      }
+
+      #admin #adminBonusQuestionsTable{
+        min-width:980px;
+      }
+
+      #admin #adminBonusAnswersTable{
+        display:table !important;
+        min-width:720px;
+      }
+
+      #admin #screenshotBoard,
+      #admin #bonusScreenshotTable{
+        min-width:720px;
+      }
+
+      #admin th,
+      #admin td{
+        padding:8px 9px !important;
+        font-size:13px !important;
+        vertical-align:top !important;
+      }
+
+      #admin .screenshot-tools,
+      #admin .admin-bonus-review-top{
+        display:grid !important;
+        grid-template-columns:1fr !important;
+        gap:8px !important;
+        align-items:stretch !important;
+      }
+
+      #admin .admin-bonus-review-stats{
+        display:grid !important;
+        grid-template-columns:repeat(2, minmax(0, 1fr)) !important;
+        gap:8px !important;
+      }
+
+      #admin .admin-bonus-stat{
+        min-width:0 !important;
+      }
+
+      #admin .bonus-review-actions{
+        display:grid !important;
+        grid-template-columns:1fr 1fr !important;
+        gap:6px !important;
+      }
+
+      #admin .bonus-review-actions button{
+        min-height:36px !important;
+        padding:7px 8px !important;
+      }
+
+      #admin .bonus-choice{
+        min-width:220px;
+      }
+
+      #admin .bonus-choice-menu{
+        max-height:260px;
+      }
+
+      #admin code{
+        white-space:normal !important;
+        overflow-wrap:anywhere !important;
+        word-break:break-word !important;
+      }
+
+      #adminRulesText{
+        min-height:360px !important;
+      }
+    }
+
+
   </style>
 </head>
 <body>
@@ -5456,16 +5593,23 @@ function renderBonusScreenshot(data){
   if (!table) return;
 
   const tbody = table.querySelector("tbody");
-  const questions = data.questions || [];
+  const questions = (data.questions || []).filter(q => String(q.question_text || "").trim());
   const players = data.players || [];
   const answers = data.answers || [];
   const answerMap = new Map();
+  const visibleQuestionIds = new Set(questions.map(q => Number(q.id)));
 
   for (const a of answers) answerMap.set(`${a.player_id}:${a.question_id}`, a);
 
   const totals = new Map(players.map(p => [p.id, 0]));
   for (const a of answers) {
+    if (!visibleQuestionIds.has(Number(a.question_id))) continue;
     totals.set(a.player_id, (totals.get(a.player_id) || 0) + (Number(a.points) || 0));
+  }
+
+  if (!questions.length) {
+    tbody.innerHTML = `<tr><td>Lisaküsimusi ei ole.</td></tr>`;
+    return;
   }
 
   const header = `<tr class="teams"><th>Küsimus</th><th>Õige vastus</th>${players.map(p=>`<th>${escapeHtml(p.display_name || "")}</th>`).join("")}</tr>`;
@@ -5486,6 +5630,7 @@ function renderBonusScreenshot(data){
 
   tbody.innerHTML = header + rows + totalRow;
 }
+
 
 function renderAdminBonusAnswers(){
   if (!(me && me.is_admin) || !adminBonusData) return;
