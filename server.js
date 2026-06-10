@@ -1676,7 +1676,7 @@ if (event.httpMethod === "GET" && route === "me") {
     }
 
 
-    // Optional Railway cron sync. Set CRON_SECRET and call /api/cron/sync or /api/cron/sync/results with Bearer token, x-cron-secret header or ?secret=...
+    // Optional Railway cron sync. Set CRON_SECRET and call /api/cron/sync or /api/cron/sync/results with x-cron-secret header.
     if (event.httpMethod === "POST" && (route === "cron/sync/results" || route === "cron/sync")) {
       const configuredSecret = process.env.CRON_SECRET || "";
       const h = event.headers || {};
@@ -1690,13 +1690,20 @@ if (event.httpMethod === "GET" && route === "me") {
         "";
 
       if (!configuredSecret || providedSecret !== configuredSecret) {
-        return json(403, { error: "Croni õigused puuduvad." });
+        console.log(`[cron/sync] 401 Unauthorized – x-cron-secret mismatch at ${new Date().toISOString()}`);
+        return json(401, { error: "Unauthorized: x-cron-secret header missing or invalid." });
       }
 
+      console.log(`[cron/sync] Starting API-Football results sync at ${new Date().toISOString()}`);
       const sync = await syncApiFootballResults(sb, { force:true });
-      if (!sync.ok) return json(500, { error: sync.error || "Tulemuste sünkroniseerimine ebaõnnestus." });
+      if (!sync.ok) {
+        console.error(`[cron/sync] Sync failed: ${sync.error}`);
+        return json(500, { error: sync.error || "Tulemuste sünkroniseerimine ebaõnnestus." });
+      }
+      console.log(`[cron/sync] Sync complete – updated: ${sync.updated}, fixtures: ${sync.fixtures}, finished: ${sync.finished_found}`);
       return json(200, { ok:true, ...sync });
     }
+
 
     // Admin sync results from API-Football
     if (event.httpMethod === "POST" && route === "admin/sync/results") {
