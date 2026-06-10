@@ -2268,10 +2268,12 @@ if (event.httpMethod === "GET" && route === "bonus/questions") {
 
   if (players.error) return json(500, { error: players.error.message });
 
+  const visibleQuestions = (questions.data || []).filter(q => String(q.question_text || "").trim());
+
   return json(200, {
     ok: true,
     ...lock,
-    questions: questions.data || [],
+    questions: visibleQuestions,
     answers: answers.data || [],
     players: (players.data || []).filter(p => !p.is_admin)
   });
@@ -2298,10 +2300,14 @@ if (event.httpMethod === "POST" && route === "bonus/answers") {
 
   if (!answers.length) return json(400, { error: "Vastuseid ei leitud." });
 
-  const q = await sb.from("bonus_questions").select("id").eq("active", true);
+  const q = await sb.from("bonus_questions").select("id,question_text").eq("active", true);
   if (q.error) return json(500, { error: q.error.message });
 
-  const validQuestionIds = new Set((q.data || []).map(x => Number(x.id)));
+  const validQuestionIds = new Set(
+    (q.data || [])
+      .filter(x => String(x.question_text || "").trim())
+      .map(x => Number(x.id))
+  );
 
   const rows = answers
     .map(a => ({
@@ -2505,6 +2511,30 @@ if (event.httpMethod === "POST" && route === "admin/bonus/questions") {
     if (upd.error) return json(500, { error: upd.error.message });
 
     return json(200, { ok: true, question: upd.data });
+  }
+
+  if (m && event.httpMethod === "DELETE") {
+    const u = await requireAdmin(sb, event);
+    if (!u) return json(403, { error: "Admini õigused puuduvad." });
+
+    const id = Number(m[1]);
+    if (!Number.isFinite(id)) return json(400, { error: "Vigane lisaküsimuse ID." });
+
+    const delAnswers = await sb
+      .from("bonus_answers")
+      .delete()
+      .eq("question_id", id);
+
+    if (delAnswers.error) return json(500, { error: delAnswers.error.message });
+
+    const delQuestion = await sb
+      .from("bonus_questions")
+      .delete()
+      .eq("id", id);
+
+    if (delQuestion.error) return json(500, { error: delQuestion.error.message });
+
+    return json(200, { ok: true, deleted_question_id: id });
   }
 }
 
