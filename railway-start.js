@@ -26,10 +26,19 @@ async function runCronSync(){
   }
 }
 
+async function runWebServer(){
+  try {
+    await import("./server.js");
+  } catch (error) {
+    console.error(error);
+    process.exit(1);
+  }
+}
+
 const runCron = String(process.env.RUN_CRON || "").trim().toLowerCase();
 
 if (runCron === "true" || runCron === "1" || runCron === "yes") {
   runCronSync();
 } else {
-  require("./server.js");
+  runWebServer();
 }
