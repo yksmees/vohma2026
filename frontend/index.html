@@ -3400,6 +3400,113 @@
     }
 
 
+  
+    /* ADMIN MISSING PREDICTIONS CHECK */
+    #adminMissingPredictionsTable{
+      width:100%;
+      min-width:760px;
+    }
+
+    #adminMissingPredictionsTable th,
+    #adminMissingPredictionsTable td{
+      vertical-align:top;
+    }
+
+    .admin-missing-match{
+      display:grid;
+      gap:3px;
+      min-width:160px;
+    }
+
+    .admin-missing-match strong{
+      color:#f8fafc;
+    }
+
+    .admin-missing-stage{
+      color:#94a3b8;
+      font-size:12px;
+      font-weight:800;
+    }
+
+    .admin-missing-count{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:999px;
+      padding:5px 9px;
+      font-weight:950;
+      white-space:nowrap;
+      background:rgba(255,255,255,.10);
+      border:1px solid rgba(148,163,184,.28);
+    }
+
+    .admin-missing-count.ok{
+      background:#bbf7d0;
+      color:#052e16;
+      border-color:#86efac;
+    }
+
+    .admin-missing-names{
+      display:flex;
+      flex-wrap:wrap;
+      gap:5px;
+      max-width:520px;
+    }
+
+    .admin-missing-name{
+      display:inline-flex;
+      border-radius:999px;
+      padding:4px 8px;
+      background:rgba(248,113,113,.18);
+      border:1px solid rgba(248,113,113,.35);
+      color:#fecaca;
+      font-size:12px;
+      font-weight:900;
+      line-height:1.15;
+    }
+
+    .admin-missing-none{
+      color:#bbf7d0;
+      font-weight:900;
+    }
+
+    @media (max-width:760px){
+      #admin .admin-missing-table-wrap{
+        overflow-x:auto !important;
+        -webkit-overflow-scrolling:touch;
+      }
+
+      #adminMissingPredictionsTable{
+        min-width:720px !important;
+      }
+
+      #adminMissingPredictionsTable th,
+      #adminMissingPredictionsTable td{
+        font-size:13px !important;
+        padding:8px 9px !important;
+      }
+
+      #adminMissingPredictionsTable th:first-child,
+      #adminMissingPredictionsTable td:first-child{
+        position:sticky;
+        left:0;
+        z-index:3;
+        background:#111827;
+        min-width:145px;
+        max-width:170px;
+        box-shadow:8px 0 14px rgba(0,0,0,.24);
+      }
+
+      .admin-missing-names{
+        max-width:260px;
+      }
+
+      .admin-missing-name{
+        font-size:11px;
+      }
+    }
+
+
   </style>
 </head>
 <body>
@@ -3774,7 +3881,37 @@
   </div>
 </div>
 
-        <div id="adminMsg" class="msg"></div>
+        
+<div class="card" id="adminMissingPredictionsCard" style="margin-top:10px">
+  <strong>Ennustamata kontroll</strong>
+  <div class="sub" style="margin-top:8px">
+    Näitab ainult lähenevaid lukustumata mänge ja tavalisi kasutajaid. Siit näed kiiresti, kellel on ennustus veel puudu.
+  </div>
+  <div class="row admin-missing-tools" style="margin-top:10px">
+    <select id="adminMissingPredMode">
+      <option value="next5">Järgmised 5 mängu</option>
+      <option value="day">Järgmine mängupäev</option>
+    </select>
+    <button id="btnRefreshMissingPredictions" type="button">Uuenda kontrolli</button>
+  </div>
+  <div id="adminMissingPredictionsMsg" class="msg"></div>
+  <div class="table-wrap admin-missing-table-wrap" style="margin-top:10px">
+    <table id="adminMissingPredictionsTable" class="admin-missing-table">
+      <thead>
+        <tr>
+          <th>Mäng</th>
+          <th>Aeg</th>
+          <th>Lukustub</th>
+          <th>Ennustanud</th>
+          <th>Puudu</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<div id="adminMsg" class="msg"></div>
         <div class="row" style="margin-top:10px">
           <button id="btnHealth" type="button">API tervis</button>
           <button id="btnCheckSchedule" type="button">Kontrolli MM ajakava</button>
@@ -4510,6 +4647,8 @@ async function loadAll(){
   if (typeof loadAdminScreenshotBoard === "function") await loadAdminScreenshotBoard();
   if (typeof loadAdminBonus === "function") await loadAdminBonus();
   if (typeof loadAdminRules === "function") await loadAdminRules();
+  if (typeof bindAdminMissingPredictions === "function") bindAdminMissingPredictions();
+  if (typeof loadAdminMissingPredictions === "function") await loadAdminMissingPredictions();
 
   toggleAdminTab();
   const activeTab = document.querySelector(".tab.active")?.getAttribute("data-tab") || "pred";
@@ -5397,6 +5536,111 @@ async function loadPlayers(){
     setMsg($("adminMsg"), false, e.message);
   }
 }
+
+
+function formatAdminMissingDate(value, opts = {}){
+  if (!value) return "";
+  const d = new Date(value);
+  if (!Number.isFinite(d.getTime())) return "";
+  return new Intl.DateTimeFormat("et-EE", {
+    timeZone: "Europe/Tallinn",
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    ...opts
+  }).format(d);
+}
+
+function renderAdminMissingPredictions(data){
+  const tbody = $("adminMissingPredictionsTable")?.querySelector("tbody");
+  if (!tbody) return;
+
+  const rows = data?.rows || [];
+
+  if (!rows.length){
+    tbody.innerHTML = `<tr><td colspan="5">Lähenevaid lukustumata mänge ei ole.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(row=>{
+    const m = row.match || {};
+    const missing = row.missing_players || [];
+    const missingHtml = missing.length
+      ? `<div class="admin-missing-names">${missing.map(p=>`<span class="admin-missing-name">${escapeHtml(p.display_name || p.username || "Mängija")}</span>`).join("")}</div>`
+      : `<span class="admin-missing-none">Kõigil tehtud</span>`;
+
+    const countClass = row.missing_count ? "" : " ok";
+
+    return `
+      <tr>
+        <td>
+          <div class="admin-missing-match">
+            <strong>#${displayMatchNo(m)} ${escapeHtml(m.home || "")} - ${escapeHtml(m.away || "")}</strong>
+            <span class="admin-missing-stage">${escapeHtml(m.stage || "")}</span>
+          </div>
+        </td>
+        <td>${formatAdminMissingDate(m.kickoff_utc)}</td>
+        <td>${formatAdminMissingDate(m.lock_at_utc)}</td>
+        <td><span class="admin-missing-count${countClass}">${Number(row.predicted_count) || 0}/${Number(row.player_count) || 0}</span></td>
+        <td>${missingHtml}</td>
+      </tr>
+    `;
+  }).join("");
+}
+
+async function loadAdminMissingPredictions(){
+  if (!(me && me.is_admin)) return;
+
+  const mode = $("adminMissingPredMode")?.value || "next5";
+  const msg = $("adminMissingPredictionsMsg");
+  const btn = $("btnRefreshMissingPredictions");
+
+  if (msg) msg.textContent = "";
+
+  try{
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Uuendan...";
+    }
+
+    const data = await call(`admin/missing-predictions?mode=${encodeURIComponent(mode)}`, {method:"GET"});
+    renderAdminMissingPredictions(data);
+
+    const label = data.mode === "day" && data.selected_date
+      ? `Järgmine mängupäev: ${data.selected_date}`
+      : "Järgmised 5 lukustumata mängu";
+
+    if (msg) setMsg(msg, true, `${label}. Mänge: ${data.match_count || 0}, kasutajaid: ${data.player_count || 0}.`);
+  }catch(err){
+    if (msg) setMsg(msg, false, err.message);
+  }finally{
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "Uuenda kontrolli";
+    }
+  }
+}
+
+function bindAdminMissingPredictions(){
+  const mode = $("adminMissingPredMode");
+  const btn = $("btnRefreshMissingPredictions");
+
+  if (mode && mode.dataset.boundMissingPredictions !== "1") {
+    mode.dataset.boundMissingPredictions = "1";
+    mode.addEventListener("change", loadAdminMissingPredictions);
+  }
+
+  if (btn && btn.dataset.boundMissingPredictions !== "1") {
+    btn.dataset.boundMissingPredictions = "1";
+    btn.addEventListener("click", (e)=>{
+      e.preventDefault();
+      loadAdminMissingPredictions();
+    });
+  }
+}
+
+
 
 async function loadAdminScreenshotBoard(){
   if (!(me && me.is_admin)) return;

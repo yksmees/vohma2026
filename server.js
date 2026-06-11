@@ -2827,6 +2827,148 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
 }
 
 
+
+// Admin: lähenevate mängude ennustamata kontroll
+    if (event.httpMethod === "GET" && route === "admin/missing-predictions") {
+      const u = await requireAdmin(sb, event);
+      if (!u) return json(403, { error: "Admini õigused puuduvad." });
+
+      const modeRaw = String(event.queryStringParameters?.mode || "next5").trim().toLowerCase();
+      const mode = modeRaw === "day" ? "day" : "next5";
+      const now = Date.now();
+      const lockOffsetMs = 60 * 60 * 1000;
+
+      const playersRes = await sb
+        .from("players")
+        .select("id,username,display_name,is_admin")
+        .order("created_at", { ascending: true });
+
+      if (playersRes.error) return json(500, { error: playersRes.error.message });
+
+      const players = (playersRes.data || [])
+        .filter(p => !p.is_admin)
+        .sort((a,b) => String(a.display_name || a.username || "").localeCompare(String(b.display_name || b.username || ""), "et"));
+
+      const matchesRes = await sb
+        .from("matches")
+        .select("id,match_no,stage,home,away,kickoff_utc,is_finished")
+        .order("kickoff_utc", { ascending: true });
+
+      if (matchesRes.error) return json(500, { error: matchesRes.error.message });
+
+      const dateInTallinn = (value)=>{
+        if (!value) return "";
+        const d = new Date(value);
+        if (!Number.isFinite(d.getTime())) return "";
+        const parts = new Intl.DateTimeFormat("en-CA", {
+          timeZone: "Europe/Tallinn",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit"
+        }).formatToParts(d);
+        const y = parts.find(p => p.type === "year")?.value;
+        const m = parts.find(p => p.type === "month")?.value;
+        const day = parts.find(p => p.type === "day")?.value;
+        return y && m && day ? `${y}-${m}-${day}` : "";
+      };
+
+      const eligible = (matchesRes.data || [])
+        .filter(m => {
+          if (m.is_finished) return false;
+          if (!m.kickoff_utc) return false;
+          const kick = new Date(m.kickoff_utc).getTime();
+          if (!Number.isFinite(kick)) return false;
+          return now < kick - lockOffsetMs;
+        })
+        .sort((a,b) => {
+          const at = new Date(a.kickoff_utc).getTime();
+          const bt = new Date(b.kickoff_utc).getTime();
+          if (at !== bt) return at - bt;
+          return (Number(a.match_no) || 0) - (Number(b.match_no) || 0);
+        });
+
+      let selected = [];
+      let selectedDate = "";
+
+      if (mode === "day") {
+        selectedDate = eligible.length ? dateInTallinn(eligible[0].kickoff_utc) : "";
+        selected = selectedDate ? eligible.filter(m => dateInTallinn(m.kickoff_utc) === selectedDate) : [];
+      } else {
+        selected = eligible.slice(0, 5);
+      }
+
+      const matchIds = selected.map(m => m.id);
+      let predictions = [];
+
+      if (matchIds.length) {
+        const predsRes = await sb
+          .from("predictions")
+          .select("match_id,player_id,pred_home,pred_away")
+          .in("match_id", matchIds);
+
+        if (predsRes.error) return json(500, { error: predsRes.error.message });
+        predictions = predsRes.data || [];
+      }
+
+      const predMap = new Map();
+      for (const p of predictions) {
+        predMap.set(`${p.player_id}:${p.match_id}`, p);
+      }
+
+      const hasPrediction = (p)=>{
+        if (!p) return false;
+        const h = p.pred_home;
+        const a = p.pred_away;
+        return h !== null && h !== undefined && h !== "" && a !== null && a !== undefined && a !== "" && Number.isFinite(Number(h)) && Number.isFinite(Number(a));
+      };
+
+      const rows = selected.map(m => {
+        const kick = new Date(m.kickoff_utc).getTime();
+        const missingPlayers = [];
+        let predictedCount = 0;
+
+        for (const p of players) {
+          const pred = predMap.get(`${p.id}:${m.id}`);
+          if (hasPrediction(pred)) {
+            predictedCount += 1;
+          } else {
+            missingPlayers.push({
+              id: p.id,
+              display_name: p.display_name || p.username || "Mängija",
+              username: p.username || ""
+            });
+          }
+        }
+
+        return {
+          match: {
+            id: m.id,
+            match_no: m.match_no,
+            stage: m.stage,
+            home: m.home,
+            away: m.away,
+            kickoff_utc: m.kickoff_utc,
+            lock_at_utc: Number.isFinite(kick) ? new Date(kick - lockOffsetMs).toISOString() : null
+          },
+          player_count: players.length,
+          predicted_count: predictedCount,
+          missing_count: missingPlayers.length,
+          missing_players: missingPlayers
+        };
+      });
+
+      return json(200, {
+        ok: true,
+        mode,
+        selected_date: selectedDate,
+        generated_at: new Date().toISOString(),
+        player_count: players.length,
+        match_count: rows.length,
+        rows
+      });
+    }
+
+
 // Admin players CRUD
     if (event.httpMethod === "GET" && route === "admin/players") {
       const u = await requireAdmin(sb, event);
