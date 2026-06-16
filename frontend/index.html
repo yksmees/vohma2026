@@ -3507,6 +3507,210 @@
     }
 
 
+  
+    /* RUNNING CHALLENGE VIEW */
+    .running-view{
+      --running-line:rgba(255,255,255,.12);
+    }
+
+    .running-top{
+      display:flex;
+      justify-content:space-between;
+      gap:16px;
+      align-items:flex-start;
+      margin-bottom:12px;
+    }
+
+    .running-grid{
+      display:grid;
+      gap:14px;
+      margin-top:10px;
+    }
+
+    .running-cols3{
+      grid-template-columns:1.05fr 1fr 1fr;
+    }
+
+    .running-cols2{
+      grid-template-columns:1fr 1fr;
+    }
+
+    .running-card{
+      background:linear-gradient(180deg,rgba(19,36,63,.98),rgba(13,26,47,.98));
+      border:1px solid var(--running-line);
+      border-radius:24px;
+      padding:18px;
+      box-shadow:0 18px 42px rgba(0,0,0,.22);
+      min-width:0;
+    }
+
+    .running-card h3{
+      margin:0 0 8px;
+      font-size:18px;
+    }
+
+    .running-metric{
+      font-size:42px;
+      font-weight:1000;
+      letter-spacing:-.06em;
+      line-height:1;
+      margin-top:8px;
+      color:#f8fafc;
+    }
+
+    .running-metric small{
+      font-size:18px;
+      color:#94a3b8;
+      letter-spacing:0;
+    }
+
+    .running-row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:11px 0;
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+
+    .running-row:last-child{
+      border-bottom:0;
+    }
+
+    .running-row strong{
+      font-size:18px;
+      color:#f8fafc;
+    }
+
+    .running-progress{
+      height:12px;
+      border-radius:999px;
+      overflow:hidden;
+      background:rgba(255,255,255,.12);
+      margin-top:14px;
+    }
+
+    .running-progress span{
+      display:block;
+      height:100%;
+      width:0%;
+      border-radius:999px;
+      background:linear-gradient(90deg,#22c55e,#38bdf8);
+      transition:width .25s ease;
+    }
+
+    .running-form{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      margin-top:12px;
+    }
+
+    .running-form label{
+      display:grid;
+      gap:6px;
+      color:#94a3b8;
+      font-size:12px;
+      font-weight:900;
+    }
+
+    .running-form textarea{
+      grid-column:1/-1;
+      min-height:74px;
+      resize:vertical;
+    }
+
+    .running-form button{
+      grid-column:1/-1;
+    }
+
+    .running-leaderboard-cards,
+    .running-recent{
+      display:grid;
+      gap:9px;
+      margin-top:12px;
+    }
+
+    .running-runner-card,
+    .running-entry-card{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:center;
+      padding:13px;
+      border:1px solid rgba(255,255,255,.09);
+      background:rgba(255,255,255,.055);
+      border-radius:18px;
+      min-width:0;
+    }
+
+    .running-runner-card strong,
+    .running-entry-card strong{
+      display:block;
+      font-size:16px;
+      color:#f8fafc;
+      overflow-wrap:anywhere;
+    }
+
+    .running-runner-card span,
+    .running-entry-card span{
+      display:block;
+      color:#94a3b8;
+      font-size:12px;
+      font-weight:850;
+      margin-top:3px;
+      line-height:1.35;
+    }
+
+    .running-stats{
+      text-align:right;
+      white-space:nowrap;
+    }
+
+    .running-stats b{
+      display:block;
+      color:#bbf7d0;
+      font-size:18px;
+    }
+
+    .running-stats small{
+      display:block;
+      color:#94a3b8;
+      font-weight:850;
+      margin-top:3px;
+    }
+
+    @media (max-width:900px){
+      .running-top{
+        display:grid;
+      }
+
+      .running-cols3,
+      .running-cols2{
+        grid-template-columns:1fr;
+      }
+
+      .running-card{
+        padding:16px;
+        border-radius:22px;
+        overflow:hidden;
+      }
+
+      .running-metric{
+        font-size:36px;
+      }
+
+      .running-form{
+        grid-template-columns:1fr;
+      }
+
+      .running-runner-card,
+      .running-entry-card{
+        align-items:flex-start;
+      }
+    }
+
+
   </style>
 </head>
 <body>
@@ -3574,6 +3778,7 @@
           <div class="tabs">
             <button class="tab active" data-tab="pred">Ennustused</button>
             <button class="tab" data-tab="lb">Edetabel</button>
+            <button class="tab" data-tab="running">Jooks</button>
             <button class="tab" data-tab="bonus">Lisaküsimused</button>
             <button class="tab" data-tab="others">Teiste ennustused</button>
             <button class="tab" data-tab="rules">Reeglid</button>
@@ -3639,6 +3844,65 @@
     </div>
   </div>
 </div>
+
+
+<div id="running" class="hide running-view" style="margin-top:8px">
+  <div class="running-top">
+    <div>
+      <strong>Jooksu challenge</strong>
+      <div class="sub">MM 2026 väravad muutuvad jooksueesmärgiks. Iga osaleja täidab oma eesmärki eraldi.</div>
+    </div>
+  </div>
+
+  <div id="runningMsg" class="msg"></div>
+
+  <div class="running-grid running-cols3">
+    <div class="running-card">
+      <h3>MM väravad kokku</h3>
+      <div class="sub">Väravate arv uueneb lõpetatud mängude põhjal.</div>
+      <div class="running-metric"><span id="runningGoalTotal">0</span> <small>km eesmärk</small></div>
+    </div>
+
+    <div class="running-card">
+      <h3>Minu seis</h3>
+      <div class="running-row"><span>Joostud</span><strong id="runningMyTotal">0.0 km</strong></div>
+      <div class="running-row"><span>Veel joosta</span><strong id="runningMyRemaining">0.0 km</strong></div>
+      <div class="running-row"><span>Täidetud</span><strong id="runningMyPercent">0%</strong></div>
+      <div class="running-progress"><span id="runningMyProgress"></span></div>
+    </div>
+
+    <div class="running-card">
+      <h3>Lisa jooks</h3>
+      <div class="sub">Kui lisad esimese jooksu, ilmud jooksu tabelisse. Kommentaar on valikuline.</div>
+      <div class="running-form">
+        <label>Kuupäev
+          <input id="runningDate" type="date" />
+        </label>
+        <label>Kilomeetrid
+          <input id="runningKm" inputmode="decimal" placeholder="näiteks 4.2" />
+        </label>
+        <textarea id="runningNote" placeholder="Kommentaar, valikuline"></textarea>
+        <button id="btnSaveRunning" type="button" class="primary">Salvesta jooks</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="running-grid running-cols2" style="margin-top:14px">
+    <div class="running-card">
+      <h3>Jooksu edetabel</h3>
+      <div class="sub">Tabelis kuvatakse ainult need kasutajad, kes on vähemalt ühe jooksu sisestanud.</div>
+      <div id="runningLeaderboardCards" class="running-leaderboard-cards"></div>
+      <div id="runningEmptyLeaderboard" class="sub hide" style="margin-top:12px">Keegi ei ole veel jooksu sisestanud.</div>
+    </div>
+
+    <div class="running-card">
+      <h3>Viimased jooksud</h3>
+      <div id="runningRecent" class="running-recent"></div>
+      <div id="runningEmptyRecent" class="sub hide" style="margin-top:12px">Jookse ei ole veel sisestatud.</div>
+    </div>
+  </div>
+</div>
+
 
 <div id="bonus" class="hide" style="margin-top:8px">
   <div class="sub">Lisaküsimuste punktid lähevad ainult play-off edetabelisse. Iga õigesti vastatud küsimus annab 3 punkti. Vastused lukustuvad 1 tund enne esimese MM mängu algust.</div>
@@ -4588,7 +4852,7 @@ function doLogout(){
   setWho();
 
   if ($("viewsCard")) $("viewsCard").classList.add("hide");
-  ["pred","lb","bonus","others","rules","account","admin"].forEach(id=>{
+  ["pred","lb","running","bonus","others","rules","account","admin"].forEach(id=>{
     const el = $(id);
     if (el) el.classList.add("hide");
   });
@@ -4647,6 +4911,8 @@ async function loadAll(){
   if (typeof loadAdminScreenshotBoard === "function") await loadAdminScreenshotBoard();
   if (typeof loadAdminBonus === "function") await loadAdminBonus();
   if (typeof loadAdminRules === "function") await loadAdminRules();
+  if (typeof bindRunningButtons === "function") bindRunningButtons();
+  if (typeof loadRunningChallenge === "function") await loadRunningChallenge();
   if (typeof bindAdminMissingPredictions === "function") bindAdminMissingPredictions();
   if (typeof loadAdminMissingPredictions === "function") await loadAdminMissingPredictions();
 
@@ -4678,7 +4944,7 @@ function toggleAdminTab(){
       document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
       const predTab = document.querySelector('[data-tab="pred"]');
       if (predTab) predTab.classList.add("active");
-      ["pred","lb","bonus","others","rules","account"].forEach(id=>{
+      ["pred","lb","running","bonus","others","rules","account"].forEach(id=>{
         const el = $(id);
         if (el) el.classList.add("hide");
       });
@@ -5636,6 +5902,158 @@ function bindAdminMissingPredictions(){
     btn.addEventListener("click", (e)=>{
       e.preventDefault();
       loadAdminMissingPredictions();
+    });
+  }
+}
+
+
+
+
+function runningKm(value){
+  const n = Number(value || 0);
+  if (!Number.isFinite(n)) return "0.0";
+  return n.toFixed(n % 1 === 0 ? 0 : 1);
+}
+
+function runningDateLabel(value){
+  if (!value) return "";
+  const d = new Date(`${value}T00:00:00`);
+  if (!Number.isFinite(d.getTime())) return String(value);
+  return new Intl.DateTimeFormat("et-EE", {
+    day:"2-digit",
+    month:"2-digit",
+    year:"numeric"
+  }).format(d);
+}
+
+function setRunningToday(){
+  const input = $("runningDate");
+  if (!input || input.value) return;
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  input.value = `${yyyy}-${mm}-${dd}`;
+}
+
+function renderRunningSummary(data){
+  const goal = Number(data.goal_total || 0);
+  const myTotal = Number(data.my_total_km || 0);
+  const myRemaining = Math.max(0, Number(data.my_remaining_km || 0));
+  const myPercent = Number(data.my_progress_percent || 0);
+
+  if ($("runningGoalTotal")) $("runningGoalTotal").textContent = String(goal);
+  if ($("runningMyTotal")) $("runningMyTotal").textContent = `${runningKm(myTotal)} km`;
+  if ($("runningMyRemaining")) $("runningMyRemaining").textContent = `${runningKm(myRemaining)} km`;
+  if ($("runningMyPercent")) $("runningMyPercent").textContent = `${myPercent}%`;
+  if ($("runningMyProgress")) $("runningMyProgress").style.width = `${Math.max(0, Math.min(100, myPercent))}%`;
+
+  const lb = $("runningLeaderboardCards");
+  const emptyLb = $("runningEmptyLeaderboard");
+  const rows = data.leaderboard || [];
+
+  if (lb) {
+    lb.innerHTML = rows.map(row=>{
+      const percent = Number(row.progress_percent || 0);
+      return `
+        <div class="running-runner-card">
+          <div>
+            <strong>${escapeHtml(row.display_name || row.username || "Mängija")}</strong>
+            <span>Täidetud ${percent}%</span>
+          </div>
+          <div class="running-stats">
+            <b>${runningKm(row.total_km)} km</b>
+            <small>veel ${runningKm(row.remaining_km)} km</small>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  if (emptyLb) emptyLb.classList.toggle("hide", rows.length > 0);
+
+  const recent = $("runningRecent");
+  const emptyRecent = $("runningEmptyRecent");
+  const entries = data.recent_entries || [];
+
+  if (recent) {
+    recent.innerHTML = entries.map(e=>{
+      const note = String(e.note || "").trim();
+      const meta = `${runningDateLabel(e.run_date)}${note ? " · " + escapeHtml(note) : ""}`;
+      return `
+        <div class="running-entry-card">
+          <div>
+            <strong>${escapeHtml(e.display_name || "Mängija")}</strong>
+            <span>${meta}</span>
+          </div>
+          <div class="running-stats">
+            <b>${runningKm(e.kilometers)} km</b>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  if (emptyRecent) emptyRecent.classList.toggle("hide", entries.length > 0);
+}
+
+async function loadRunningChallenge(){
+  if (!token || !me) return;
+  const msg = $("runningMsg");
+  if (msg) msg.textContent = "";
+  setRunningToday();
+
+  try{
+    const data = await call("running/summary", {method:"GET"});
+    renderRunningSummary(data);
+  }catch(err){
+    if (msg) setMsg(msg, false, err.message);
+  }
+}
+
+async function saveRunningEntry(){
+  const btn = $("btnSaveRunning");
+  const msg = $("runningMsg");
+  const runDate = $("runningDate")?.value || "";
+  const km = String($("runningKm")?.value || "").trim().replace(",", ".");
+  const note = $("runningNote")?.value || "";
+
+  if (!runDate) return setMsg(msg, false, "Vali kuupäev.");
+  if (!km || !Number.isFinite(Number(km)) || Number(km) <= 0) return setMsg(msg, false, "Sisesta kilomeetrid.");
+
+  try{
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Salvestan...";
+    }
+
+    await call("running/entries", {
+      method:"POST",
+      body: JSON.stringify({run_date: runDate, kilometers: km, note})
+    });
+
+    if ($("runningKm")) $("runningKm").value = "";
+    if ($("runningNote")) $("runningNote").value = "";
+
+    setMsg(msg, true, "Jooks salvestatud.");
+    await loadRunningChallenge();
+  }catch(err){
+    setMsg(msg, false, err.message);
+  }finally{
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "Salvesta jooks";
+    }
+  }
+}
+
+function bindRunningButtons(){
+  const btn = $("btnSaveRunning");
+  if (btn && btn.dataset.boundRunning !== "1") {
+    btn.dataset.boundRunning = "1";
+    btn.addEventListener("click", (e)=>{
+      e.preventDefault();
+      saveRunningEntry();
     });
   }
 }
@@ -6963,9 +7381,10 @@ document.querySelectorAll(".tab").forEach(t=>{
       toggleAdminTab();
       return;
     }
-    ["pred","lb","bonus","others","rules","account","admin"].forEach(id=>{ const el=$(id); if (el) el.classList.add("hide"); });
+    ["pred","lb","running","bonus","others","rules","account","admin"].forEach(id=>{ const el=$(id); if (el) el.classList.add("hide"); });
     const target = $(name); if (target) target.classList.remove("hide");
     if (name === "bonus") loadBonusQuestions();
+    if (name === "running") loadRunningChallenge();
     if (name === "rules") loadRulesView();
     if (name === "admin") { loadAdminBonus(); loadAdminRules(); }
     updateImportTimesVisibility(name);
@@ -6988,6 +7407,7 @@ bindBonusExportButton();
 bindBonusButtons();
 bindAdminBonusLockButtons();
 bindRulesButtons();
+bindRunningButtons();
 bindAuthButtons();
 bindLogoutButtons();
 loadAll();

@@ -2969,6 +2969,168 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
     }
 
 
+
+// Jooksu challenge: eraldi moodul, ei mõjuta ennustuspunktide arvestust
+    if (event.httpMethod === "GET" && route === "running/summary") {
+      const u = await freshUserFrom(sb, event);
+      if (!u) return json(401, { error: "Pole sisse logitud." });
+
+      const matchesRes = await sb
+        .from("matches")
+        .select("id,match_no,final_home,final_away,is_finished")
+        .gte("match_no", 1)
+        .lte("match_no", 104);
+
+      if (matchesRes.error) return json(500, { error: matchesRes.error.message });
+
+      let goalTotal = 0;
+      for (const m of matchesRes.data || []) {
+        const h = Number(m.final_home);
+        const a = Number(m.final_away);
+        const hasScore = m.final_home !== null && m.final_home !== undefined && m.final_away !== null && m.final_away !== undefined && Number.isFinite(h) && Number.isFinite(a);
+        if (hasScore) goalTotal += h + a;
+      }
+
+      const entriesRes = await sb
+        .from("running_entries")
+        .select("id,player_id,run_date,kilometers,note,created_at")
+        .order("created_at", { ascending: false });
+
+      if (entriesRes.error) {
+        return json(500, { error: entriesRes.error.message + " Käivita Supabase SQL Editoris sql/running_entries.sql." });
+      }
+
+      const playersRes = await sb
+        .from("players")
+        .select("id,username,display_name,is_admin");
+
+      if (playersRes.error) return json(500, { error: playersRes.error.message });
+
+      const playerMap = new Map();
+      for (const p of playersRes.data || []) {
+        playerMap.set(String(p.id), p);
+      }
+
+      const totals = new Map();
+      for (const e of entriesRes.data || []) {
+        const p = playerMap.get(String(e.player_id));
+        if (!p || p.is_admin) continue;
+        const km = Number(e.kilometers);
+        if (!Number.isFinite(km)) continue;
+        const key = String(e.player_id);
+        if (!totals.has(key)) {
+          totals.set(key, {
+            player_id: key,
+            username: p.username || "",
+            display_name: p.display_name || p.username || "Mängija",
+            total_km: 0,
+            entry_count: 0
+          });
+        }
+        const row = totals.get(key);
+        row.total_km += km;
+        row.entry_count += 1;
+      }
+
+      const leaderboard = Array.from(totals.values())
+        .map(row => ({
+          ...row,
+          total_km: Math.round(row.total_km * 100) / 100,
+          goal_km: goalTotal,
+          remaining_km: Math.max(0, Math.round((goalTotal - row.total_km) * 100) / 100),
+          progress_percent: goalTotal > 0 ? Math.round((row.total_km / goalTotal) * 100) : 0
+        }))
+        .sort((a,b) => (b.total_km - a.total_km) || String(a.display_name).localeCompare(String(b.display_name), "et"));
+
+      const myTotalRaw = totals.get(String(u.id))?.total_km || 0;
+      const myTotal = Math.round(myTotalRaw * 100) / 100;
+
+      const recent_entries = (entriesRes.data || [])
+        .map(e => {
+          const p = playerMap.get(String(e.player_id));
+          if (!p || p.is_admin) return null;
+          return {
+            id: e.id,
+            player_id: e.player_id,
+            display_name: p.display_name || p.username || "Mängija",
+            run_date: e.run_date,
+            kilometers: Number(e.kilometers),
+            note: e.note || "",
+            created_at: e.created_at
+          };
+        })
+        .filter(Boolean)
+        .slice(0, 12);
+
+      const my_entries = (entriesRes.data || [])
+        .filter(e => String(e.player_id) === String(u.id))
+        .slice(0, 20)
+        .map(e => ({
+          id: e.id,
+          run_date: e.run_date,
+          kilometers: Number(e.kilometers),
+          note: e.note || "",
+          created_at: e.created_at
+        }));
+
+      return json(200, {
+        ok: true,
+        goal_total: goalTotal,
+        my_total_km: myTotal,
+        my_remaining_km: Math.max(0, Math.round((goalTotal - myTotal) * 100) / 100),
+        my_progress_percent: goalTotal > 0 ? Math.round((myTotal / goalTotal) * 100) : 0,
+        leaderboard,
+        recent_entries,
+        my_entries
+      });
+    }
+
+    if (event.httpMethod === "POST" && route === "running/entries") {
+      const u = await freshUserFrom(sb, event);
+      if (!u) return json(401, { error: "Pole sisse logitud." });
+
+      const body = JSON.parse(event.body || "{}");
+      const run_date = String(body.run_date || "").trim();
+      const kmRaw = String(body.kilometers ?? "").trim().replace(",", ".");
+      const kilometers = Number(kmRaw);
+      const note = String(body.note || "").trim();
+
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(run_date)) {
+        return json(400, { error: "Kuupäev peab olema formaadis YYYY-MM-DD." });
+      }
+
+      const parsedDate = new Date(`${run_date}T00:00:00Z`);
+      if (!Number.isFinite(parsedDate.getTime())) {
+        return json(400, { error: "Kuupäev on vigane." });
+      }
+
+      if (!Number.isFinite(kilometers) || kilometers <= 0 || kilometers > 200) {
+        return json(400, { error: "Kilomeetrid peavad olema suuremad kui 0 ja kuni 200." });
+      }
+
+      if (note.length > 500) {
+        return json(400, { error: "Kommentaar on liiga pikk." });
+      }
+
+      const ins = await sb
+        .from("running_entries")
+        .insert({
+          player_id: u.id,
+          run_date,
+          kilometers: Math.round(kilometers * 100) / 100,
+          note: note || null
+        })
+        .select("id,player_id,run_date,kilometers,note,created_at")
+        .single();
+
+      if (ins.error) {
+        return json(500, { error: ins.error.message + " Käivita Supabase SQL Editoris sql/running_entries.sql." });
+      }
+
+      return json(200, { ok: true, entry: ins.data });
+    }
+
+
 // Admin players CRUD
     if (event.httpMethod === "GET" && route === "admin/players") {
       const u = await requireAdmin(sb, event);
