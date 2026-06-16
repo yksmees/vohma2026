@@ -3711,6 +3711,66 @@
     }
 
 
+  
+    .running-form select{
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:10px 12px;
+      background:#0f172a;
+      color:#e5e7eb;
+      font:inherit;
+      width:100%;
+      max-width:100%;
+      min-width:0;
+      min-height:42px;
+      box-sizing:border-box;
+    }
+
+    .running-form{
+      grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+      width:100%;
+      max-width:100%;
+      min-width:0;
+      box-sizing:border-box;
+    }
+
+    .running-form label,
+    .running-form input,
+    .running-form select,
+    .running-form textarea,
+    .running-form button{
+      min-width:0;
+      max-width:100%;
+      width:100%;
+      box-sizing:border-box;
+    }
+
+    .running-coeff-box{
+      margin-top:10px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.045);
+      border-radius:16px;
+      padding:11px;
+      color:#94a3b8;
+      font-size:12px;
+      line-height:1.45;
+      font-weight:800;
+      overflow-wrap:anywhere;
+    }
+
+    .running-coeff-box strong{
+      display:block;
+      color:#f8fafc;
+      margin-bottom:4px;
+    }
+
+    @media (max-width:900px){
+      .running-form{
+        grid-template-columns:1fr !important;
+      }
+    }
+
+
   </style>
 </head>
 <body>
@@ -3849,8 +3909,8 @@
 <div id="running" class="hide running-view" style="margin-top:8px">
   <div class="running-top">
     <div>
-      <strong>Jooksu challenge</strong>
-      <div class="sub">MM 2026 väravad muutuvad jooksueesmärgiks. Iga osaleja täidab oma eesmärki eraldi.</div>
+      <strong>Liikumise challenge</strong>
+      <div class="sub">MM 2026 väravad muutuvad liikumiseesmärgiks. Vali tegevus, sisesta kilomeetrid ja süsteem teisendab need koefitsiendi järgi arvestuslikeks kilomeetriteks.</div>
     </div>
   </div>
 
@@ -3865,38 +3925,54 @@
 
     <div class="running-card">
       <h3>Minu seis</h3>
-      <div class="running-row"><span>Joostud</span><strong id="runningMyTotal">0.0 km</strong></div>
-      <div class="running-row"><span>Veel joosta</span><strong id="runningMyRemaining">0.0 km</strong></div>
+      <div class="running-row"><span>Arvestuses</span><strong id="runningMyTotal">0.0 km</strong></div>
+      <div class="running-row"><span>Veel eesmärgini</span><strong id="runningMyRemaining">0.0 km</strong></div>
       <div class="running-row"><span>Täidetud</span><strong id="runningMyPercent">0%</strong></div>
       <div class="running-progress"><span id="runningMyProgress"></span></div>
     </div>
 
     <div class="running-card">
-      <h3>Lisa jooks</h3>
-      <div class="sub">Kui lisad esimese jooksu, ilmud jooksu tabelisse. Kommentaar on valikuline.</div>
+      <h3>Lisa tegevus</h3>
+      <div class="sub">Kui lisad esimese tegevuse, ilmud edetabelisse. Kommentaar on valikuline.</div>
       <div class="running-form">
+        <label>Tegevus
+          <select id="runningActivity">
+            <option value="run" data-multiplier="1">Jooks · 1 km = 1.0</option>
+            <option value="rollerski" data-multiplier="0.6">Suusarull · 1 km = 0.6</option>
+            <option value="walk" data-multiplier="1">Kõnd · 1 km = 1.0</option>
+            <option value="swim" data-multiplier="3">Ujumine · 1 km = 3.0</option>
+            <option value="bike" data-multiplier="0.4">Ratas · 1 km = 0.4</option>
+          </select>
+        </label>
         <label>Kuupäev
           <input id="runningDate" type="date" />
         </label>
         <label>Kilomeetrid
-          <input id="runningKm" inputmode="decimal" placeholder="näiteks 4.2" />
+          <input id="runningKm" inputmode="decimal" placeholder="näiteks 11,4" />
+        </label>
+        <label>Arvestusse läheb
+          <input id="runningEquivalent" value="0.0 km" readonly />
         </label>
         <textarea id="runningNote" placeholder="Kommentaar, valikuline"></textarea>
-        <button id="btnSaveRunning" type="button" class="primary">Salvesta jooks</button>
+        <button id="btnSaveRunning" type="button" class="primary">Salvesta tegevus</button>
+      </div>
+      <div class="running-coeff-box">
+        <strong>Koefitsiendid</strong>
+        <div>Jooks 1.0 · Suusarull 0.6 · Kõnd 1.0 · Ujumine 3.0 · Ratas 0.4</div>
       </div>
     </div>
   </div>
 
   <div class="running-grid running-cols2" style="margin-top:14px">
     <div class="running-card">
-      <h3>Jooksu edetabel</h3>
-      <div class="sub">Tabelis kuvatakse ainult need kasutajad, kes on vähemalt ühe jooksu sisestanud.</div>
+      <h3>Liikumise edetabel</h3>
+      <div class="sub">Tabelis kuvatakse ainult need kasutajad, kes on vähemalt ühe tegevuse sisestanud.</div>
       <div id="runningLeaderboardCards" class="running-leaderboard-cards"></div>
       <div id="runningEmptyLeaderboard" class="sub hide" style="margin-top:12px">Keegi ei ole veel jooksu sisestanud.</div>
     </div>
 
     <div class="running-card">
-      <h3>Viimased jooksud</h3>
+      <h3>Viimased sisestused</h3>
       <div id="runningRecent" class="running-recent"></div>
       <div id="runningEmptyRecent" class="sub hide" style="margin-top:12px">Jookse ei ole veel sisestatud.</div>
     </div>
@@ -5926,6 +6002,35 @@ function runningDateLabel(value){
   }).format(d);
 }
 
+function runningActivityMultiplier(){
+  const activity = $("runningActivity");
+  const selected = activity?.selectedOptions?.[0];
+  const multiplier = Number(selected?.dataset?.multiplier || 1);
+  return Number.isFinite(multiplier) ? multiplier : 1;
+}
+
+function runningActivityLabel(type){
+  const labels = {
+    run: "Jooks",
+    rollerski: "Suusarull",
+    walk: "Kõnd",
+    swim: "Ujumine",
+    bike: "Ratas"
+  };
+  return labels[String(type || "run")] || "Tegevus";
+}
+
+function runningNumericInputValue(id){
+  return String($(id)?.value || "").trim().replace(",", ".");
+}
+
+function updateRunningEquivalent(){
+  const km = Number(runningNumericInputValue("runningKm"));
+  const multiplier = runningActivityMultiplier();
+  const equivalent = Number.isFinite(km) ? Math.round(km * multiplier * 100) / 100 : 0;
+  if ($("runningEquivalent")) $("runningEquivalent").value = `${runningKm(equivalent)} km`;
+}
+
 function setRunningToday(){
   const input = $("runningDate");
   if (!input || input.value) return;
@@ -5979,7 +6084,9 @@ function renderRunningSummary(data){
   if (recent) {
     recent.innerHTML = entries.map(e=>{
       const note = String(e.note || "").trim();
-      const meta = `${runningDateLabel(e.run_date)}${note ? " · " + escapeHtml(note) : ""}`;
+      const label = e.activity_label || runningActivityLabel(e.activity_type);
+      const original = `${label} ${runningKm(e.kilometers)} km`;
+      const meta = `${runningDateLabel(e.run_date)} · ${original}${note ? " · " + escapeHtml(note) : ""}`;
       return `
         <div class="running-entry-card">
           <div>
@@ -5987,7 +6094,8 @@ function renderRunningSummary(data){
             <span>${meta}</span>
           </div>
           <div class="running-stats">
-            <b>${runningKm(e.kilometers)} km</b>
+            <b>${runningKm(e.equivalent_km ?? e.kilometers)} km</b>
+            <small>arvestus</small>
           </div>
         </div>
       `;
@@ -6002,6 +6110,7 @@ async function loadRunningChallenge(){
   const msg = $("runningMsg");
   if (msg) msg.textContent = "";
   setRunningToday();
+  updateRunningEquivalent();
 
   try{
     const data = await call("running/summary", {method:"GET"});
@@ -6015,7 +6124,8 @@ async function saveRunningEntry(){
   const btn = $("btnSaveRunning");
   const msg = $("runningMsg");
   const runDate = $("runningDate")?.value || "";
-  const km = String($("runningKm")?.value || "").trim().replace(",", ".");
+  const km = runningNumericInputValue("runningKm");
+  const activityType = $("runningActivity")?.value || "run";
   const note = $("runningNote")?.value || "";
 
   if (!runDate) return setMsg(msg, false, "Vali kuupäev.");
@@ -6029,10 +6139,11 @@ async function saveRunningEntry(){
 
     await call("running/entries", {
       method:"POST",
-      body: JSON.stringify({run_date: runDate, kilometers: km, note})
+      body: JSON.stringify({run_date: runDate, kilometers: km, activity_type: activityType, note})
     });
 
     if ($("runningKm")) $("runningKm").value = "";
+    updateRunningEquivalent();
     if ($("runningNote")) $("runningNote").value = "";
 
     setMsg(msg, true, "Jooks salvestatud.");
@@ -6042,7 +6153,7 @@ async function saveRunningEntry(){
   }finally{
     if (btn) {
       btn.disabled = false;
-      btn.textContent = "Salvesta jooks";
+      btn.textContent = "Salvesta tegevus";
     }
   }
 }
@@ -6056,6 +6167,20 @@ function bindRunningButtons(){
       saveRunningEntry();
     });
   }
+
+  const activity = $("runningActivity");
+  if (activity && activity.dataset.boundRunningCalc !== "1") {
+    activity.dataset.boundRunningCalc = "1";
+    activity.addEventListener("change", updateRunningEquivalent);
+  }
+
+  const km = $("runningKm");
+  if (km && km.dataset.boundRunningCalc !== "1") {
+    km.dataset.boundRunningCalc = "1";
+    km.addEventListener("input", updateRunningEquivalent);
+  }
+
+  updateRunningEquivalent();
 }
 
 

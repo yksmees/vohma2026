@@ -2975,6 +2975,22 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
       const u = await freshUserFrom(sb, event);
       if (!u) return json(401, { error: "Pole sisse logitud." });
 
+      const activityLabels = {
+        run: "Jooks",
+        rollerski: "Suusarull",
+        walk: "Kõnd",
+        swim: "Ujumine",
+        bike: "Ratas"
+      };
+
+      const activityMultipliers = {
+        run: 1.0,
+        rollerski: 0.6,
+        walk: 1.0,
+        swim: 3.0,
+        bike: 0.4
+      };
+
       const matchesRes = await sb
         .from("matches")
         .select("id,match_no,final_home,final_away,is_finished")
@@ -2993,7 +3009,7 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
 
       const entriesRes = await sb
         .from("running_entries")
-        .select("id,player_id,run_date,kilometers,note,created_at")
+        .select("id,player_id,activity_type,activity_multiplier,run_date,kilometers,note,created_at")
         .order("created_at", { ascending: false });
 
       if (entriesRes.error) {
@@ -3015,20 +3031,29 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
       for (const e of entriesRes.data || []) {
         const p = playerMap.get(String(e.player_id));
         if (!p || p.is_admin) continue;
+
         const km = Number(e.kilometers);
-        if (!Number.isFinite(km)) continue;
+        const activityType = String(e.activity_type || "run");
+        const multiplier = activityMultipliers[activityType] ?? Number(e.activity_multiplier || 1);
+        if (!Number.isFinite(km) || !Number.isFinite(multiplier)) continue;
+
+        const equivalentKm = km * multiplier;
         const key = String(e.player_id);
+
         if (!totals.has(key)) {
           totals.set(key, {
             player_id: key,
             username: p.username || "",
             display_name: p.display_name || p.username || "Mängija",
             total_km: 0,
+            actual_km: 0,
             entry_count: 0
           });
         }
+
         const row = totals.get(key);
-        row.total_km += km;
+        row.total_km += equivalentKm;
+        row.actual_km += km;
         row.entry_count += 1;
       }
 
@@ -3036,6 +3061,7 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
         .map(row => ({
           ...row,
           total_km: Math.round(row.total_km * 100) / 100,
+          actual_km: Math.round(row.actual_km * 100) / 100,
           goal_km: goalTotal,
           remaining_km: Math.max(0, Math.round((goalTotal - row.total_km) * 100) / 100),
           progress_percent: goalTotal > 0 ? Math.round((row.total_km / goalTotal) * 100) : 0
@@ -3049,12 +3075,22 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
         .map(e => {
           const p = playerMap.get(String(e.player_id));
           if (!p || p.is_admin) return null;
+
+          const km = Number(e.kilometers);
+          const activityType = String(e.activity_type || "run");
+          const multiplier = activityMultipliers[activityType] ?? Number(e.activity_multiplier || 1);
+          const equivalentKm = Number.isFinite(km) && Number.isFinite(multiplier) ? Math.round(km * multiplier * 100) / 100 : 0;
+
           return {
             id: e.id,
             player_id: e.player_id,
             display_name: p.display_name || p.username || "Mängija",
+            activity_type: activityType,
+            activity_label: activityLabels[activityType] || "Tegevus",
+            activity_multiplier: multiplier,
             run_date: e.run_date,
-            kilometers: Number(e.kilometers),
+            kilometers: km,
+            equivalent_km: equivalentKm,
             note: e.note || "",
             created_at: e.created_at
           };
@@ -3065,13 +3101,22 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
       const my_entries = (entriesRes.data || [])
         .filter(e => String(e.player_id) === String(u.id))
         .slice(0, 20)
-        .map(e => ({
-          id: e.id,
-          run_date: e.run_date,
-          kilometers: Number(e.kilometers),
-          note: e.note || "",
-          created_at: e.created_at
-        }));
+        .map(e => {
+          const km = Number(e.kilometers);
+          const type = e.activity_type || "run";
+          const multiplier = activityMultipliers[type] ?? Number(e.activity_multiplier || 1);
+          return {
+            id: e.id,
+            activity_type: type,
+            activity_label: activityLabels[type] || "Tegevus",
+            activity_multiplier: multiplier,
+            run_date: e.run_date,
+            kilometers: km,
+            equivalent_km: Number.isFinite(km) && Number.isFinite(multiplier) ? Math.round(km * multiplier * 100) / 100 : 0,
+            note: e.note || "",
+            created_at: e.created_at
+          };
+        });
 
       return json(200, {
         ok: true,
@@ -3095,6 +3140,18 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
       const kilometers = Number(kmRaw);
       const note = String(body.note || "").trim();
 
+      const activityTypeRaw = String(body.activity_type || "run").trim().toLowerCase();
+      const multipliers = {
+        run: 1.0,
+        rollerski: 0.6,
+        walk: 1.0,
+        swim: 3.0,
+        bike: 0.4
+      };
+
+      const activity_type = Object.prototype.hasOwnProperty.call(multipliers, activityTypeRaw) ? activityTypeRaw : "run";
+      const activity_multiplier = multipliers[activity_type];
+
       if (!/^\d{4}-\d{2}-\d{2}$/.test(run_date)) {
         return json(400, { error: "Kuupäev peab olema formaadis YYYY-MM-DD." });
       }
@@ -3116,11 +3173,13 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
         .from("running_entries")
         .insert({
           player_id: u.id,
+          activity_type,
+          activity_multiplier,
           run_date,
           kilometers: Math.round(kilometers * 100) / 100,
           note: note || null
         })
-        .select("id,player_id,run_date,kilometers,note,created_at")
+        .select("id,player_id,activity_type,activity_multiplier,run_date,kilometers,note,created_at")
         .single();
 
       if (ins.error) {
