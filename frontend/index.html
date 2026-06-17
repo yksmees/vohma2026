@@ -4451,7 +4451,7 @@
         </div>
 
 
-<div class="card admin-running-card" style="margin-top:10px">
+<div id="adminRunningActivitiesCard" class="card admin-running-card hide" style="margin-top:10px">
   <strong>Liikumise tegevused</strong>
   <div class="sub" style="margin-top:6px">Need tegevused ilmuvad kasutaja Jooks vaate dropdowni ja lähevad arvestusse ainult siis, kui tegevus on aktiivne. Mitteaktiivsed tegevused, näiteks Kõnd, ei ilmu kasutajale ega lähe edetabelisse.</div>
   <div id="adminRunningMsg" class="msg"></div>
@@ -5056,6 +5056,7 @@ function doLogout(){
   setWho();
 
   if ($("viewsCard")) $("viewsCard").classList.add("hide");
+  if ($("adminRunningActivitiesCard")) $("adminRunningActivitiesCard").classList.add("hide");
   ["pred","lb","running","bonus","others","rules","account","admin"].forEach(id=>{
     const el = $(id);
     if (el) el.classList.add("hide");
@@ -5128,9 +5129,11 @@ async function loadAll(){
 }
 
 function updateImportTimesVisibility(activeTab){
-  const card = $("importTimesCard");
-  if (!card) return;
-  card.classList.toggle("hide", !(me && me.is_admin && activeTab === "admin"));
+  const visible = !!(me && me.is_admin && activeTab === "admin");
+  ["importTimesCard","adminRunningActivitiesCard"].forEach(id => {
+    const card = $(id);
+    if (card) card.classList.toggle("hide", !visible);
+  });
 }
 
 function toggleAdminTab(){
@@ -5144,6 +5147,7 @@ function toggleAdminTab(){
   if (!isA){
     if ($("admin")) $("admin").classList.add("hide");
     if ($("importTimesCard")) $("importTimesCard").classList.add("hide");
+    if ($("adminRunningActivitiesCard")) $("adminRunningActivitiesCard").classList.add("hide");
 
     const active = document.querySelector(".tab.active")?.getAttribute("data-tab");
     if (active === "admin") {
