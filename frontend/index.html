@@ -3771,6 +3771,104 @@
     }
 
 
+  
+    /* ADMIN RUNNING ACTIVITIES */
+    .admin-running-add{
+      display:grid;
+      grid-template-columns:minmax(0,1.2fr) minmax(120px,.55fr) minmax(110px,.45fr) auto auto;
+      gap:8px;
+      align-items:center;
+      margin-top:12px;
+    }
+
+    .admin-running-add input,
+    .admin-running-table input{
+      width:100%;
+      min-width:0;
+      box-sizing:border-box;
+    }
+
+    .admin-running-active{
+      display:flex;
+      align-items:center;
+      gap:6px;
+      color:#cbd5e1;
+      font-weight:900;
+      white-space:nowrap;
+    }
+
+    .admin-running-active input{
+      width:auto;
+    }
+
+    .admin-running-wrap{
+      width:100%;
+      max-width:100%;
+      overflow-x:auto;
+      -webkit-overflow-scrolling:touch;
+      margin-top:12px;
+      padding-bottom:8px;
+    }
+
+    .admin-running-table{
+      width:100%;
+      min-width:760px;
+      table-layout:auto;
+    }
+
+    .admin-running-table td,
+    .admin-running-table th{
+      vertical-align:middle;
+    }
+
+    .admin-running-table .inactive-row{
+      opacity:.62;
+    }
+
+    .admin-running-table .code-cell{
+      color:#94a3b8;
+      font-weight:900;
+      white-space:nowrap;
+    }
+
+    .admin-running-actions{
+      display:flex;
+      justify-content:flex-end;
+      gap:6px;
+      flex-wrap:wrap;
+    }
+
+    @media (max-width:760px){
+      #admin .admin-running-add{
+        grid-template-columns:1fr !important;
+      }
+
+      #admin .admin-running-active{
+        width:100%;
+        white-space:normal;
+      }
+
+      #admin .admin-running-table{
+        min-width:720px !important;
+      }
+
+      #admin .admin-running-table th,
+      #admin .admin-running-table td{
+        font-size:13px !important;
+        padding:8px 9px !important;
+      }
+
+      #admin .admin-running-table th:first-child,
+      #admin .admin-running-table td:first-child{
+        position:sticky;
+        left:0;
+        z-index:2;
+        background:#111827;
+        box-shadow:8px 0 14px rgba(0,0,0,.24);
+      }
+    }
+
+
   </style>
 </head>
 <body>
@@ -3939,7 +4037,6 @@
           <select id="runningActivity">
             <option value="run" data-multiplier="1">Jooks · 1 km = 1.0</option>
             <option value="rollerski" data-multiplier="0.6">Suusarull · 1 km = 0.6</option>
-            <option value="walk" data-multiplier="1">Kõnd · 1 km = 1.0</option>
             <option value="swim" data-multiplier="3">Ujumine · 1 km = 3.0</option>
             <option value="bike" data-multiplier="0.4">Ratas · 1 km = 0.4</option>
           </select>
@@ -3958,7 +4055,7 @@
       </div>
       <div class="running-coeff-box">
         <strong>Koefitsiendid</strong>
-        <div>Jooks 1.0 · Suusarull 0.6 · Kõnd 1.0 · Ujumine 3.0 · Ratas 0.4</div>
+        <div id="runningCoeffText">Tegevuste koefitsiendid tulevad admini seadistusest.</div>
       </div>
     </div>
   </div>
@@ -4352,6 +4449,37 @@
 
 </div>
         </div>
+
+
+<div class="card admin-running-card" style="margin-top:10px">
+  <strong>Liikumise tegevused</strong>
+  <div class="sub" style="margin-top:6px">Need tegevused ilmuvad kasutaja Jooks vaate dropdowni ja lähevad arvestusse ainult siis, kui tegevus on aktiivne. Mitteaktiivsed tegevused, näiteks Kõnd, ei ilmu kasutajale ega lähe edetabelisse.</div>
+  <div id="adminRunningMsg" class="msg"></div>
+
+  <div class="admin-running-add">
+    <input id="adminRunningNewLabel" placeholder="Uue tegevuse nimi" />
+    <input id="adminRunningNewMultiplier" inputmode="decimal" placeholder="Koefitsient, nt 1,2" />
+    <input id="adminRunningNewSort" inputmode="numeric" placeholder="Järjekord" />
+    <label class="admin-running-active"><input id="adminRunningNewActive" type="checkbox" checked /> Aktiivne</label>
+    <button id="btnAdminRunningAdd" type="button" class="primary">Lisa tegevus</button>
+  </div>
+
+  <div class="admin-running-wrap">
+    <table id="adminRunningActivitiesTable" class="admin-running-table">
+      <thead>
+        <tr>
+          <th>Kood</th>
+          <th>Tegevus</th>
+          <th>Koefitsient</th>
+          <th>Järjekord</th>
+          <th>Aktiivne</th>
+          <th class="right">Tegevus</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
 
 <div id="importTimesCard" class="card hide">
   <strong>Import ajad (FIFA ajakava)</strong>
@@ -4987,6 +5115,8 @@ async function loadAll(){
   if (typeof loadAdminScreenshotBoard === "function") await loadAdminScreenshotBoard();
   if (typeof loadAdminBonus === "function") await loadAdminBonus();
   if (typeof loadAdminRules === "function") await loadAdminRules();
+  if (typeof bindAdminRunningActivities === "function") bindAdminRunningActivities();
+  if (typeof loadAdminRunningActivities === "function") await loadAdminRunningActivities();
   if (typeof bindRunningButtons === "function") bindRunningButtons();
   if (typeof loadRunningChallenge === "function") await loadRunningChallenge();
   if (typeof bindAdminMissingPredictions === "function") bindAdminMissingPredictions();
@@ -6013,11 +6143,32 @@ function runningActivityLabel(type){
   const labels = {
     run: "Jooks",
     rollerski: "Suusarull",
-    walk: "Kõnd",
     swim: "Ujumine",
     bike: "Ratas"
   };
   return labels[String(type || "run")] || "Tegevus";
+}
+
+function renderRunningActivityOptions(activities){
+  const select = $("runningActivity");
+  if (!select) return;
+
+  const current = select.value;
+  const rows = (activities || []).filter(a => a && a.code && a.is_active !== false);
+
+  if (!rows.length) {
+    select.innerHTML = `<option value="run" data-multiplier="1">Jooks · 1 km = 1.0</option>`;
+    updateRunningEquivalent();
+    return;
+  }
+
+  select.innerHTML = rows.map(a => {
+    const multiplier = Number(a.multiplier || 1);
+    return `<option value="${escapeHtml(a.code)}" data-multiplier="${multiplier}">${escapeHtml(a.label)} · 1 km = ${runningKm(multiplier)}</option>`;
+  }).join("");
+
+  if (rows.some(a => String(a.code) === String(current))) select.value = current;
+  updateRunningEquivalent();
 }
 
 function runningNumericInputValue(id){
@@ -6042,6 +6193,7 @@ function setRunningToday(){
 }
 
 function renderRunningSummary(data){
+  renderRunningActivityOptions(data.activities || []);
   const goal = Number(data.goal_total || 0);
   const myTotal = Number(data.my_total_km || 0);
   const myRemaining = Math.max(0, Number(data.my_remaining_km || 0));
@@ -6181,6 +6333,146 @@ function bindRunningButtons(){
   }
 
   updateRunningEquivalent();
+}
+
+
+
+
+function adminRunningActivityCode(label){
+  return String(label || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 40);
+}
+
+function renderAdminRunningActivities(activities){
+  const tbody = $("adminRunningActivitiesTable")?.querySelector("tbody");
+  if (!tbody) return;
+
+  tbody.innerHTML = (activities || []).map(a => {
+    const code = escapeHtml(a.code);
+    const label = escapeHtml(a.label || "");
+    const multiplier = Number(a.multiplier || 0);
+    const sortOrder = Number(a.sort_order || 100);
+    const checked = a.is_active ? "checked" : "";
+    const inactive = a.is_active ? "" : " inactive-row";
+
+    return `
+      <tr class="${inactive}" data-running-activity="${code}">
+        <td class="code-cell">${code}</td>
+        <td><input data-admin-running-label="${code}" value="${label}"></td>
+        <td><input data-admin-running-multiplier="${code}" inputmode="decimal" value="${runningKm(multiplier)}"></td>
+        <td><input data-admin-running-sort="${code}" inputmode="numeric" value="${sortOrder}"></td>
+        <td><label class="admin-running-active"><input data-admin-running-active="${code}" type="checkbox" ${checked}> Aktiivne</label></td>
+        <td class="right"><div class="admin-running-actions"><button type="button" data-admin-running-save="${code}">Salvesta</button></div></td>
+      </tr>
+    `;
+  }).join("");
+
+  tbody.querySelectorAll("[data-admin-running-save]").forEach(btn => {
+    btn.addEventListener("click", async e => {
+      e.preventDefault();
+      await saveAdminRunningActivity(btn.dataset.adminRunningSave, btn);
+    });
+  });
+}
+
+async function loadAdminRunningActivities(){
+  if (!(me && me.is_admin)) return;
+
+  const msg = $("adminRunningMsg");
+  try{
+    const data = await call("admin/running/activities", {method:"GET"});
+    renderAdminRunningActivities(data.activities || []);
+    if (msg) msg.textContent = "";
+  }catch(err){
+    if (msg) setMsg(msg, false, err.message);
+  }
+}
+
+async function addAdminRunningActivity(){
+  const msg = $("adminRunningMsg");
+  const label = $("adminRunningNewLabel")?.value || "";
+  const multiplier = $("adminRunningNewMultiplier")?.value || "";
+  const sort_order = $("adminRunningNewSort")?.value || 100;
+  const is_active = !!$("adminRunningNewActive")?.checked;
+  const code = adminRunningActivityCode(label);
+  const btn = $("btnAdminRunningAdd");
+
+  if (!label.trim()) return setMsg(msg, false, "Sisesta tegevuse nimi.");
+  if (!code) return setMsg(msg, false, "Tegevuse nimi peab sisaldama tähti või numbreid.");
+
+  try{
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Lisan...";
+    }
+
+    await call("admin/running/activities", {
+      method:"POST",
+      body: JSON.stringify({code, label, multiplier, sort_order, is_active})
+    });
+
+    if ($("adminRunningNewLabel")) $("adminRunningNewLabel").value = "";
+    if ($("adminRunningNewMultiplier")) $("adminRunningNewMultiplier").value = "";
+    if ($("adminRunningNewSort")) $("adminRunningNewSort").value = "";
+
+    setMsg(msg, true, "Tegevus lisatud.");
+    await loadAdminRunningActivities();
+    await loadRunningChallenge();
+  }catch(err){
+    setMsg(msg, false, err.message);
+  }finally{
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "Lisa tegevus";
+    }
+  }
+}
+
+async function saveAdminRunningActivity(code, btn){
+  const msg = $("adminRunningMsg");
+  const label = document.querySelector(`[data-admin-running-label="${code}"]`)?.value || "";
+  const multiplier = document.querySelector(`[data-admin-running-multiplier="${code}"]`)?.value || "";
+  const sort_order = document.querySelector(`[data-admin-running-sort="${code}"]`)?.value || 100;
+  const is_active = !!document.querySelector(`[data-admin-running-active="${code}"]`)?.checked;
+
+  try{
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Salvestan...";
+    }
+
+    await call(`admin/running/activities/${encodeURIComponent(code)}`, {
+      method:"PUT",
+      body: JSON.stringify({label, multiplier, sort_order, is_active})
+    });
+
+    setMsg(msg, true, "Tegevus salvestatud.");
+    await loadAdminRunningActivities();
+    await loadRunningChallenge();
+  }catch(err){
+    setMsg(msg, false, err.message);
+  }finally{
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "Salvesta";
+    }
+  }
+}
+
+function bindAdminRunningActivities(){
+  const btn = $("btnAdminRunningAdd");
+  if (btn && btn.dataset.boundAdminRunning !== "1") {
+    btn.dataset.boundAdminRunning = "1";
+    btn.addEventListener("click", e => {
+      e.preventDefault();
+      addAdminRunningActivity();
+    });
+  }
 }
 
 
@@ -7511,7 +7803,7 @@ document.querySelectorAll(".tab").forEach(t=>{
     if (name === "bonus") loadBonusQuestions();
     if (name === "running") loadRunningChallenge();
     if (name === "rules") loadRulesView();
-    if (name === "admin") { loadAdminBonus(); loadAdminRules(); }
+    if (name === "admin") { loadAdminBonus(); loadAdminRules(); loadAdminRunningActivities(); }
     updateImportTimesVisibility(name);
   });
 });
@@ -7532,6 +7824,7 @@ bindBonusExportButton();
 bindBonusButtons();
 bindAdminBonusLockButtons();
 bindRulesButtons();
+bindAdminRunningActivities();
 bindRunningButtons();
 bindAuthButtons();
 bindLogoutButtons();

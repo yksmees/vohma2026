@@ -2975,21 +2975,20 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
       const u = await freshUserFrom(sb, event);
       if (!u) return json(401, { error: "Pole sisse logitud." });
 
-      const activityLabels = {
-        run: "Jooks",
-        rollerski: "Suusarull",
-        walk: "Kõnd",
-        swim: "Ujumine",
-        bike: "Ratas"
-      };
+      const activitiesRes = await sb
+        .from("running_activity_types")
+        .select("code,label,multiplier,is_active,sort_order")
+        .order("sort_order", { ascending: true })
+        .order("label", { ascending: true });
 
-      const activityMultipliers = {
-        run: 1.0,
-        rollerski: 0.6,
-        walk: 1.0,
-        swim: 3.0,
-        bike: 0.4
-      };
+      if (activitiesRes.error) {
+        return json(500, { error: activitiesRes.error.message + " Käivita Supabase SQL Editoris sql/running_entries.sql." });
+      }
+
+      const allActivities = activitiesRes.data || [];
+      const activeActivities = allActivities.filter(a => a.is_active);
+      const activeActivityMap = new Map(activeActivities.map(a => [String(a.code), a]));
+      const allActivityMap = new Map(allActivities.map(a => [String(a.code), a]));
 
       const matchesRes = await sb
         .from("matches")
@@ -3032,9 +3031,12 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
         const p = playerMap.get(String(e.player_id));
         if (!p || p.is_admin) continue;
 
-        const km = Number(e.kilometers);
         const activityType = String(e.activity_type || "run");
-        const multiplier = activityMultipliers[activityType] ?? Number(e.activity_multiplier || 1);
+        const activity = activeActivityMap.get(activityType);
+        if (!activity) continue;
+
+        const km = Number(e.kilometers);
+        const multiplier = Number(activity.multiplier);
         if (!Number.isFinite(km) || !Number.isFinite(multiplier)) continue;
 
         const equivalentKm = km * multiplier;
@@ -3076,9 +3078,12 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
           const p = playerMap.get(String(e.player_id));
           if (!p || p.is_admin) return null;
 
-          const km = Number(e.kilometers);
           const activityType = String(e.activity_type || "run");
-          const multiplier = activityMultipliers[activityType] ?? Number(e.activity_multiplier || 1);
+          const activity = activeActivityMap.get(activityType);
+          if (!activity) return null;
+
+          const km = Number(e.kilometers);
+          const multiplier = Number(activity.multiplier);
           const equivalentKm = Number.isFinite(km) && Number.isFinite(multiplier) ? Math.round(km * multiplier * 100) / 100 : 0;
 
           return {
@@ -3086,7 +3091,7 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
             player_id: e.player_id,
             display_name: p.display_name || p.username || "Mängija",
             activity_type: activityType,
-            activity_label: activityLabels[activityType] || "Tegevus",
+            activity_label: activity.label || "Tegevus",
             activity_multiplier: multiplier,
             run_date: e.run_date,
             kilometers: km,
@@ -3100,15 +3105,17 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
 
       const my_entries = (entriesRes.data || [])
         .filter(e => String(e.player_id) === String(u.id))
-        .slice(0, 20)
         .map(e => {
+          const type = String(e.activity_type || "run");
+          const activity = activeActivityMap.get(type);
+          if (!activity) return null;
+
           const km = Number(e.kilometers);
-          const type = e.activity_type || "run";
-          const multiplier = activityMultipliers[type] ?? Number(e.activity_multiplier || 1);
+          const multiplier = Number(activity.multiplier);
           return {
             id: e.id,
             activity_type: type,
-            activity_label: activityLabels[type] || "Tegevus",
+            activity_label: activity.label || "Tegevus",
             activity_multiplier: multiplier,
             run_date: e.run_date,
             kilometers: km,
@@ -3116,7 +3123,9 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
             note: e.note || "",
             created_at: e.created_at
           };
-        });
+        })
+        .filter(Boolean)
+        .slice(0, 20);
 
       return json(200, {
         ok: true,
@@ -3124,6 +3133,13 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
         my_total_km: myTotal,
         my_remaining_km: Math.max(0, Math.round((goalTotal - myTotal) * 100) / 100),
         my_progress_percent: goalTotal > 0 ? Math.round((myTotal / goalTotal) * 100) : 0,
+        activities: activeActivities.map(a => ({
+          code: a.code,
+          label: a.label,
+          multiplier: Number(a.multiplier),
+          is_active: !!a.is_active,
+          sort_order: a.sort_order
+        })),
         leaderboard,
         recent_entries,
         my_entries
@@ -3139,18 +3155,20 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
       const kmRaw = String(body.kilometers ?? "").trim().replace(",", ".");
       const kilometers = Number(kmRaw);
       const note = String(body.note || "").trim();
+      const activity_type = String(body.activity_type || "").trim();
 
-      const activityTypeRaw = String(body.activity_type || "run").trim().toLowerCase();
-      const multipliers = {
-        run: 1.0,
-        rollerski: 0.6,
-        walk: 1.0,
-        swim: 3.0,
-        bike: 0.4
-      };
+      const activityRes = await sb
+        .from("running_activity_types")
+        .select("code,label,multiplier,is_active")
+        .eq("code", activity_type)
+        .eq("is_active", true)
+        .single();
 
-      const activity_type = Object.prototype.hasOwnProperty.call(multipliers, activityTypeRaw) ? activityTypeRaw : "run";
-      const activity_multiplier = multipliers[activity_type];
+      if (activityRes.error || !activityRes.data) {
+        return json(400, { error: "Valitud tegevus ei ole lubatud." });
+      }
+
+      const activity_multiplier = Number(activityRes.data.multiplier);
 
       if (!/^\d{4}-\d{2}-\d{2}$/.test(run_date)) {
         return json(400, { error: "Kuupäev peab olema formaadis YYYY-MM-DD." });
@@ -3163,6 +3181,10 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
 
       if (!Number.isFinite(kilometers) || kilometers <= 0 || kilometers > 200) {
         return json(400, { error: "Kilomeetrid peavad olema suuremad kui 0 ja kuni 200." });
+      }
+
+      if (!Number.isFinite(activity_multiplier) || activity_multiplier <= 0) {
+        return json(400, { error: "Tegevuse koefitsient on vigane." });
       }
 
       if (note.length > 500) {
@@ -3187,6 +3209,97 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
       }
 
       return json(200, { ok: true, entry: ins.data });
+    }
+
+    if (event.httpMethod === "GET" && route === "admin/running/activities") {
+      const u = await requireAdmin(sb, event);
+      if (!u) return json(403, { error: "Admini õigused puuduvad." });
+
+      const q = await sb
+        .from("running_activity_types")
+        .select("code,label,multiplier,is_active,sort_order,updated_at")
+        .order("sort_order", { ascending: true })
+        .order("label", { ascending: true });
+
+      if (q.error) return json(500, { error: q.error.message + " Käivita Supabase SQL Editoris sql/running_entries.sql." });
+
+      return json(200, {
+        ok: true,
+        activities: (q.data || []).map(a => ({
+          code: a.code,
+          label: a.label,
+          multiplier: Number(a.multiplier),
+          is_active: !!a.is_active,
+          sort_order: a.sort_order,
+          updated_at: a.updated_at
+        }))
+      });
+    }
+
+    if (event.httpMethod === "POST" && route === "admin/running/activities") {
+      const u = await requireAdmin(sb, event);
+      if (!u) return json(403, { error: "Admini õigused puuduvad." });
+
+      const body = JSON.parse(event.body || "{}");
+      const label = String(body.label || "").trim();
+      const codeRaw = String(body.code || label || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      const code = codeRaw.replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 40);
+      const multiplier = Number(String(body.multiplier ?? "").replace(",", "."));
+      const sort_order = Number.isFinite(Number(body.sort_order)) ? Number(body.sort_order) : 100;
+      const is_active = body.is_active !== false;
+
+      if (!code || !label) return json(400, { error: "Sisesta tegevuse nimi." });
+      if (!Number.isFinite(multiplier) || multiplier <= 0 || multiplier > 100) return json(400, { error: "Koefitsient peab olema suurem kui 0 ja kuni 100." });
+
+      const ins = await sb
+        .from("running_activity_types")
+        .insert({
+          code,
+          label,
+          multiplier: Math.round(multiplier * 100) / 100,
+          is_active,
+          sort_order,
+          updated_at: new Date().toISOString()
+        })
+        .select("code,label,multiplier,is_active,sort_order,updated_at")
+        .single();
+
+      if (ins.error) return json(500, { error: ins.error.message });
+
+      return json(200, { ok: true, activity: ins.data });
+    }
+
+    const runningActivityUpdate = route.match(/^admin\/running\/activities\/([a-z0-9_]+)$/);
+    if (runningActivityUpdate && event.httpMethod === "PUT") {
+      const u = await requireAdmin(sb, event);
+      if (!u) return json(403, { error: "Admini õigused puuduvad." });
+
+      const code = runningActivityUpdate[1];
+      const body = JSON.parse(event.body || "{}");
+      const label = String(body.label || "").trim();
+      const multiplier = Number(String(body.multiplier ?? "").replace(",", "."));
+      const sort_order = Number.isFinite(Number(body.sort_order)) ? Number(body.sort_order) : 100;
+      const is_active = !!body.is_active;
+
+      if (!label) return json(400, { error: "Sisesta tegevuse nimi." });
+      if (!Number.isFinite(multiplier) || multiplier <= 0 || multiplier > 100) return json(400, { error: "Koefitsient peab olema suurem kui 0 ja kuni 100." });
+
+      const upd = await sb
+        .from("running_activity_types")
+        .update({
+          label,
+          multiplier: Math.round(multiplier * 100) / 100,
+          is_active,
+          sort_order,
+          updated_at: new Date().toISOString()
+        })
+        .eq("code", code)
+        .select("code,label,multiplier,is_active,sort_order,updated_at")
+        .single();
+
+      if (upd.error) return json(500, { error: upd.error.message });
+
+      return json(200, { ok: true, activity: upd.data });
     }
 
 
