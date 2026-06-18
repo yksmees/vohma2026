@@ -3303,6 +3303,207 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
     }
 
 
+    if (event.httpMethod === "GET" && route === "beer/summary") {
+      const u = await freshUserFrom(sb, event);
+      if (!u) return json(401, { error: "Pole sisse logitud." });
+
+      const entriesRes = await sb
+        .from("beer_entries")
+        .select("id,player_id,beer_size_liters,beer_count,total_liters,created_at")
+        .order("created_at", { ascending: false });
+
+      if (entriesRes.error) {
+        return json(500, { error: entriesRes.error.message + " Käivita Supabase SQL Editoris sql/beer_counter.sql." });
+      }
+
+      const playersRes = await sb
+        .from("players")
+        .select("id,username,display_name,is_admin");
+
+      if (playersRes.error) return json(500, { error: playersRes.error.message });
+
+      const playerMap = new Map();
+      for (const p of playersRes.data || []) {
+        playerMap.set(String(p.id), p);
+      }
+
+      const totals = new Map();
+      const sizeTotals = new Map();
+      const now = Date.now();
+      const dayMs = 24 * 60 * 60 * 1000;
+      const last24Start = now - dayMs;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayStart = today.getTime();
+
+      let communityLiters = 0;
+      let communityCount = 0;
+      const last24Totals = new Map();
+
+      for (const e of entriesRes.data || []) {
+        const p = playerMap.get(String(e.player_id));
+        if (!p) continue;
+
+        const liters = Number(e.total_liters);
+        const count = Number(e.beer_count);
+        const size = Number(e.beer_size_liters);
+        const createdTime = e.created_at ? new Date(e.created_at).getTime() : 0;
+
+        if (!Number.isFinite(liters) || !Number.isFinite(count) || count <= 0) continue;
+
+        communityLiters += liters;
+        communityCount += count;
+
+        const key = String(e.player_id);
+        if (!totals.has(key)) {
+          totals.set(key, {
+            player_id: key,
+            username: p.username || "",
+            display_name: p.display_name || p.username || "Mängija",
+            beer_count: 0,
+            total_liters: 0,
+            today_liters: 0,
+            today_count: 0
+          });
+        }
+
+        const row = totals.get(key);
+        row.beer_count += count;
+        row.total_liters += liters;
+
+        if (Number.isFinite(createdTime) && createdTime >= todayStart) {
+          row.today_liters += liters;
+          row.today_count += count;
+        }
+
+        if (Number.isFinite(createdTime) && createdTime >= last24Start) {
+          if (!last24Totals.has(key)) {
+            last24Totals.set(key, {
+              player_id: key,
+              display_name: p.display_name || p.username || "Mängija",
+              liters: 0,
+              count: 0
+            });
+          }
+          const h = last24Totals.get(key);
+          h.liters += liters;
+          h.count += count;
+        }
+
+        if (Number.isFinite(size)) {
+          const sizeKey = size.toFixed(2);
+          sizeTotals.set(sizeKey, (sizeTotals.get(sizeKey) || 0) + count);
+        }
+      }
+
+      const leaderboard = Array.from(totals.values())
+        .map(row => ({
+          ...row,
+          beer_count: Math.round(row.beer_count),
+          total_liters: Math.round(row.total_liters * 100) / 100,
+          today_liters: Math.round(row.today_liters * 100) / 100,
+          today_count: Math.round(row.today_count)
+        }))
+        .sort((a,b) => (b.total_liters - a.total_liters) || (b.beer_count - a.beer_count) || String(a.display_name).localeCompare(String(b.display_name), "et"));
+
+      let myRank = null;
+      leaderboard.forEach((row, idx) => {
+        row.rank = idx + 1;
+        if (String(row.player_id) === String(u.id)) myRank = idx + 1;
+      });
+
+      const myRow = leaderboard.find(row => String(row.player_id) === String(u.id)) || {
+        beer_count: 0,
+        total_liters: 0,
+        today_liters: 0,
+        today_count: 0
+      };
+
+      const mvp = leaderboard[0] || null;
+      const last24Leader = Array.from(last24Totals.values())
+        .map(row => ({
+          ...row,
+          liters: Math.round(row.liters * 100) / 100,
+          count: Math.round(row.count)
+        }))
+        .sort((a,b) => (b.liters - a.liters) || (b.count - a.count) || String(a.display_name).localeCompare(String(b.display_name), "et"))[0] || null;
+
+      const popularSize = Array.from(sizeTotals.entries())
+        .map(([size, count]) => ({ size_liters: Number(size), beer_count: count }))
+        .sort((a,b) => (b.beer_count - a.beer_count) || (b.size_liters - a.size_liters))[0] || null;
+
+      const recent_entries = (entriesRes.data || [])
+        .map(e => {
+          const p = playerMap.get(String(e.player_id));
+          if (!p) return null;
+
+          return {
+            id: e.id,
+            player_id: e.player_id,
+            display_name: p.display_name || p.username || "Mängija",
+            beer_size_liters: Number(e.beer_size_liters),
+            beer_count: Number(e.beer_count),
+            total_liters: Number(e.total_liters),
+            created_at: e.created_at
+          };
+        })
+        .filter(Boolean)
+        .slice(0, 12);
+
+      return json(200, {
+        ok: true,
+        community_liters: Math.round(communityLiters * 100) / 100,
+        community_count: Math.round(communityCount),
+        my_rank: myRank,
+        my_beer_count: Math.round(myRow.beer_count || 0),
+        my_total_liters: Math.round(Number(myRow.total_liters || 0) * 100) / 100,
+        my_today_liters: Math.round(Number(myRow.today_liters || 0) * 100) / 100,
+        my_today_count: Math.round(myRow.today_count || 0),
+        mvp,
+        last24_leader: last24Leader,
+        popular_size: popularSize,
+        leaderboard,
+        recent_entries
+      });
+    }
+
+    if (event.httpMethod === "POST" && route === "beer/entries") {
+      const u = await freshUserFrom(sb, event);
+      if (!u) return json(401, { error: "Pole sisse logitud." });
+
+      const body = JSON.parse(event.body || "{}");
+      const beer_size_liters = Number(String(body.beer_size_liters ?? "").replace(",", "."));
+      const beer_count = Math.round(Number(body.beer_count || 1));
+
+      const allowedSizes = [0.33, 0.5];
+      const sizeOk = allowedSizes.some(x => Math.abs(x - beer_size_liters) < 0.001);
+      if (!sizeOk) return json(400, { error: "Vali õlle suuruseks 0,33 L või 0,5 L." });
+
+      if (!Number.isFinite(beer_count) || beer_count < 1 || beer_count > 24) {
+        return json(400, { error: "Õllede arv peab olema 1 kuni 24." });
+      }
+
+      const total_liters = Math.round(beer_size_liters * beer_count * 100) / 100;
+
+      const ins = await sb
+        .from("beer_entries")
+        .insert({
+          player_id: u.id,
+          beer_size_liters,
+          beer_count,
+          total_liters
+        })
+        .select("id,player_id,beer_size_liters,beer_count,total_liters,created_at")
+        .single();
+
+      if (ins.error) {
+        return json(500, { error: ins.error.message + " Käivita Supabase SQL Editoris sql/beer_counter.sql." });
+      }
+
+      return json(200, { ok: true, entry: ins.data });
+    }
+
+
 // Admin players CRUD
     if (event.httpMethod === "GET" && route === "admin/players") {
       const u = await requireAdmin(sb, event);

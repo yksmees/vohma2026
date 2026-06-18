@@ -3869,6 +3869,413 @@
     }
 
 
+  
+    /* BEER COUNTER VIEW */
+    .beer-view{
+      --beer-line:rgba(255,255,255,.12);
+    }
+
+    .beer-top{
+      display:flex;
+      justify-content:space-between;
+      gap:16px;
+      align-items:flex-start;
+      margin-bottom:12px;
+    }
+
+    .beer-grid{
+      display:grid;
+      grid-template-columns:1.05fr .95fr;
+      gap:14px;
+      margin-top:10px;
+    }
+
+    .beer-card{
+      background:linear-gradient(180deg,rgba(19,36,63,.98),rgba(13,26,47,.98));
+      border:1px solid var(--beer-line);
+      border-radius:24px;
+      padding:18px;
+      box-shadow:0 18px 42px rgba(0,0,0,.22);
+      min-width:0;
+      max-width:100%;
+      overflow:hidden;
+    }
+
+    .beer-card h3{
+      margin:0 0 10px;
+      font-size:18px;
+    }
+
+    #beerSelectedSize{
+      color:#facc15;
+    }
+
+    .beer-size-row{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      margin:16px 0;
+    }
+
+    .beer-size{
+      border:1px solid rgba(250,204,21,.30);
+      background:rgba(250,204,21,.08);
+      color:#fef3c7;
+      border-radius:18px;
+      padding:18px 12px;
+      min-height:88px;
+      cursor:pointer;
+      font-weight:950;
+      text-align:center;
+      width:100%;
+      max-width:100%;
+      min-width:0;
+    }
+
+    .beer-size.active{
+      background:linear-gradient(180deg,#facc15,#f59e0b);
+      color:#1f1300;
+      box-shadow:0 14px 34px rgba(250,204,21,.24);
+    }
+
+    .beer-size span{
+      font-size:28px;
+      display:block;
+      line-height:1;
+    }
+
+    .beer-size small{
+      font-size:12px;
+      opacity:.82;
+      margin-top:6px;
+      display:block;
+    }
+
+    .beer-counter-box{
+      display:grid;
+      grid-template-columns:auto 1fr auto;
+      gap:10px;
+      align-items:center;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:22px;
+      padding:12px;
+      margin:6px 0 12px;
+      max-width:100%;
+    }
+
+    .beer-counter-btn{
+      width:54px;
+      height:54px;
+      border-radius:17px;
+      border:1px solid rgba(250,204,21,.35);
+      background:rgba(250,204,21,.12);
+      color:#fde68a;
+      font-size:28px;
+      font-weight:1000;
+      cursor:pointer;
+      flex:0 0 auto;
+    }
+
+    .beer-counter-mid{
+      text-align:center;
+      min-width:0;
+    }
+
+    .beer-label{
+      color:#94a3b8;
+      font-size:12px;
+      font-weight:900;
+      text-transform:uppercase;
+      letter-spacing:.04em;
+    }
+
+    .beer-count{
+      font-size:34px;
+      font-weight:1000;
+      margin-top:2px;
+    }
+
+    .beer-add-total{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:center;
+      background:rgba(250,204,21,.10);
+      border:1px solid rgba(250,204,21,.24);
+      border-radius:18px;
+      padding:12px 14px;
+      margin-bottom:12px;
+      min-width:0;
+    }
+
+    .beer-add-total strong{
+      font-size:22px;
+      color:#facc15;
+      white-space:nowrap;
+      flex:0 0 auto;
+    }
+
+    .beer-drink{
+      width:100%;
+      border:0;
+      border-radius:26px;
+      background:linear-gradient(180deg,#facc15,#f59e0b);
+      color:#231500;
+      padding:24px 18px;
+      font-size:24px;
+      font-weight:1000;
+      box-shadow:0 20px 46px rgba(250,204,21,.28);
+      cursor:pointer;
+    }
+
+    .beer-metrics{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:10px;
+      margin-top:12px;
+    }
+
+    .beer-mini{
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:18px;
+      padding:14px;
+      min-width:0;
+    }
+
+    .beer-mini span,
+    .beer-highlight span{
+      color:#94a3b8;
+      font-size:12px;
+      font-weight:900;
+      text-transform:uppercase;
+      letter-spacing:.04em;
+      display:block;
+    }
+
+    .beer-mini strong{
+      display:block;
+      font-size:24px;
+      font-weight:1000;
+      margin-top:6px;
+      color:#facc15;
+      white-space:nowrap;
+    }
+
+    .beer-community{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:14px;
+      background:rgba(250,204,21,.10);
+      border:1px solid rgba(250,204,21,.24);
+      border-radius:20px;
+      padding:16px;
+      margin-bottom:14px;
+      min-width:0;
+    }
+
+    .beer-community strong{
+      font-size:18px;
+    }
+
+    .beer-community-liters{
+      font-size:34px;
+      font-weight:1000;
+      color:#facc15;
+      white-space:nowrap;
+      flex:0 0 auto;
+    }
+
+    .beer-highlights{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      margin:0 0 14px;
+    }
+
+    .beer-highlight{
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:18px;
+      padding:13px;
+      min-width:0;
+    }
+
+    .beer-highlight strong{
+      display:block;
+      font-size:20px;
+      font-weight:1000;
+      color:#facc15;
+      margin-top:5px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .beer-highlight small{
+      color:#cbd5e1;
+      font-size:12px;
+      font-weight:800;
+      margin-top:3px;
+      display:block;
+      line-height:1.25;
+    }
+
+    .beer-leaderboard,
+    .beer-recent{
+      display:grid;
+      gap:8px;
+      margin-top:8px;
+    }
+
+    .beer-leader-row{
+      display:grid;
+      grid-template-columns:auto minmax(0,1fr) auto;
+      gap:10px;
+      align-items:center;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:16px;
+      padding:11px;
+      min-width:0;
+    }
+
+    .beer-rank{
+      color:#facc15;
+      font-weight:1000;
+      min-width:24px;
+    }
+
+    .beer-name{
+      font-weight:950;
+      min-width:0;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+
+    .beer-subline{
+      color:#94a3b8;
+      font-size:12px;
+      font-weight:900;
+      margin-top:2px;
+    }
+
+    .beer-liters{
+      font-weight:1000;
+      white-space:nowrap;
+      text-align:right;
+    }
+
+    .beer-recent-item{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      padding:10px 12px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.05);
+      border-radius:14px;
+      font-size:13px;
+      min-width:0;
+    }
+
+    .beer-recent-item b{
+      color:#fff;
+      min-width:0;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+
+    .beer-recent-item span{
+      color:#facc15;
+      font-weight:950;
+      white-space:nowrap;
+    }
+
+    @media (max-width:900px){
+      .beer-grid{
+        grid-template-columns:1fr !important;
+      }
+    }
+
+    @media (max-width:760px){
+      .beer-top{
+        display:block;
+      }
+
+      .beer-card{
+        padding:14px;
+        border-radius:22px;
+      }
+
+      .beer-size{
+        min-height:78px;
+        padding:15px 8px;
+      }
+
+      .beer-size span{
+        font-size:23px;
+      }
+
+      .beer-counter-btn{
+        width:50px;
+        height:50px;
+      }
+
+      .beer-count{
+        font-size:32px;
+      }
+
+      .beer-add-total strong{
+        font-size:20px;
+      }
+
+      .beer-drink{
+        border-radius:24px;
+        padding:22px 12px;
+        font-size:22px;
+      }
+
+      .beer-metrics{
+        grid-template-columns:1fr !important;
+      }
+
+      .beer-mini{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:8px;
+        padding:12px;
+      }
+
+      .beer-mini strong{
+        margin-top:0;
+        font-size:22px;
+      }
+
+      .beer-community{
+        display:block;
+        padding:13px;
+      }
+
+      .beer-community-liters{
+        font-size:32px;
+        margin-top:6px;
+      }
+
+      .beer-highlights{
+        grid-template-columns:1fr !important;
+      }
+
+      .beer-recent-item{
+        align-items:flex-start;
+      }
+    }
+
+
   </style>
 </head>
 <body>
@@ -3937,6 +4344,7 @@
             <button class="tab active" data-tab="pred">Ennustused</button>
             <button class="tab" data-tab="lb">Edetabel</button>
             <button class="tab" data-tab="running">Jooks</button>
+            <button class="tab" data-tab="beer">Beer Counter</button>
             <button class="tab" data-tab="bonus">Lisaküsimused</button>
             <button class="tab" data-tab="others">Teiste ennustused</button>
             <button class="tab" data-tab="rules">Reeglid</button>
@@ -4072,6 +4480,112 @@
       <h3>Viimased sisestused</h3>
       <div id="runningRecent" class="running-recent"></div>
       <div id="runningEmptyRecent" class="sub hide" style="margin-top:12px">Jookse ei ole veel sisestatud.</div>
+    </div>
+  </div>
+</div>
+
+
+
+<div id="beer" class="hide beer-view" style="margin-top:8px">
+  <div class="beer-top">
+    <div>
+      <strong>🍺 Beer Counter</strong>
+      <div class="sub">MM-i õlleloendur. Vali õlle suurus, mitu tükki ja lisa kõik ühe vajutusega.</div>
+    </div>
+  </div>
+
+  <div id="beerMsg" class="msg"></div>
+
+  <div class="beer-grid">
+    <div class="beer-card">
+      <h3>Pane kirja</h3>
+      <div class="sub">Valitud kogus: <b id="beerSelectedSize">0,5 L</b></div>
+
+      <div class="beer-size-row">
+        <button type="button" class="beer-size" data-beer-size="0.33">
+          <span>0,33 L</span>
+          <small>väike purk / pudel</small>
+        </button>
+        <button type="button" class="beer-size active" data-beer-size="0.5">
+          <span>0,5 L</span>
+          <small>klassikaline poolene</small>
+        </button>
+      </div>
+
+      <div class="beer-counter-box">
+        <button type="button" class="beer-counter-btn" id="beerMinus">−</button>
+        <div class="beer-counter-mid">
+          <div class="beer-label">Mitu õlut?</div>
+          <div class="beer-count" id="beerCount">1</div>
+        </div>
+        <button type="button" class="beer-counter-btn" id="beerPlus">+</button>
+      </div>
+
+      <div class="beer-add-total">
+        <div>
+          <div class="beer-label">Kokku lisandub</div>
+          <div class="sub" id="beerAddLabel">1 × 0,5 L</div>
+        </div>
+        <strong id="beerAddTotal">0,50 L</strong>
+      </div>
+
+      <button type="button" id="btnBeerAdd" class="beer-drink">🍺 Pane kirja</button>
+
+      <div class="beer-metrics">
+        <div class="beer-mini">
+          <span>Minu õllesid</span>
+          <strong id="beerMyCount">0</strong>
+        </div>
+        <div class="beer-mini">
+          <span>Minu kokku</span>
+          <strong id="beerMyLiters">0,00 L</strong>
+        </div>
+        <div class="beer-mini">
+          <span>Täna</span>
+          <strong id="beerTodayLiters">0,00 L</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="beer-card">
+      <div class="beer-community">
+        <div>
+          <strong>🍺 Kollektiivne kannutase</strong>
+          <div class="sub">Kõikide kasutajate kogus MM-i ajal.</div>
+        </div>
+        <div id="beerCommunityLiters" class="beer-community-liters">0,00 L</div>
+      </div>
+
+      <div class="beer-highlights">
+        <div class="beer-highlight">
+          <span>Minu koht</span>
+          <strong id="beerMyRank">–</strong>
+          <small id="beerMyRankText">Pole veel edetabelis</small>
+        </div>
+        <div class="beer-highlight">
+          <span>Õlle MVP</span>
+          <strong id="beerMvpName">–</strong>
+          <small id="beerMvpText">0,00 L kokku</small>
+        </div>
+        <div class="beer-highlight">
+          <span>24h kannutõstja</span>
+          <strong id="beer24Name">–</strong>
+          <small id="beer24Text">0,00 L viimase 24h jooksul</small>
+        </div>
+        <div class="beer-highlight">
+          <span>Populaarseim valik</span>
+          <strong id="beerPopularSize">–</strong>
+          <small id="beerPopularText">enim kirja pandud suurus</small>
+        </div>
+      </div>
+
+      <h3>Õlleliiga edetabel</h3>
+      <div id="beerLeaderboard" class="beer-leaderboard"></div>
+      <div id="beerEmptyLeaderboard" class="sub hide">Õlleliiga on veel tühi.</div>
+
+      <h3 style="margin-top:16px">Viimased joogid</h3>
+      <div id="beerRecent" class="beer-recent"></div>
+      <div id="beerEmptyRecent" class="sub hide">Ühtegi sissekannet veel ei ole.</div>
     </div>
   </div>
 </div>
@@ -5057,7 +5571,7 @@ function doLogout(){
 
   if ($("viewsCard")) $("viewsCard").classList.add("hide");
   if ($("adminRunningActivitiesCard")) $("adminRunningActivitiesCard").classList.add("hide");
-  ["pred","lb","running","bonus","others","rules","account","admin"].forEach(id=>{
+  ["pred","lb","running","beer","bonus","others","rules","account","admin"].forEach(id=>{
     const el = $(id);
     if (el) el.classList.add("hide");
   });
@@ -5120,6 +5634,8 @@ async function loadAll(){
   if (typeof loadAdminRunningActivities === "function") await loadAdminRunningActivities();
   if (typeof bindRunningButtons === "function") bindRunningButtons();
   if (typeof loadRunningChallenge === "function") await loadRunningChallenge();
+  if (typeof bindBeerCounter === "function") bindBeerCounter();
+  if (typeof loadBeerCounter === "function") await loadBeerCounter();
   if (typeof bindAdminMissingPredictions === "function") bindAdminMissingPredictions();
   if (typeof loadAdminMissingPredictions === "function") await loadAdminMissingPredictions();
 
@@ -5154,7 +5670,7 @@ function toggleAdminTab(){
       document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
       const predTab = document.querySelector('[data-tab="pred"]');
       if (predTab) predTab.classList.add("active");
-      ["pred","lb","running","bonus","others","rules","account"].forEach(id=>{
+      ["pred","lb","running","beer","bonus","others","rules","account"].forEach(id=>{
         const el = $(id);
         if (el) el.classList.add("hide");
       });
@@ -7791,6 +8307,167 @@ if ($("btnSyncResults")) $("btnSyncResults").onclick = async (e)=>{
   }
 };
 
+let beerSelectedSize = 0.5;
+let beerSelectedCount = 1;
+
+function beerFmt(value){
+  const n = Number(value || 0);
+  if (!Number.isFinite(n)) return "0,00";
+  return n.toFixed(2).replace(".", ",");
+}
+
+function beerSizeLabel(value){
+  const n = Number(value || 0);
+  return n.toFixed(n === 0.5 ? 1 : 2).replace(".", ",");
+}
+
+function renderBeerSelection(){
+  document.querySelectorAll("[data-beer-size]").forEach(btn => {
+    const size = Number(btn.dataset.beerSize);
+    btn.classList.toggle("active", Math.abs(size - beerSelectedSize) < 0.001);
+  });
+
+  if ($("beerSelectedSize")) $("beerSelectedSize").textContent = `${beerSizeLabel(beerSelectedSize)} L`;
+  if ($("beerCount")) $("beerCount").textContent = String(beerSelectedCount);
+  if ($("beerAddLabel")) $("beerAddLabel").textContent = `${beerSelectedCount} × ${beerSizeLabel(beerSelectedSize)} L`;
+  if ($("beerAddTotal")) $("beerAddTotal").textContent = `${beerFmt(beerSelectedSize * beerSelectedCount)} L`;
+}
+
+function renderBeerCounter(data){
+  if ($("beerCommunityLiters")) $("beerCommunityLiters").textContent = `${beerFmt(data.community_liters)} L`;
+  if ($("beerMyCount")) $("beerMyCount").textContent = String(data.my_beer_count || 0);
+  if ($("beerMyLiters")) $("beerMyLiters").textContent = `${beerFmt(data.my_total_liters)} L`;
+  if ($("beerTodayLiters")) $("beerTodayLiters").textContent = `${beerFmt(data.my_today_liters)} L`;
+
+  if ($("beerMyRank")) $("beerMyRank").textContent = data.my_rank ? `${data.my_rank}.` : "–";
+  if ($("beerMyRankText")) $("beerMyRankText").textContent = data.my_rank ? `${data.my_beer_count || 0} õlut · ${beerFmt(data.my_total_liters)} L` : "Pole veel edetabelis";
+
+  const mvp = data.mvp || null;
+  if ($("beerMvpName")) $("beerMvpName").textContent = mvp ? (mvp.display_name || "Mängija") : "–";
+  if ($("beerMvpText")) $("beerMvpText").textContent = mvp ? `${beerFmt(mvp.total_liters)} L kokku` : "0,00 L kokku";
+
+  const leader24 = data.last24_leader || null;
+  if ($("beer24Name")) $("beer24Name").textContent = leader24 ? (leader24.display_name || "Mängija") : "–";
+  if ($("beer24Text")) $("beer24Text").textContent = leader24 ? `${beerFmt(leader24.liters)} L viimase 24h jooksul` : "0,00 L viimase 24h jooksul";
+
+  const popular = data.popular_size || null;
+  if ($("beerPopularSize")) $("beerPopularSize").textContent = popular ? `${beerSizeLabel(popular.size_liters)} L` : "–";
+  if ($("beerPopularText")) $("beerPopularText").textContent = popular ? `${popular.beer_count || 0} korda kirja pandud` : "enim kirja pandud suurus";
+
+  const lb = $("beerLeaderboard");
+  const rows = data.leaderboard || [];
+  if (lb) {
+    lb.innerHTML = rows.map(row => `
+      <div class="beer-leader-row">
+        <div class="beer-rank">${row.rank || ""}</div>
+        <div>
+          <div class="beer-name">${escapeHtml(row.display_name || row.username || "Mängija")}</div>
+          <div class="beer-subline">${row.beer_count || 0} õlut</div>
+        </div>
+        <div class="beer-liters">${beerFmt(row.total_liters)} L</div>
+      </div>
+    `).join("");
+  }
+  if ($("beerEmptyLeaderboard")) $("beerEmptyLeaderboard").classList.toggle("hide", rows.length > 0);
+
+  const recent = $("beerRecent");
+  const entries = data.recent_entries || [];
+  if (recent) {
+    recent.innerHTML = entries.map(e => `
+      <div class="beer-recent-item">
+        <b>${escapeHtml(e.display_name || "Mängija")}</b>
+        <span>${e.beer_count || 0} × ${beerSizeLabel(e.beer_size_liters)} L = ${beerFmt(e.total_liters)} L</span>
+      </div>
+    `).join("");
+  }
+  if ($("beerEmptyRecent")) $("beerEmptyRecent").classList.toggle("hide", entries.length > 0);
+}
+
+async function loadBeerCounter(){
+  if (!token) return;
+  const msg = $("beerMsg");
+  try{
+    const data = await call("beer/summary", {method:"GET"});
+    renderBeerCounter(data);
+    if (msg) msg.textContent = "";
+  }catch(err){
+    if (msg) setMsg(msg, false, err.message);
+  }
+}
+
+async function addBeerEntry(){
+  const msg = $("beerMsg");
+  const btn = $("btnBeerAdd");
+
+  try{
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Salvestan...";
+    }
+
+    await call("beer/entries", {
+      method:"POST",
+      body: JSON.stringify({
+        beer_size_liters: beerSelectedSize,
+        beer_count: beerSelectedCount
+      })
+    });
+
+    beerSelectedCount = 1;
+    renderBeerSelection();
+    setMsg(msg, true, "Kirjas.");
+    await loadBeerCounter();
+  }catch(err){
+    setMsg(msg, false, err.message);
+  }finally{
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "🍺 Pane kirja";
+    }
+  }
+}
+
+function bindBeerCounter(){
+  if ($("btnBeerAdd") && $("btnBeerAdd").dataset.boundBeer !== "1") {
+    $("btnBeerAdd").dataset.boundBeer = "1";
+    $("btnBeerAdd").addEventListener("click", e => {
+      e.preventDefault();
+      addBeerEntry();
+    });
+  }
+
+  document.querySelectorAll("[data-beer-size]").forEach(btn => {
+    if (btn.dataset.boundBeerSize === "1") return;
+    btn.dataset.boundBeerSize = "1";
+    btn.addEventListener("click", e => {
+      e.preventDefault();
+      beerSelectedSize = Number(btn.dataset.beerSize || 0.5);
+      renderBeerSelection();
+    });
+  });
+
+  if ($("beerMinus") && $("beerMinus").dataset.boundBeer !== "1") {
+    $("beerMinus").dataset.boundBeer = "1";
+    $("beerMinus").addEventListener("click", e => {
+      e.preventDefault();
+      beerSelectedCount = Math.max(1, beerSelectedCount - 1);
+      renderBeerSelection();
+    });
+  }
+
+  if ($("beerPlus") && $("beerPlus").dataset.boundBeer !== "1") {
+    $("beerPlus").dataset.boundBeer = "1";
+    $("beerPlus").addEventListener("click", e => {
+      e.preventDefault();
+      beerSelectedCount = Math.min(24, beerSelectedCount + 1);
+      renderBeerSelection();
+    });
+  }
+
+  renderBeerSelection();
+}
+
+
 $("btnReload").onclick = loadAll;
 
 document.querySelectorAll(".tab").forEach(t=>{
@@ -7802,10 +8479,11 @@ document.querySelectorAll(".tab").forEach(t=>{
       toggleAdminTab();
       return;
     }
-    ["pred","lb","running","bonus","others","rules","account","admin"].forEach(id=>{ const el=$(id); if (el) el.classList.add("hide"); });
+    ["pred","lb","running","beer","bonus","others","rules","account","admin"].forEach(id=>{ const el=$(id); if (el) el.classList.add("hide"); });
     const target = $(name); if (target) target.classList.remove("hide");
     if (name === "bonus") loadBonusQuestions();
     if (name === "running") loadRunningChallenge();
+    if (name === "beer") loadBeerCounter();
     if (name === "rules") loadRulesView();
     if (name === "admin") { loadAdminBonus(); loadAdminRules(); loadAdminRunningActivities(); }
     updateImportTimesVisibility(name);
@@ -7830,6 +8508,7 @@ bindAdminBonusLockButtons();
 bindRulesButtons();
 bindAdminRunningActivities();
 bindRunningButtons();
+bindBeerCounter();
 bindAuthButtons();
 bindLogoutButtons();
 loadAll();
