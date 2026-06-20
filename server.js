@@ -510,13 +510,16 @@ function addRankMovement(current, previous){
   previous.forEach((row, index) => previousRank.set(row.player_id, index + 1));
 
   return current.map((row, index) => {
-    const rank = index + 1;
-    const prev = previousRank.get(row.player_id) || rank;
+    const currentRank = index + 1;
+    const previousRankValue = previousRank.get(row.player_id) || currentRank;
+    const movement = previousRankValue - currentRank;
+
     return {
       ...row,
-      rank,
-      previous_rank: prev,
-      movement: prev - rank
+      rank: currentRank,
+      previous_rank: previousRankValue,
+      movement,
+      rank_direction: movement > 0 ? "up" : movement < 0 ? "down" : "same"
     };
   });
 }

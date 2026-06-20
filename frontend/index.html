@@ -7072,21 +7072,23 @@ function renderLeaderboardTable(tbody, rows, type){
     const tr = document.createElement("tr");
     const isFirst = idx === 0;
     const isLast = rows.length > 1 && idx === rows.length - 1;
-    const move = Number(row.movement || 0);
+    const currentRank = Number(row.rank || (idx + 1));
+    const previousRank = Number(row.previous_rank || currentRank);
+    const move = previousRank - currentRank;
     const moveHtml = move > 0
-      ? `<span class="rank-move rank-up">▲</span>`
+      ? `<span class="rank-move rank-up" title="Tõusis ${Math.abs(move)} kohta">▲</span>`
       : move < 0
-        ? `<span class="rank-move rank-down">▼</span>`
+        ? `<span class="rank-move rank-down" title="Langus ${Math.abs(move)} kohta">▼</span>`
         : "";
     const crown = isFirst ? `<span class="rank-crown">👑</span>` : "";
     const frog = isLast ? `<span class="rank-frog">🐸</span>` : "";
 
     if (type === "playoff"){
-      tr.innerHTML = `<td>${idx + 1}.</td><td>${row.display_name}${moveHtml}${crown}${frog}</td><td class="right">${row.match_points || 0}</td><td class="right">${row.bonus_points || 0}</td><td class="right">${row.points || 0}</td>`;
+      tr.innerHTML = `<td>${currentRank}.</td><td>${row.display_name}${moveHtml}${crown}${frog}</td><td class="right">${row.match_points || 0}</td><td class="right">${row.bonus_points || 0}</td><td class="right">${row.points || 0}</td>`;
     } else if (type === "overall"){
-      tr.innerHTML = `<td>${idx + 1}.</td><td>${row.display_name}${moveHtml}${crown}${frog}</td><td class="right">${row.group_points || 0}</td><td class="right">${row.playoff_match_points || 0}</td><td class="right">${row.bonus_points || 0}</td><td class="right">${row.points || 0}</td>`;
+      tr.innerHTML = `<td>${currentRank}.</td><td>${row.display_name}${moveHtml}${crown}${frog}</td><td class="right">${row.group_points || 0}</td><td class="right">${row.playoff_match_points || 0}</td><td class="right">${row.bonus_points || 0}</td><td class="right">${row.points || 0}</td>`;
     } else {
-      tr.innerHTML = `<td>${idx + 1}.</td><td>${row.display_name}${moveHtml}${crown}${frog}</td><td class="right">${row.points || 0}</td>`;
+      tr.innerHTML = `<td>${currentRank}.</td><td>${row.display_name}${moveHtml}${crown}${frog}</td><td class="right">${row.points || 0}</td>`;
     }
 
     tbody.appendChild(tr);
