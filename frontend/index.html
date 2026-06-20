@@ -7070,15 +7070,15 @@ function renderLeaderboardTable(tbody, rows, type){
   tbody.innerHTML = "";
   rows.forEach((row, idx)=>{
     const tr = document.createElement("tr");
+    const currentRank = Number(row.rank || (idx + 1));
     const isFirst = idx === 0;
     const isLast = rows.length > 1 && idx === rows.length - 1;
-    const currentRank = Number(row.rank || (idx + 1));
+    const move = Number(row.movement || 0);
     const previousRank = Number(row.previous_rank || currentRank);
-    const move = previousRank - currentRank;
     const moveHtml = move > 0
-      ? `<span class="rank-move rank-up" title="Tõusis ${Math.abs(move)} kohta">▲</span>`
+      ? `<span class="rank-move rank-up" title="Eelmine koht ${previousRank}. → nüüd ${currentRank}.">▲</span>`
       : move < 0
-        ? `<span class="rank-move rank-down" title="Langus ${Math.abs(move)} kohta">▼</span>`
+        ? `<span class="rank-move rank-down" title="Eelmine koht ${previousRank}. → nüüd ${currentRank}.">▼</span>`
         : "";
     const crown = isFirst ? `<span class="rank-crown">👑</span>` : "";
     const frog = isLast ? `<span class="rank-frog">🐸</span>` : "";

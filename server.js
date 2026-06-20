@@ -510,14 +510,118 @@ function addRankMovement(current, previous){
   previous.forEach((row, index) => previousRank.set(row.player_id, index + 1));
 
   return current.map((row, index) => {
-    const currentRank = index + 1;
-    const previousRankValue = previousRank.get(row.player_id) || currentRank;
-    const movement = previousRankValue - currentRank;
+    const rank = index + 1;
+    const prev = previousRank.get(row.player_id) || rank;
+    const movement = prev - rank;
 
     return {
       ...row,
-      rank: currentRank,
-      previous_rank: previousRankValue,
+      rank,
+      previous_rank: prev,
+      movement,
+      rank_direction: movement > 0 ? "up" : movement < 0 ? "down" : "same"
+    };
+  });
+}
+
+function leaderboardSnapshotFingerprint(rows){
+  return (rows || []).map((row, index) => [
+    row.player_id,
+    index + 1,
+    Number(row.points || 0),
+    Number(row.group_points || 0),
+    Number(row.match_points || 0),
+    Number(row.playoff_match_points || 0),
+    Number(row.bonus_points || 0)
+  ].join(":")).join("|");
+}
+
+async function addRankMovementWithSnapshot(sb, leaderboardType, current){
+  const rowsWithRank = (current || []).map((row, index) => ({
+    ...row,
+    rank: index + 1
+  }));
+
+  const fingerprint = leaderboardSnapshotFingerprint(rowsWithRank);
+
+  const fallback = () => rowsWithRank.map(row => ({
+    ...row,
+    previous_rank: row.rank,
+    movement: 0,
+    rank_direction: "same"
+  }));
+
+  const currentSnap = await sb
+    .from("leaderboard_rank_snapshots")
+    .select("player_id,rank,points,fingerprint")
+    .eq("leaderboard_type", leaderboardType)
+    .eq("snapshot_role", "current");
+
+  if (currentSnap.error) {
+    return fallback();
+  }
+
+  const currentSnapshotRows = currentSnap.data || [];
+  const currentFingerprint = currentSnapshotRows[0]?.fingerprint || "";
+  let previousSnapshotRows = [];
+
+  if (currentSnapshotRows.length && currentFingerprint === fingerprint) {
+    const previousSnap = await sb
+      .from("leaderboard_rank_snapshots")
+      .select("player_id,rank,points,fingerprint")
+      .eq("leaderboard_type", leaderboardType)
+      .eq("snapshot_role", "previous");
+
+    if (!previousSnap.error) previousSnapshotRows = previousSnap.data || [];
+  } else {
+    previousSnapshotRows = currentSnapshotRows;
+
+    const delPrevious = await sb
+      .from("leaderboard_rank_snapshots")
+      .delete()
+      .eq("leaderboard_type", leaderboardType)
+      .eq("snapshot_role", "previous");
+
+    if (delPrevious.error) return fallback();
+
+    if (currentSnapshotRows.length) {
+      const shiftCurrent = await sb
+        .from("leaderboard_rank_snapshots")
+        .update({ snapshot_role: "previous" })
+        .eq("leaderboard_type", leaderboardType)
+        .eq("snapshot_role", "current");
+
+      if (shiftCurrent.error) return fallback();
+    }
+
+    const payload = rowsWithRank.map(row => ({
+      leaderboard_type: leaderboardType,
+      snapshot_role: "current",
+      player_id: row.player_id,
+      rank: row.rank,
+      points: Number(row.points || 0),
+      fingerprint,
+      snapshot_at: new Date().toISOString()
+    }));
+
+    if (payload.length) {
+      const ins = await sb.from("leaderboard_rank_snapshots").insert(payload);
+      if (ins.error) return fallback();
+    }
+  }
+
+  const previousRank = new Map();
+  for (const row of previousSnapshotRows || []) {
+    previousRank.set(String(row.player_id), Number(row.rank));
+  }
+
+  return rowsWithRank.map(row => {
+    const prev = previousRank.get(String(row.player_id)) || row.rank;
+    const movement = prev - row.rank;
+
+    return {
+      ...row,
+      previous_rank: prev,
       movement,
       rank_direction: movement > 0 ? "up" : movement < 0 ? "down" : "same"
     };
@@ -2808,17 +2912,12 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
   }
 
   const groupCurrent = makeRows("group", null);
-  const groupPrevious = latestGroup ? makeRows("group", latestGroup.id) : groupCurrent;
-
   const playoffCurrent = makeRows("playoff", null);
-  const playoffPrevious = latestPlayoff ? makeRows("playoff", latestPlayoff.id) : playoffCurrent;
-
   const overallCurrent = makeRows("overall", null);
-  const overallPrevious = latestOverall ? makeRows("overall", latestOverall.id) : overallCurrent;
 
-  const group_leaderboard = addRankMovement(groupCurrent, groupPrevious);
-  const playoff_leaderboard = addRankMovement(playoffCurrent, playoffPrevious);
-  const overall_leaderboard = addRankMovement(overallCurrent, overallPrevious);
+  const group_leaderboard = await addRankMovementWithSnapshot(sb, "group", groupCurrent);
+  const playoff_leaderboard = await addRankMovementWithSnapshot(sb, "playoff", playoffCurrent);
+  const overall_leaderboard = await addRankMovementWithSnapshot(sb, "overall", overallCurrent);
 
   return json(200, {
     ok: true,
