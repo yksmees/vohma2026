@@ -2839,16 +2839,19 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
     bonusMap.set(b.player_id, (bonusMap.get(b.player_id) || 0) + (Number(b.points) || 0));
   }
 
-  // Edetabelite jaotus:
-  // - Alagrupp: ainult alagrupimängude DB-s olevad predictions.points.
-  // - Play-off: ainult play-off mängude DB-s olevad predictions.points + lisaküsimused.
-  // - Üldtabel: alagrupp + play-off + lisaküsimused.
-  // Play-off algab seega nullist ega sisalda alagrupimängude punkte.
+  // Edetabeli põhireegel:
+  // - predictions.points on andmebaasis juba arvutatud tõde mängupunktide kohta.
+  // - Üldtabel kasutab seetõttu ALATI otse kõigi predictions.points summat + lisaküsimused.
+  // - Play-off tabel algab nullist ja kasutab ainult play-off mängude punkte + lisaküsimused.
+  // - Alagrupi tabel kasutab ainult alagrupimängude punkte.
+  const predictionTotalMap = new Map();
   const groupPointsMap = new Map();
   const playoffPointsMap = new Map();
 
   for (const pr of allPreds) {
     const pts = Number(pr.points) || 0;
+    predictionTotalMap.set(pr.player_id, (predictionTotalMap.get(pr.player_id) || 0) + pts);
+
     const match = matchMap.get(pr.match_id);
     if (!match) continue;
 
@@ -2865,27 +2868,36 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
     for (const p of allPlayers) {
       const groupPoints = Number(groupPointsMap.get(p.id) || 0);
       const playoffMatchPoints = Number(playoffPointsMap.get(p.id) || 0);
+      const dbPredictionPoints = Number(predictionTotalMap.get(p.id) || 0);
       const bonusPoints = kind === "group" ? 0 : Number(bonusMap.get(p.id) || 0);
 
       const row = {
         player_id: p.id,
         display_name: p.display_name,
-        group_points: kind === "playoff" ? 0 : groupPoints,
+        group_points: 0,
         match_points: 0,
-        playoff_match_points: kind === "group" ? 0 : playoffMatchPoints,
+        playoff_match_points: 0,
         bonus_points: bonusPoints,
+        db_prediction_points: dbPredictionPoints,
         points: 0
       };
 
       if (kind === "group") {
+        row.group_points = groupPoints;
         row.match_points = groupPoints;
         row.points = groupPoints;
       } else if (kind === "playoff") {
+        row.group_points = 0;
+        row.playoff_match_points = playoffMatchPoints;
         row.match_points = playoffMatchPoints;
         row.points = playoffMatchPoints + bonusPoints;
       } else {
-        row.match_points = groupPoints + playoffMatchPoints;
-        row.points = groupPoints + playoffMatchPoints + bonusPoints;
+        row.group_points = groupPoints;
+        // Üldtabeli veerus "Play-off" näitame ülejäänud mängupunkte nii, et
+        // alagrupp + play-off veerud klapiksid otse DB predictions.points summaga.
+        row.playoff_match_points = Math.max(0, dbPredictionPoints - groupPoints);
+        row.match_points = dbPredictionPoints;
+        row.points = dbPredictionPoints + bonusPoints;
       }
 
       rows.push(row);
