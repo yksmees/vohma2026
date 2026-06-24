@@ -2818,12 +2818,38 @@ if (event.httpMethod === "POST" && route === "admin/recalc-points") {
 }
 
 
+async function fetchAllRows(queryFactory, pageSize = 1000){
+  const rows = [];
+  let from = 0;
+
+  while (true) {
+    const to = from + pageSize - 1;
+    const res = await queryFactory().range(from, to);
+
+    if (res.error) return { data: rows, error: res.error };
+
+    const chunk = res.data || [];
+    rows.push(...chunk);
+
+    if (chunk.length < pageSize) break;
+    from += pageSize;
+
+    // Kaitse lõputu tsükli vastu, tegelikus kasutuses ei tohiks kunagi täituda.
+    if (from > 200000) {
+      return { data: rows, error: { message: "Liiga palju ridu edetabeli arvutamiseks." } };
+    }
+  }
+
+  return { data: rows, error: null };
+}
+
+
 // Leaderboard
 if (event.httpMethod === "GET" && route === "leaderboard") {
-  const players = await sb.from("players").select("id,display_name,is_admin");
-  const preds = await sb.from("predictions").select("player_id,match_id,points");
-  const matches = await sb.from("matches").select("id,match_no,stage,is_finished,final_home,final_away").order("match_no", { ascending: true });
-  const bonus = await sb.from("bonus_answers").select("player_id,points");
+  const players = await fetchAllRows(() => sb.from("players").select("id,display_name,is_admin").order("created_at", { ascending: true }));
+  const preds = await fetchAllRows(() => sb.from("predictions").select("player_id,match_id,points").order("id", { ascending: true }));
+  const matches = await fetchAllRows(() => sb.from("matches").select("id,match_no,stage,is_finished,final_home,final_away").order("match_no", { ascending: true }));
+  const bonus = await fetchAllRows(() => sb.from("bonus_answers").select("player_id,points").order("id", { ascending: true }));
 
   if (players.error || preds.error || matches.error || bonus.error) {
     return json(500, { error: (players.error || preds.error || matches.error || bonus.error).message });
