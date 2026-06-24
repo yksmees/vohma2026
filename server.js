@@ -311,6 +311,8 @@ function calcPoints(ph, pa, fh, fa, options = {}){
   const match = options.match || {};
   const playoff = options.is_playoff === true || isPlayoffMatch(match);
   const actualWinner = actualAdvancerFromResult(fh, fa, options.winner ?? match.winner);
+  // Play-off lisaaja/penaltite +1 käib õige edasipääseja eest.
+  // Mitte-viigiline ennustus annab edasipääsejaks ennustatud võitja; viigi korral kasutatakse pred_winner valikut.
   const predictedWinner = predictedAdvancerFromPrediction(ph, pa, options.pred_winner);
   const extraOrPenalties = matchWentExtra(match) || inferWentExtraFromResult(match, fh, fa, options.winner ?? match.winner);
 
@@ -498,7 +500,11 @@ async function getBonusLockInfo(sb){
 
 function isGroupMatchForLeaderboard(match){
   const n = Number(match?.match_no);
-  return Number.isFinite(n) && n >= 1 && n <= 72;
+  if (Number.isFinite(n) && n >= 1 && n <= 72) return true;
+
+  const stage = String(match?.stage || "").trim().toLowerCase();
+  if (!stage) return false;
+  return stage.startsWith("group") || stage.includes("alagrupp");
 }
 
 function isPlayoffMatchForLeaderboard(match){
@@ -2826,94 +2832,74 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
   const allPlayers = (players.data || []).filter(p => !p.is_admin);
   const allPreds = preds.data || [];
   const allMatches = matches.data || [];
-  const bonusMap = new Map();
+  const matchMap = new Map(allMatches.map(m => [m.id, m]));
 
+  const bonusMap = new Map();
   for (const b of bonus.data || []) {
     bonusMap.set(b.player_id, (bonusMap.get(b.player_id) || 0) + (Number(b.points) || 0));
   }
 
-  const matchMap = new Map(allMatches.map(m => [m.id, m]));
-  const finishedMatches = allMatches.filter(m =>
-    m.is_finished ||
-    (
-      m.final_home !== null &&
-      m.final_home !== undefined &&
-      m.final_away !== null &&
-      m.final_away !== undefined
-    )
-  ).sort((a,b)=>a.match_no-b.match_no);
+  // Edetabelite jaotus:
+  // - Alagrupp: ainult alagrupimängude DB-s olevad predictions.points.
+  // - Play-off: ainult play-off mängude DB-s olevad predictions.points + lisaküsimused.
+  // - Üldtabel: alagrupp + play-off + lisaküsimused.
+  // Play-off algab seega nullist ega sisalda alagrupimängude punkte.
+  const groupPointsMap = new Map();
+  const playoffPointsMap = new Map();
 
-  const groupFinished = finishedMatches.filter(isGroupMatchForLeaderboard);
-  const playoffFinished = finishedMatches.filter(isPlayoffMatchForLeaderboard);
-  const allLeaderboardFinished = finishedMatches.filter(m => isGroupMatchForLeaderboard(m) || isPlayoffMatchForLeaderboard(m));
+  for (const pr of allPreds) {
+    const pts = Number(pr.points) || 0;
+    const match = matchMap.get(pr.match_id);
+    if (!match) continue;
 
-  const latestGroup = groupFinished.length ? groupFinished[groupFinished.length - 1] : null;
-  const latestPlayoff = playoffFinished.length ? playoffFinished[playoffFinished.length - 1] : null;
-  const latestOverall = allLeaderboardFinished.length ? allLeaderboardFinished[allLeaderboardFinished.length - 1] : null;
+    if (isGroupMatchForLeaderboard(match)) {
+      groupPointsMap.set(pr.player_id, (groupPointsMap.get(pr.player_id) || 0) + pts);
+    } else if (isPlayoffMatchForLeaderboard(match)) {
+      playoffPointsMap.set(pr.player_id, (playoffPointsMap.get(pr.player_id) || 0) + pts);
+    }
+  }
 
-  function makeRows(kind, excludeMatchId = null) {
-    const map = new Map();
+  function makeRows(kind) {
+    const rows = [];
 
     for (const p of allPlayers) {
-      map.set(p.id, {
+      const groupPoints = Number(groupPointsMap.get(p.id) || 0);
+      const playoffMatchPoints = Number(playoffPointsMap.get(p.id) || 0);
+      const bonusPoints = kind === "group" ? 0 : Number(bonusMap.get(p.id) || 0);
+
+      const row = {
         player_id: p.id,
         display_name: p.display_name,
-        points: 0,
-        group_points: 0,
+        group_points: kind === "playoff" ? 0 : groupPoints,
         match_points: 0,
-        playoff_match_points: 0,
-        bonus_points: kind === "group" ? 0 : (bonusMap.get(p.id) || 0)
-      });
-    }
+        playoff_match_points: kind === "group" ? 0 : playoffMatchPoints,
+        bonus_points: bonusPoints,
+        points: 0
+      };
 
-    for (const pr of allPreds) {
-      if (excludeMatchId && pr.match_id === excludeMatchId) continue;
-
-      const match = matchMap.get(pr.match_id);
-      if (!match) continue;
-
-      const isGroup = isGroupMatchForLeaderboard(match);
-      const isPlayoff = isPlayoffMatchForLeaderboard(match);
-      const include =
-        kind === "group"
-          ? isGroup
-          : kind === "playoff"
-            ? isPlayoff
-            : (isGroup || isPlayoff);
-
-      if (!include) continue;
-
-      const row = map.get(pr.player_id);
-      if (!row) continue;
-
-      const pts = Number(pr.points) || 0;
-      if (isGroup) row.group_points += pts;
-      if (isPlayoff) row.playoff_match_points += pts;
-    }
-
-    for (const row of map.values()) {
       if (kind === "group") {
-        row.match_points = row.group_points;
-        row.bonus_points = 0;
-        row.points = row.group_points;
+        row.match_points = groupPoints;
+        row.points = groupPoints;
       } else if (kind === "playoff") {
-        row.match_points = row.playoff_match_points;
-        row.points = row.playoff_match_points + row.bonus_points;
+        row.match_points = playoffMatchPoints;
+        row.points = playoffMatchPoints + bonusPoints;
       } else {
-        row.match_points = row.group_points + row.playoff_match_points;
-        row.points = row.group_points + row.playoff_match_points + row.bonus_points;
+        row.match_points = groupPoints + playoffMatchPoints;
+        row.points = groupPoints + playoffMatchPoints + bonusPoints;
       }
+
+      rows.push(row);
     }
 
-    return Array.from(map.values()).sort((a,b) => {
+    return rows.sort((a,b) => {
       if ((b.points || 0) !== (a.points || 0)) return (b.points || 0) - (a.points || 0);
       return String(a.display_name || "").localeCompare(String(b.display_name || ""), "et");
     });
   }
 
-  const groupCurrent = makeRows("group", null);
-  const playoffCurrent = makeRows("playoff", null);
-  const overallCurrent = makeRows("overall", null);
+  const groupCurrent = makeRows("group");
+  const playoffCurrent = makeRows("playoff");
+  const overallCurrent = makeRows("overall");
 
   const group_leaderboard = await addRankMovementWithSnapshot(sb, "group", groupCurrent);
   const playoff_leaderboard = await addRankMovementWithSnapshot(sb, "playoff", playoffCurrent);
