@@ -2181,7 +2181,7 @@ if (event.httpMethod === "GET" && route === "predictions/public") {
   const u = userFrom(event);
   if (!u) return json(401, { error: "Pole sisse logitud." });
 
-  const matchesRes = await sb.from("matches").select("id,kickoff_utc,is_finished");
+  const matchesRes = await fetchAllRows(() => sb.from("matches").select("id,kickoff_utc,is_finished").order("id", { ascending: true }));
   if (matchesRes.error) return json(500, { error: matchesRes.error.message });
 
   const now = Date.now();
@@ -2194,14 +2194,15 @@ if (event.httpMethod === "GET" && route === "predictions/public") {
 
   if (!openMatchIds.length) return json(200, { ok: true, predictions_by_match: {} });
 
-  const predsRes = await sb
+  const predsRes = await fetchAllRows(() => sb
     .from("predictions")
-    .select("match_id,player_id,pred_home,pred_away,pred_winner")
-    .in("match_id", openMatchIds);
+    .select("id,match_id,player_id,pred_home,pred_away,pred_winner")
+    .in("match_id", openMatchIds)
+    .order("id", { ascending: true }));
 
   if (predsRes.error) return json(500, { error: predsRes.error.message });
 
-  const playersRes = await sb.from("players").select("id,display_name,is_admin");
+  const playersRes = await fetchAllRows(() => sb.from("players").select("id,display_name,is_admin").order("display_name", { ascending: true }));
   if (playersRes.error) return json(500, { error: playersRes.error.message });
 
   const playerMap = new Map((playersRes.data || []).filter(p => !p.is_admin).map(p => [p.id, p.display_name]));
@@ -2229,17 +2230,17 @@ if (event.httpMethod === "GET" && route === "predictions/matrix") {
   const u = userFrom(event);
   if (!u) return json(401, { error: "Pole sisse logitud." });
 
-  const playersRes = await sb
+  const playersRes = await fetchAllRows(() => sb
     .from("players")
     .select("id,display_name,is_admin,created_at")
-    .order("display_name", { ascending: true });
+    .order("display_name", { ascending: true }));
 
   if (playersRes.error) return json(500, { error: playersRes.error.message });
 
-  const matchesRes = await sb
+  const matchesRes = await fetchAllRows(() => sb
     .from("matches")
     .select("id,match_no,stage,home,away,location,kickoff_utc,final_home,final_away,winner,is_finished,went_extra")
-    .order("match_no", { ascending: true });
+    .order("match_no", { ascending: true }));
 
   if (matchesRes.error) return json(500, { error: matchesRes.error.message });
 
@@ -2270,10 +2271,11 @@ if (event.httpMethod === "GET" && route === "predictions/matrix") {
   let predictions = [];
 
   if (matchIds.length) {
-    const predsRes = await sb
+    const predsRes = await fetchAllRows(() => sb
       .from("predictions")
-      .select("match_id,player_id,pred_home,pred_away,pred_winner,points")
-      .in("match_id", matchIds);
+      .select("id,match_id,player_id,pred_home,pred_away,pred_winner,points")
+      .in("match_id", matchIds)
+      .order("id", { ascending: true }));
 
     if (predsRes.error) return json(500, { error: predsRes.error.message });
     predictions = predsRes.data || [];
