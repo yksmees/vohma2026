@@ -714,6 +714,39 @@ function isPlaceholderTeam(name){
   return /^[WL]\d+$/i.test(s) || /^[123][A-Z]+$/i.test(s) || /^[12][A-L]$/i.test(s) || /^3[A-Z]+$/i.test(s);
 }
 
+function matchHasPlaceholderTeam(match){
+  return isPlaceholderTeam(match?.home) || isPlaceholderTeam(match?.away);
+}
+
+function isApiRealTeamName(name){
+  const raw = String(name || "").trim();
+  const normalized = normalizeTeamName(raw);
+  if (!raw || !normalized) return false;
+  if (isPlaceholderTeam(raw)) return false;
+  if (["tbd", "to be decided", "unknown", "undefined"].includes(normalized)) return false;
+  return true;
+}
+
+function apiTeamPatchForMatch(match, fx){
+  // Tiiminimede automaatne asendamine on vajalik ainult play-offis.
+  // Ennustused on seotud matches.id külge, seega muudame ainult kodu/võõrsil nimevälju.
+  if (!isPlayoffMatch(match)) return {};
+
+  const patch = {};
+  const apiHome = fx?.teams?.home?.name;
+  const apiAway = fx?.teams?.away?.name;
+
+  if (isApiRealTeamName(apiHome) && !teamNamesMatch(match?.home, apiHome)) {
+    patch.home = String(apiHome).trim();
+  }
+
+  if (isApiRealTeamName(apiAway) && !teamNamesMatch(match?.away, apiAway)) {
+    patch.away = String(apiAway).trim();
+  }
+
+  return patch;
+}
+
 function apiStatusShort(fx){
   return String(fx?.fixture?.status?.short || "").trim().toUpperCase();
 }
@@ -826,23 +859,36 @@ function fixtureDisplayName(fx){
 }
 
 function chooseFixtureForMatch(dbMatch, fixtures){
+  const hasPlaceholder = matchHasPlaceholderTeam(dbMatch);
+
   if (dbMatch.api_football_fixture_id){
     const exact = fixtures.find(fx => Number(fx?.fixture?.id) === Number(dbMatch.api_football_fixture_id));
-    if (exact && fixtureHasTeamNameOverlap(dbMatch, exact)) return exact;
+    // Play-off placeholderi puhul ei saa tiiminime overlap'i nõuda, sest DB-s on alguses 2A/W73 jne.
+    if (exact && (hasPlaceholder || fixtureHasTeamNameOverlap(dbMatch, exact))) return exact;
   }
 
   let best = null;
   let bestScore = -1;
+  let bestHasOverlap = false;
+
   for (const fx of fixtures){
-    if (!fixtureHasTeamNameOverlap(dbMatch, fx)) continue;
+    const hasOverlap = fixtureHasTeamNameOverlap(dbMatch, fx);
+
+    // Alagrupi ja päris tiimidega mängude puhul peab tiiminimi klappima.
+    // Placeholderitega play-off mängu puhul kasutame turvalist fallback'i: kellaaeg + staadion + round.
+    if (!hasOverlap && !hasPlaceholder) continue;
 
     const score = scoreFixtureMatch(dbMatch, fx);
     if (score > bestScore){
       best = fx;
       bestScore = score;
+      bestHasOverlap = hasOverlap;
     }
   }
-  return bestScore >= 4 ? best : null;
+
+  if (bestHasOverlap && bestScore >= 4) return best;
+  if (hasPlaceholder && bestScore >= 6) return best;
+  return null;
 }
 
 
@@ -1362,12 +1408,16 @@ async function syncApiFootballResults(sb, { force=false } = {}){
   let finished_found = 0;
   let skipped_manual = 0;
   let update_errors = 0;
+  let updated_playoff_teams = 0;
   const unmatched = [];
   const fixture_id_mismatches = [];
   const updated_matches = [];
+  const updated_playoff_team_matches = [];
   const update_error_examples = [];
 
-  for (const match of matchesRes.data || []){
+  for (const rawMatch of matchesRes.data || []){
+    let match = { ...rawMatch };
+
     if (match.manual_result_override) {
       skipped_manual += 1;
       continue;
@@ -1375,7 +1425,7 @@ async function syncApiFootballResults(sb, { force=false } = {}){
 
     if (match.api_football_fixture_id) {
       const exactFixture = fixtures.find(fx => Number(fx?.fixture?.id) === Number(match.api_football_fixture_id));
-      if (exactFixture && !fixtureHasTeamNameOverlap(match, exactFixture)) {
+      if (exactFixture && !matchHasPlaceholderTeam(match) && !fixtureHasTeamNameOverlap(match, exactFixture)) {
         fixture_id_mismatches.push(`#${match.match_no} ${match.home} - ${match.away}: olemasolev fixture ${fixtureDisplayName(exactFixture)} ei klapi tiiminimega`);
       }
     }
@@ -1399,8 +1449,28 @@ async function syncApiFootballResults(sb, { force=false } = {}){
         // Kui api_football_fixture_id veerg puudub, võib Supabase tagastada errori.
         // See ei tohi skoori salvestamist peatada.
         void fxUpd;
+        match.api_football_fixture_id = fxId;
       } catch (_) {
         // ignoreeri vabatahtliku veeru salvestuse viga
+      }
+    }
+
+    const teamPatch = apiTeamPatchForMatch(match, fx);
+    if (Object.keys(teamPatch).length) {
+      const teamUpd = await sb
+        .from("matches")
+        .update(teamPatch)
+        .eq("id", match.id)
+        .select("id,match_no,home,away")
+        .single();
+
+      if (!teamUpd.error) {
+        updated_playoff_teams += 1;
+        match = { ...match, ...teamUpd.data };
+        updated_playoff_team_matches.push(`#${match.match_no} ${match.home} - ${match.away}`);
+      } else {
+        update_errors += 1;
+        update_error_examples.push(`#${match.match_no} tiimid: ${teamUpd.error.message}`);
       }
     }
 
@@ -1458,9 +1528,11 @@ async function syncApiFootballResults(sb, { force=false } = {}){
     finished_found,
     skipped_manual,
     update_errors,
+    updated_playoff_teams,
     derived_updates: derived.updated || 0,
     requested: fetched.requested || [],
     updated_matches: updated_matches.slice(0, 20),
+    updated_playoff_team_matches: updated_playoff_team_matches.slice(0, 20),
     unmatched: unmatched.slice(0, 20),
     fixture_id_mismatches: fixture_id_mismatches.slice(0, 20),
     update_error_examples: update_error_examples.slice(0, 10),
