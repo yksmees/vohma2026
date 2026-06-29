@@ -858,6 +858,110 @@ function fixtureDisplayName(fx){
   return `${id ? "#" + id + " " : ""}${home} - ${away}`.trim();
 }
 
+function playoffRoundKeyFromMatch(match){
+  const n = Number(match?.match_no);
+  if (Number.isFinite(n)) {
+    if (n >= 73 && n <= 88) return "round32";
+    if (n >= 89 && n <= 96) return "round16";
+    if (n >= 97 && n <= 100) return "quarter";
+    if (n >= 101 && n <= 102) return "semi";
+    if (n === 103) return "third";
+    if (n === 104) return "final";
+  }
+
+  const stage = String(match?.stage || "").toLowerCase();
+  if (stage.includes("third")) return "third";
+  if (stage.includes("final") && !stage.includes("semi") && !stage.includes("quarter")) return "final";
+  if (stage.includes("semi")) return "semi";
+  if (stage.includes("quarter")) return "quarter";
+  if (stage.includes("round of 16")) return "round16";
+  if (stage.includes("round of 32")) return "round32";
+  return "";
+}
+
+function playoffRoundKeyFromFixture(fx){
+  const raw = String(fx?.league?.round || "").toLowerCase().trim();
+  const compact = raw.replace(/[\s_]+/g, " ");
+  const noPunct = compact.replace(/[^a-z0-9õäöü\s]/g, " ").replace(/\s+/g, " ").trim();
+
+  if (compact.includes("third") || compact.includes("3rd") || compact.includes("3. koht")) return "third";
+  if (compact.includes("semi") || noPunct.includes("semi")) return "semi";
+  if (compact.includes("quarter") || noPunct.includes("quarter") || compact.includes("1/4") || noPunct.includes("1 4")) return "quarter";
+  if (compact.includes("round of 32") || compact.includes("1/16") || noPunct.includes("1 16") || noPunct.includes("last 32")) return "round32";
+  if (compact.includes("round of 16") || compact.includes("1/8") || noPunct.includes("1 8") || noPunct.includes("last 16")) return "round16";
+  if (compact.includes("final") && !compact.includes("semi") && !compact.includes("quarter")) return "final";
+  return "";
+}
+
+function fixtureKickoffMs(fx){
+  const t = fx?.fixture?.date ? new Date(fx.fixture.date).getTime() : NaN;
+  return Number.isFinite(t) ? t : null;
+}
+
+function seedPlayoffMatchesForRound(roundKey){
+  return SEED_MATCHES
+    .filter(m => playoffRoundKeyFromMatch(m) === roundKey)
+    .slice()
+    .sort((a, b) => {
+      const ta = new Date(a.kickoff_utc).getTime();
+      const tb = new Date(b.kickoff_utc).getTime();
+      if (Number.isFinite(ta) && Number.isFinite(tb) && ta !== tb) return ta - tb;
+      return Number(a.match_no || 0) - Number(b.match_no || 0);
+    });
+}
+
+function sortedPlayoffFixturesForRound(fixtures, roundKey){
+  return (fixtures || [])
+    .filter(fx => playoffRoundKeyFromFixture(fx) === roundKey)
+    .slice()
+    .sort((a, b) => {
+      const ta = fixtureKickoffMs(a) ?? Number.MAX_SAFE_INTEGER;
+      const tb = fixtureKickoffMs(b) ?? Number.MAX_SAFE_INTEGER;
+      if (ta !== tb) return ta - tb;
+      return Number(a?.fixture?.id || 0) - Number(b?.fixture?.id || 0);
+    });
+}
+
+function fixtureHasAnyRealTeam(fx){
+  return isApiRealTeamName(fx?.teams?.home?.name) || isApiRealTeamName(fx?.teams?.away?.name);
+}
+
+function choosePlayoffFixtureByRoundOrder(dbMatch, fixtures){
+  if (!isPlayoffMatch(dbMatch) || !matchHasPlaceholderTeam(dbMatch)) return null;
+
+  const roundKey = playoffRoundKeyFromMatch(dbMatch);
+  if (!roundKey) return null;
+
+  const candidates = sortedPlayoffFixturesForRound(fixtures, roundKey);
+  if (!candidates.length) return null;
+
+  const dbKick = dbMatch.kickoff_utc ? new Date(dbMatch.kickoff_utc).getTime() : null;
+  if (Number.isFinite(dbKick)) {
+    let nearest = null;
+    let nearestDiff = Number.POSITIVE_INFINITY;
+    for (const fx of candidates) {
+      const fxKick = fixtureKickoffMs(fx);
+      if (!Number.isFinite(fxKick)) continue;
+      const diffMin = Math.abs(dbKick - fxKick) / 60000;
+      if (diffMin < nearestDiff) {
+        nearest = fx;
+        nearestDiff = diffMin;
+      }
+    }
+
+    // Play-offis ei ole tavaliselt samal ajal mitu mängu. Kui API aeg erineb mõne tunni,
+    // lubame ikkagi vaste, et üksikud placeholderid ei jääks üles.
+    if (nearest && nearestDiff <= 6 * 60) return nearest;
+  }
+
+  const localRoundMatches = seedPlayoffMatchesForRound(roundKey);
+  const index = localRoundMatches.findIndex(m => Number(m.match_no) === Number(dbMatch.match_no));
+  if (index >= 0 && candidates[index]) return candidates[index];
+
+  if (candidates.length === 1) return candidates[0];
+  return null;
+}
+
 function chooseFixtureForMatch(dbMatch, fixtures){
   const hasPlaceholder = matchHasPlaceholderTeam(dbMatch);
 
@@ -888,6 +992,10 @@ function chooseFixtureForMatch(dbMatch, fixtures){
 
   if (bestHasOverlap && bestScore >= 4) return best;
   if (hasPlaceholder && bestScore >= 6) return best;
+
+  const orderFallback = choosePlayoffFixtureByRoundOrder(dbMatch, fixtures);
+  if (orderFallback) return orderFallback;
+
   return null;
 }
 
