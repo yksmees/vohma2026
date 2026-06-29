@@ -31,3 +31,13 @@ Muudatus on tehtud Võhma Lihakombinaadi deploy ZIP-i peale.
 Lisatud teine play-off fixture sobituse varukiht. Kui API-Footballi kellaaeg või staadioni nimi erineb mõnel üksikul play-off mängul kohalikust tabelist, seotakse placeholderiga mäng sama knockout roundi ja ametliku mängujärjekorra järgi. See aitab vältida olukorda, kus näiteks `2E`, `2L`, `W73` või sarnane placeholder jääb nähtavale, kuigi API-s on päris tiimid juba olemas.
 
 See ei muuda punktiarvestust, ennustusi, kasutajaid ega `matches.id` väärtuseid.
+
+## Täiendus: muu liiga mängude kaitse
+
+Lisatud on täiendav kaitse, et MM mängud `match_no` 1 kuni 104 tohivad API-Footballi syncis vaste võtta ainult FIFA World Cup 2026 liigast. Kuupäeva järgi tulnud muud liigad, näiteks U20 või muud noorteturniirid, ei tohi enam MM mängude tiiminimesid üle kirjutada.
+
+Lisaks filtreeritakse kasutaja ennustusvaatesse ja teiste ennustuste vaatesse ainult MM mängud `match_no` 1 kuni 104. See ei muuda punktiarvestust ega ennustuste salvestamist.
+
+Kui mängul on käsitsi sisestatud tulemus, siis skoori API-st üle ei kirjutata, aga MM tiiminime parandust lubatakse endiselt teha. See aitab parandada ka ridu, mille tiiminimi on varem kogemata muu liiga fixture'ist tulnud.
+
+Kasutaja vaadetes on lisakaitse: kui mõni MM rida on andmebaasis juba varem muu liiga nimega rikutud, ei kuvata seda nime kasutajale. Kuni järgmise API syncini kuvatakse selle koha peal algne MM placeholder või seed-väärtus.

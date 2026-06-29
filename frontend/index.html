@@ -5230,17 +5230,19 @@ function populateAdminMatchSelects(matches){
 }
 
 
+function isWorldCupPredictionMatch(row){
+  const n = Number(row?.match_no);
+  return Number.isFinite(n) && n >= 1 && n <= 104;
+}
+
 function isPlayoffMatch(row){
   const n = Number(row?.match_no);
 
-  // U17 testmängud kasutavad negatiivseid mängunumbreid ja on testimiseks play-off loogikaga.
-  if (Number.isFinite(n) && n < 0) return true;
-
-  if (Number.isFinite(n) && n >= 73) return true;
+  if (Number.isFinite(n) && n >= 73 && n <= 104) return true;
+  if (Number.isFinite(n) && n >= 1 && n <= 72) return false;
 
   const stage = String(row?.stage || "").trim().toLowerCase();
   if (!stage) return false;
-  if (stage.includes("u17")) return true;
   if (stage.startsWith("group")) return false;
   return true;
 }
@@ -5712,10 +5714,11 @@ async function loadMatchesAndPreds(){
     ]);
     const map = new Map((p.predictions||[]).map(x=>[x.match_id, x]));
     const publicMap = pub.predictions_by_match || {};
-    populateAdminMatchSelects(m.matches || []);
-    populateResultMatchSelects(m.matches || []);
+    const allMatches = (m.matches || []).filter(isWorldCupPredictionMatch);
+    populateAdminMatchSelects(allMatches);
+    populateResultMatchSelects(allMatches);
 
-    const predictionMatches = sortMatchesByKickoffForPredictions(m.matches || []);
+    const predictionMatches = sortMatchesByKickoffForPredictions(allMatches);
 
     for (const row of predictionMatches){
       const pr = map.get(row.id);
@@ -6385,12 +6388,12 @@ async function loadOthersView(){
   try{
     const r = await call("predictions/matrix", {method:"GET"});
     const players = r.players || [];
-    const matches = r.matches || [];
+    const matches = (r.matches || []).filter(isWorldCupPredictionMatch);
     const predictions = r.predictions || [];
 
     const sortedMatches = matches.slice().sort(matchSortNewest);
     const groupMatches = sortedMatches.filter(m => Number(m.match_no) >= 1 && Number(m.match_no) <= 72);
-    const playoffMatches = sortedMatches.filter(m => !(Number(m.match_no) >= 1 && Number(m.match_no) <= 72));
+    const playoffMatches = sortedMatches.filter(m => Number(m.match_no) >= 73 && Number(m.match_no) <= 104);
 
     renderOthersMatrix($("othersGroupTable"), groupMatches, players, predictions);
     renderOthersMatrix($("othersPlayoffTable"), playoffMatches, players, predictions);

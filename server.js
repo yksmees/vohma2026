@@ -500,15 +500,12 @@ async function getBonusLockInfo(sb){
 
 function isGroupMatchForLeaderboard(match){
   const n = Number(match?.match_no);
-  if (Number.isFinite(n) && n >= 1 && n <= 72) return true;
-
-  const stage = String(match?.stage || "").trim().toLowerCase();
-  if (!stage) return false;
-  return stage.startsWith("group") || stage.includes("alagrupp");
+  return Number.isFinite(n) && n >= 1 && n <= 72;
 }
 
 function isPlayoffMatchForLeaderboard(match){
-  return isPlayoffMatch(match) && !isGroupMatchForLeaderboard(match);
+  const n = Number(match?.match_no);
+  return Number.isFinite(n) && n >= 73 && n <= 104;
 }
 
 function addRankMovement(current, previous){
@@ -714,8 +711,79 @@ function isPlaceholderTeam(name){
   return /^[WL]\d+$/i.test(s) || /^[123][A-Z]+$/i.test(s) || /^[12][A-L]$/i.test(s) || /^3[A-Z]+$/i.test(s);
 }
 
+function isMainWorldCupMatch(match){
+  const n = Number(match?.match_no);
+  return Number.isFinite(n) && n >= 1 && n <= 104;
+}
+
+function isVisiblePredictionMatch(match){
+  return isMainWorldCupMatch(match);
+}
+
+let worldCupTeamNameCache = null;
+function worldCupTeamNameSet(){
+  if (!worldCupTeamNameCache) {
+    worldCupTeamNameCache = new Set();
+    for (const m of SEED_MATCHES || []) {
+      const no = Number(m?.match_no);
+      if (!Number.isFinite(no) || no < 1 || no > 72) continue;
+      for (const name of [m.home, m.away]) {
+        const normalized = normalizeTeamName(name);
+        if (normalized) worldCupTeamNameCache.add(normalized);
+      }
+    }
+  }
+  return worldCupTeamNameCache;
+}
+
+function isExpectedWorldCupTeamName(name){
+  const raw = String(name || "").trim();
+  if (!raw) return false;
+  if (isPlaceholderTeam(raw)) return true;
+  return worldCupTeamNameSet().has(normalizeTeamName(raw));
+}
+
+function matchNeedsWorldCupTeamRepair(match){
+  if (!isMainWorldCupMatch(match)) return false;
+  return [match?.home, match?.away].some(name => {
+    const raw = String(name || "").trim();
+    return raw && !isExpectedWorldCupTeamName(raw);
+  });
+}
+
 function matchHasPlaceholderTeam(match){
   return isPlaceholderTeam(match?.home) || isPlaceholderTeam(match?.away);
+}
+
+function apiFixtureIsMainWorldCup(fx){
+  const leagueId = Number(fx?.league?.id);
+  const season = Number(fx?.league?.season);
+  const leagueName = normalizeTeamName(fx?.league?.name);
+
+  if (leagueId === Number(API_FOOTBALL_LEAGUE_ID) && (!Number.isFinite(season) || season === Number(API_FOOTBALL_SEASON))) return true;
+  if (leagueName.includes("world cup") && (!Number.isFinite(season) || season === Number(API_FOOTBALL_SEASON))) return true;
+  return false;
+}
+
+function fixtureAllowedForMatch(match, fx){
+  if (isMainWorldCupMatch(match)) return apiFixtureIsMainWorldCup(fx);
+  return true;
+}
+
+function sanitizeWorldCupMatchForDisplay(match){
+  if (!isMainWorldCupMatch(match)) return match;
+
+  const seed = seedMatchByNoMap().get(Number(match?.match_no));
+  if (!seed) return match;
+
+  const clean = { ...match };
+  if (String(clean.home || "").trim() && !isExpectedWorldCupTeamName(clean.home)) clean.home = seed.home;
+  if (String(clean.away || "").trim() && !isExpectedWorldCupTeamName(clean.away)) clean.away = seed.away;
+  return clean;
+}
+
+function sanitizeWorldCupMatchesForDisplay(matches){
+  return (matches || []).filter(isVisiblePredictionMatch).map(sanitizeWorldCupMatchForDisplay);
 }
 
 function isApiRealTeamName(name){
@@ -910,9 +978,10 @@ function seedPlayoffMatchesForRound(roundKey){
     });
 }
 
-function sortedPlayoffFixturesForRound(fixtures, roundKey){
+function sortedPlayoffFixturesForRound(fixtures, roundKey, dbMatch = null){
   return (fixtures || [])
     .filter(fx => playoffRoundKeyFromFixture(fx) === roundKey)
+    .filter(fx => !dbMatch || fixtureAllowedForMatch(dbMatch, fx))
     .slice()
     .sort((a, b) => {
       const ta = fixtureKickoffMs(a) ?? Number.MAX_SAFE_INTEGER;
@@ -927,12 +996,13 @@ function fixtureHasAnyRealTeam(fx){
 }
 
 function choosePlayoffFixtureByRoundOrder(dbMatch, fixtures){
-  if (!isPlayoffMatch(dbMatch) || !matchHasPlaceholderTeam(dbMatch)) return null;
+  const needsRepair = matchNeedsWorldCupTeamRepair(dbMatch);
+  if (!isPlayoffMatch(dbMatch) || (!matchHasPlaceholderTeam(dbMatch) && !needsRepair)) return null;
 
   const roundKey = playoffRoundKeyFromMatch(dbMatch);
   if (!roundKey) return null;
 
-  const candidates = sortedPlayoffFixturesForRound(fixtures, roundKey);
+  const candidates = sortedPlayoffFixturesForRound(fixtures, roundKey, dbMatch);
   if (!candidates.length) return null;
 
   const dbKick = dbMatch.kickoff_utc ? new Date(dbMatch.kickoff_utc).getTime() : null;
@@ -964,11 +1034,13 @@ function choosePlayoffFixtureByRoundOrder(dbMatch, fixtures){
 
 function chooseFixtureForMatch(dbMatch, fixtures){
   const hasPlaceholder = matchHasPlaceholderTeam(dbMatch);
+  const needsRepair = matchNeedsWorldCupTeamRepair(dbMatch);
+  const allowTeamFallback = hasPlaceholder || needsRepair;
 
   if (dbMatch.api_football_fixture_id){
     const exact = fixtures.find(fx => Number(fx?.fixture?.id) === Number(dbMatch.api_football_fixture_id));
-    // Play-off placeholderi puhul ei saa tiiminime overlap'i nõuda, sest DB-s on alguses 2A/W73 jne.
-    if (exact && (hasPlaceholder || fixtureHasTeamNameOverlap(dbMatch, exact))) return exact;
+    // MM mängude puhul ei kasuta kunagi muu liiga fixture'it, isegi kui vana fixture_id on varem valesti salvestunud.
+    if (exact && fixtureAllowedForMatch(dbMatch, exact) && (allowTeamFallback || fixtureHasTeamNameOverlap(dbMatch, exact))) return exact;
   }
 
   let best = null;
@@ -976,11 +1048,13 @@ function chooseFixtureForMatch(dbMatch, fixtures){
   let bestHasOverlap = false;
 
   for (const fx of fixtures){
+    if (!fixtureAllowedForMatch(dbMatch, fx)) continue;
+
     const hasOverlap = fixtureHasTeamNameOverlap(dbMatch, fx);
 
     // Alagrupi ja päris tiimidega mängude puhul peab tiiminimi klappima.
-    // Placeholderitega play-off mängu puhul kasutame turvalist fallback'i: kellaaeg + staadion + round.
-    if (!hasOverlap && !hasPlaceholder) continue;
+    // Placeholderi või vigase U20/muu liigast tulnud nime puhul lubame MM fixture'i järgi parandust.
+    if (!hasOverlap && !allowTeamFallback) continue;
 
     const score = scoreFixtureMatch(dbMatch, fx);
     if (score > bestScore){
@@ -991,7 +1065,7 @@ function chooseFixtureForMatch(dbMatch, fixtures){
   }
 
   if (bestHasOverlap && bestScore >= 4) return best;
-  if (hasPlaceholder && bestScore >= 6) return best;
+  if (allowTeamFallback && bestScore >= 6) return best;
 
   const orderFallback = choosePlayoffFixtureByRoundOrder(dbMatch, fixtures);
   if (orderFallback) return orderFallback;
@@ -1525,10 +1599,10 @@ async function syncApiFootballResults(sb, { force=false } = {}){
 
   for (const rawMatch of matchesRes.data || []){
     let match = { ...rawMatch };
+    const hasManualResultOverride = !!match.manual_result_override;
 
-    if (match.manual_result_override) {
+    if (hasManualResultOverride) {
       skipped_manual += 1;
-      continue;
     }
 
     if (match.api_football_fixture_id) {
@@ -1580,6 +1654,10 @@ async function syncApiFootballResults(sb, { force=false } = {}){
         update_errors += 1;
         update_error_examples.push(`#${match.match_no} tiimid: ${teamUpd.error.message}`);
       }
+    }
+
+    if (hasManualResultOverride) {
+      continue;
     }
 
     if (apiFixtureFinished(fx)){
@@ -1842,7 +1920,7 @@ if (event.httpMethod === "GET" && route === "me") {
     if (event.httpMethod === "GET" && route === "matches") {
       const m = await sb.from("matches").select("*").order("match_no", { ascending: true });
       if (m.error) return json(500, { error: m.error.message });
-      return json(200, { ok: true, matches: m.data });
+      return json(200, { ok: true, matches: sanitizeWorldCupMatchesForDisplay(m.data || []) });
     }
 
 
@@ -1862,6 +1940,7 @@ if (event.httpMethod === "GET" && route === "me") {
       if (!fetched.ok) return json(500, { error: fetched.error || "API-Football viga" });
 
       const candidates = (fetched.fixtures || [])
+        .filter(fx => fixtureAllowedForMatch(matchRes.data, fx))
         .map(fx => ({
           fixture_id: fx?.fixture?.id,
           date: fx?.fixture?.date,
@@ -2361,12 +2440,12 @@ if (event.httpMethod === "GET" && route === "predictions/public") {
   const u = userFrom(event);
   if (!u) return json(401, { error: "Pole sisse logitud." });
 
-  const matchesRes = await fetchAllRows(() => sb.from("matches").select("id,kickoff_utc,is_finished").order("id", { ascending: true }));
+  const matchesRes = await fetchAllRows(() => sb.from("matches").select("id,match_no,kickoff_utc,is_finished").order("id", { ascending: true }));
   if (matchesRes.error) return json(500, { error: matchesRes.error.message });
 
   const now = Date.now();
   const openMatchIds = [];
-  for (const m of matchesRes.data || []) {
+  for (const m of (matchesRes.data || []).filter(isVisiblePredictionMatch)) {
     const kickoff = m.kickoff_utc ? new Date(m.kickoff_utc).getTime() : null;
     const locked = m.is_finished || (kickoff && now >= (kickoff - 60 * 60 * 1000));
     if (locked) openMatchIds.push(m.id);
@@ -2426,7 +2505,7 @@ if (event.httpMethod === "GET" && route === "predictions/matrix") {
 
   const now = Date.now();
 
-  const visibleMatches = (matchesRes.data || []).filter(m => {
+  const visibleMatches = sanitizeWorldCupMatchesForDisplay(matchesRes.data || []).filter(m => {
     const hasFinal =
       m.is_finished ||
       (
@@ -2488,6 +2567,7 @@ if (event.httpMethod === "GET" && route === "predictions/matrix") {
     .single();
 
   if (m.error) return json(500, { error: m.error.message });
+  if (!isVisiblePredictionMatch(m.data)) return json(400, { error: "See ei ole MM ennustusmäng." });
 
   if (!u.is_admin && m.data.kickoff_utc) {
     const kickoff = new Date(m.data.kickoff_utc).getTime();
@@ -3057,11 +3137,11 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
   const playoffPointsMap = new Map();
 
   for (const pr of allPreds) {
+    const match = matchMap.get(pr.match_id);
+    if (!match || !isVisiblePredictionMatch(match)) continue;
+
     const pts = Number(pr.points) || 0;
     predictionTotalMap.set(pr.player_id, (predictionTotalMap.get(pr.player_id) || 0) + pts);
-
-    const match = matchMap.get(pr.match_id);
-    if (!match) continue;
 
     if (isGroupMatchForLeaderboard(match)) {
       groupPointsMap.set(pr.player_id, (groupPointsMap.get(pr.player_id) || 0) + pts);
