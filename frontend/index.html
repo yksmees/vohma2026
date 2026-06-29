@@ -5230,9 +5230,19 @@ function populateAdminMatchSelects(matches){
 }
 
 
+function isPlaceholderTeamName(name){
+  const s = String(name || "").trim();
+  return /^[WL]\d+$/i.test(s) || /^[123][A-Z]+$/i.test(s) || /^[12][A-L]$/i.test(s) || /^3[A-Z]+$/i.test(s);
+}
+
 function isWorldCupPredictionMatch(row){
   const n = Number(row?.match_no);
-  return Number.isFinite(n) && n >= 1 && n <= 104;
+  if (!Number.isFinite(n) || n < 1 || n > 104) return false;
+  return !isPlaceholderTeamName(row?.home) && !isPlaceholderTeamName(row?.away);
+}
+
+function filterResolvedWorldCupMatches(rows){
+  return (rows || []).filter(isWorldCupPredictionMatch);
 }
 
 function isPlayoffMatch(row){
@@ -6388,7 +6398,7 @@ async function loadOthersView(){
   try{
     const r = await call("predictions/matrix", {method:"GET"});
     const players = r.players || [];
-    const matches = (r.matches || []).filter(isWorldCupPredictionMatch);
+    const matches = filterResolvedWorldCupMatches(r.matches || []);
     const predictions = r.predictions || [];
 
     const sortedMatches = matches.slice().sort(matchSortNewest);
@@ -7007,7 +7017,8 @@ async function loadAdminScreenshotBoard(){
     const r = await call("predictions/matrix", {method:"GET"});
     adminScreenshotData = r;
 
-    const matches = r.matches || [];
+    const matches = filterResolvedWorldCupMatches(r.matches || []);
+    adminScreenshotData = { ...r, matches };
     const select = $("screenshotMatchSelect");
     if (select) {
       const current = select.value;
@@ -7030,7 +7041,7 @@ function renderScreenshotBoard(){
 
   const data = adminScreenshotData || {matches:[], players:[], predictions:[]};
   const players = data.players || [];
-  const matches = data.matches || [];
+  const matches = filterResolvedWorldCupMatches(data.matches || []);
   const predictions = data.predictions || [];
 
   const mode = $("screenshotMode")?.value || "single";
@@ -8290,6 +8301,9 @@ if ($("btnSyncResults")) $("btnSyncResults").onclick = async (e)=>{
       r.update_errors ? `salvestusvigu ${r.update_errors}` : "",
       r.updated_playoff_teams ? `API play-off tiimid uuendatud ${r.updated_playoff_teams}` : "",
       r.derived_updates ? `play-off paarid uuendatud ${r.derived_updates}` : "",
+      r.cleanup_before?.cleared_matches ? `vigased placeholder tulemused puhastatud ${r.cleanup_before.cleared_matches}` : "",
+      r.cleanup_after?.cleared_matches ? `järelpuhastus ${r.cleanup_after.cleared_matches}` : "",
+      (r.cleanup_before?.examples && r.cleanup_before.examples.length) ? `puhastatud: ${r.cleanup_before.examples.join("; ")}` : "",
       (r.updated_playoff_team_matches && r.updated_playoff_team_matches.length) ? `tiimid: ${r.updated_playoff_team_matches.join("; ")}` : "",
       (r.updated_matches && r.updated_matches.length) ? `uuendatud: ${r.updated_matches.join("; ")}` : "",
       (r.unmatched && r.unmatched.length) ? `sidumata: ${r.unmatched.join("; ")}` : "",
