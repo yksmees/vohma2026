@@ -70,6 +70,31 @@ function validateRequiredEnv() {
 
 const SEED_MATCHES = [{"stage": "Group A", "match_no": 1, "kickoff_utc": "2026-06-11T19:00:00Z", "home": "Mexico", "away": "South Africa", "location": "Estadio Azteca, Mexico City"}, {"stage": "Group A", "match_no": 2, "kickoff_utc": "2026-06-12T02:00:00Z", "home": "South Korea", "away": "Czechia", "location": "Estadio Akron, Zapopan"}, {"stage": "Group B", "match_no": 3, "kickoff_utc": "2026-06-12T19:00:00Z", "home": "Canada", "away": "Bosnia and Herzegovina", "location": "BMO Field, Toronto"}, {"stage": "Group D", "match_no": 4, "kickoff_utc": "2026-06-13T01:00:00Z", "home": "United States", "away": "Paraguay", "location": "SoFi Stadium, Inglewood"}, {"stage": "Group C", "match_no": 5, "kickoff_utc": "2026-06-14T01:00:00Z", "home": "Haiti", "away": "Scotland", "location": "Gillette Stadium, Foxborough"}, {"stage": "Group D", "match_no": 6, "kickoff_utc": "2026-06-14T03:59:00Z", "home": "Australia", "away": "Türkiye", "location": "BC Place, Vancouver"}, {"stage": "Group C", "match_no": 7, "kickoff_utc": "2026-06-13T22:00:00Z", "home": "Brazil", "away": "Morocco", "location": "MetLife Stadium, East Rutherford"}, {"stage": "Group B", "match_no": 8, "kickoff_utc": "2026-06-13T19:00:00Z", "home": "Qatar", "away": "Switzerland", "location": "Levi's Stadium, Santa Clara"}, {"stage": "Group E", "match_no": 9, "kickoff_utc": "2026-06-14T23:00:00Z", "home": "Ivory Coast", "away": "Ecuador", "location": "Lincoln Financial Field, Philadelphia"}, {"stage": "Group E", "match_no": 10, "kickoff_utc": "2026-06-14T17:00:00Z", "home": "Germany", "away": "Curacao", "location": "NRG Stadium, Houston"}, {"stage": "Group F", "match_no": 11, "kickoff_utc": "2026-06-14T20:00:00Z", "home": "Netherlands", "away": "Japan", "location": "AT&T Stadium, Arlington"}, {"stage": "Group F", "match_no": 12, "kickoff_utc": "2026-06-15T02:00:00Z", "home": "Sweden", "away": "Tunisia", "location": "Estadio BBVA, Guadalupe"}, {"stage": "Group H", "match_no": 13, "kickoff_utc": "2026-06-15T22:00:00Z", "home": "Saudi Arabia", "away": "Uruguay", "location": "Hard Rock Stadium, Miami Gardens"}, {"stage": "Group H", "match_no": 14, "kickoff_utc": "2026-06-15T16:00:00Z", "home": "Spain", "away": "Cape Verde", "location": "Mercedes-Benz Stadium, Atlanta"}, {"stage": "Group G", "match_no": 15, "kickoff_utc": "2026-06-16T01:00:00Z", "home": "Iran", "away": "New Zealand", "location": "SoFi Stadium, Inglewood"}, {"stage": "Group G", "match_no": 16, "kickoff_utc": "2026-06-15T19:00:00Z", "home": "Belgium", "away": "Egypt", "location": "Lumen Field, Seattle"}, {"stage": "Group I", "match_no": 17, "kickoff_utc": "2026-06-16T19:00:00Z", "home": "France", "away": "Senegal", "location": "MetLife Stadium, East Rutherford"}, {"stage": "Group I", "match_no": 18, "kickoff_utc": "2026-06-16T22:00:00Z", "home": "Iraq", "away": "Norway", "location": "Gillette Stadium, Foxborough"}, {"stage": "Group J", "match_no": 19, "kickoff_utc": "2026-06-17T01:00:00Z", "home": "Argentina", "away": "Algeria", "location": "Arrowhead Stadium, Kansas City"}, {"stage": "Group J", "match_no": 20, "kickoff_utc": "2026-06-17T03:59:00Z", "home": "Austria", "away": "Jordan", "location": "Levi's Stadium, Santa Clara"}, {"stage": "Group L", "match_no": 21, "kickoff_utc": "2026-06-17T20:00:00Z", "home": "England", "away": "Croatia", "location": "AT&T Stadium, Arlington"}, {"stage": "Group L", "match_no": 22, "kickoff_utc": "2026-06-17T23:00:00Z", "home": "Ghana", "away": "Panama", "location": "BMO Field, Toronto"}, {"stage": "Group K", "match_no": 23, "kickoff_utc": "2026-06-17T17:00:00Z", "home": "Portugal", "away": "Congo DR", "location": "NRG Stadium, Houston"}, {"stage": "Group K", "match_no": 24, "kickoff_utc": "2026-06-18T02:00:00Z", "home": "Uzbekistan", "away": "Colombia", "location": "Estadio Azteca, Mexico City"}, {"stage": "Group A", "match_no": 25, "kickoff_utc": "2026-06-18T16:00:00Z", "home": "Czechia", "away": "South Africa", "location": "Mercedes-Benz Stadium, Atlanta"}, {"stage": "Group B", "match_no": 26, "kickoff_utc": "2026-06-18T19:00:00Z", "home": "Switzerland", "away": "Bosnia and Herzegovina", "location": "SoFi Stadium, Inglewood"}, {"stage": "Group B", "match_no": 27, "kickoff_utc": "2026-06-18T22:00:00Z", "home": "Canada", "away": "Qatar", "location": "BC Place, Vancouver"}, {"stage": "Group A", "match_no": 28, "kickoff_utc": "2026-06-19T01:00:00Z", "home": "Mexico", "away": "South Korea", "location": "Estadio Akron, Zapopan"}, {"stage": "Group C", "match_no": 29, "kickoff_utc": "2026-06-20T01:00:00Z", "home": "Brazil", "away": "Haiti", "location": "Lincoln Financial Field, Philadelphia"}, {"stage": "Group C", "match_no": 30, "kickoff_utc": "2026-06-19T22:00:00Z", "home": "Scotland", "away": "Morocco", "location": "Gillette Stadium, Foxborough"}, {"stage": "Group D", "match_no": 31, "kickoff_utc": "2026-06-20T03:59:00Z", "home": "Türkiye", "away": "Paraguay", "location": "Levi's Stadium, Santa Clara"}, {"stage": "Group D", "match_no": 32, "kickoff_utc": "2026-06-19T19:00:00Z", "home": "United States", "away": "Australia", "location": "Lumen Field, Seattle"}, {"stage": "Group E", "match_no": 33, "kickoff_utc": "2026-06-20T20:00:00Z", "home": "Germany", "away": "Ivory Coast", "location": "BMO Field, Toronto"}, {"stage": "Group E", "match_no": 34, "kickoff_utc": "2026-06-21T00:00:00Z", "home": "Ecuador", "away": "Curacao", "location": "Arrowhead Stadium, Kansas City"}, {"stage": "Group F", "match_no": 35, "kickoff_utc": "2026-06-20T17:00:00Z", "home": "Netherlands", "away": "Sweden", "location": "NRG Stadium, Houston"}, {"stage": "Group F", "match_no": 36, "kickoff_utc": "2026-06-21T03:59:00Z", "home": "Tunisia", "away": "Japan", "location": "Estadio BBVA, Guadalupe"}, {"stage": "Group H", "match_no": 37, "kickoff_utc": "2026-06-21T22:00:00Z", "home": "Uruguay", "away": "Cape Verde", "location": "Hard Rock Stadium, Miami Gardens"}, {"stage": "Group H", "match_no": 38, "kickoff_utc": "2026-06-21T16:00:00Z", "home": "Spain", "away": "Saudi Arabia", "location": "Mercedes-Benz Stadium, Atlanta"}, {"stage": "Group G", "match_no": 39, "kickoff_utc": "2026-06-21T19:00:00Z", "home": "Belgium", "away": "Iran", "location": "Sofi Stadium, Inglewood"}, {"stage": "Group G", "match_no": 40, "kickoff_utc": "2026-06-22T01:00:00Z", "home": "New Zealand", "away": "Egypt", "location": "BC Place, Vancouver"}, {"stage": "Group I", "match_no": 41, "kickoff_utc": "2026-06-23T00:00:00Z", "home": "Norway", "away": "Senegal", "location": "MetLife Stadium, East Rutherford"}, {"stage": "Group I", "match_no": 42, "kickoff_utc": "2026-06-22T21:00:00Z", "home": "France", "away": "Iraq", "location": "Lincoln Financial Field, Philadelphia"}, {"stage": "Group J", "match_no": 43, "kickoff_utc": "2026-06-22T17:00:00Z", "home": "Argentina", "away": "Austria", "location": "AT&T Stadium, Arlington"}, {"stage": "Group J", "match_no": 44, "kickoff_utc": "2026-06-23T03:00:00Z", "home": "Jordan", "away": "Algeria", "location": "Levi's Stadium, Santa Clara"}, {"stage": "Group L", "match_no": 45, "kickoff_utc": "2026-06-23T20:00:00Z", "home": "England", "away": "Ghana", "location": "Gillette Stadium, Foxborough"}, {"stage": "Group L", "match_no": 46, "kickoff_utc": "2026-06-23T23:00:00Z", "home": "Panama", "away": "Croatia", "location": "BMO Field, Toronto"}, {"stage": "Group K", "match_no": 47, "kickoff_utc": "2026-06-23T17:00:00Z", "home": "Portugal", "away": "Uzbekistan", "location": "NRG Stadium, Houston"}, {"stage": "Group K", "match_no": 48, "kickoff_utc": "2026-06-24T02:00:00Z", "home": "Colombia", "away": "Congo DR", "location": "Estadio Akron, Zapopan"}, {"stage": "Group C", "match_no": 49, "kickoff_utc": "2026-06-24T22:00:00Z", "home": "Scotland", "away": "Brazil", "location": "Hard Rock Stadium, Miami Gardens"}, {"stage": "Group C", "match_no": 50, "kickoff_utc": "2026-06-24T22:00:00Z", "home": "Morocco", "away": "Haiti", "location": "Mercedes-Benz Stadium, Atlanta"}, {"stage": "Group B", "match_no": 51, "kickoff_utc": "2026-06-24T19:00:00Z", "home": "Switzerland", "away": "Canada", "location": "BC Place, Vancouver"}, {"stage": "Group B", "match_no": 52, "kickoff_utc": "2026-06-24T19:00:00Z", "home": "Bosnia and Herzegovina", "away": "Qatar", "location": "Lumen Field, Seattle"}, {"stage": "Group A", "match_no": 53, "kickoff_utc": "2026-06-25T01:00:00Z", "home": "Czechia", "away": "Mexico", "location": "Estadio Azteca, Mexico City"}, {"stage": "Group A", "match_no": 54, "kickoff_utc": "2026-06-25T01:00:00Z", "home": "South Africa", "away": "South Korea", "location": "Estadio BBVA, Guadalupe"}, {"stage": "Group E", "match_no": 55, "kickoff_utc": "2026-06-25T20:00:00Z", "home": "Curacao", "away": "Ivory Coast", "location": "Lincoln Financial Field, Philadelphia"}, {"stage": "Group E", "match_no": 56, "kickoff_utc": "2026-06-25T20:00:00Z", "home": "Ecuador", "away": "Germany", "location": "MetLife Stadium, East Rutherford"}, {"stage": "Group F", "match_no": 57, "kickoff_utc": "2026-06-25T23:00:00Z", "home": "Japan", "away": "Sweden", "location": "AT&T Stadium, Arlington"}, {"stage": "Group F", "match_no": 58, "kickoff_utc": "2026-06-25T23:00:00Z", "home": "Tunisia", "away": "Netherlands", "location": "Arrowhead Stadium, Kansas City"}, {"stage": "Group D", "match_no": 59, "kickoff_utc": "2026-06-26T02:00:00Z", "home": "Türkiye", "away": "United States", "location": "SoFi Stadium, Inglewood"}, {"stage": "Group D", "match_no": 60, "kickoff_utc": "2026-06-26T02:00:00Z", "home": "Paraguay", "away": "Australia", "location": "Levi's Stadium, Santa Clara"}, {"stage": "Group I", "match_no": 61, "kickoff_utc": "2026-06-26T19:00:00Z", "home": "Norway", "away": "France", "location": "Gillette Stadium, Foxborough"}, {"stage": "Group I", "match_no": 62, "kickoff_utc": "2026-06-26T19:00:00Z", "home": "Senegal", "away": "Iraq", "location": "BMO Field, Toronto"}, {"stage": "Group G", "match_no": 63, "kickoff_utc": "2026-06-27T03:00:00Z", "home": "Egypt", "away": "Iran", "location": "Lumen Field, Seattle"}, {"stage": "Group G", "match_no": 64, "kickoff_utc": "2026-06-27T03:00:00Z", "home": "New Zealand", "away": "Belgium", "location": "BC Place, Vancouver"}, {"stage": "Group H", "match_no": 65, "kickoff_utc": "2026-06-27T00:00:00Z", "home": "Cape Verde", "away": "Saudi Arabia", "location": "NRG Stadium, Houston"}, {"stage": "Group H", "match_no": 66, "kickoff_utc": "2026-06-27T00:00:00Z", "home": "Uruguay", "away": "Spain", "location": "Estadio Akron, Zapopan"}, {"stage": "Group L", "match_no": 67, "kickoff_utc": "2026-06-27T21:00:00Z", "home": "Panama", "away": "England", "location": "MetLife Stadium, East Rutherford"}, {"stage": "Group L", "match_no": 68, "kickoff_utc": "2026-06-27T21:00:00Z", "home": "Croatia", "away": "Ghana", "location": "Lincoln Financial Field, Philadelphia"}, {"stage": "Group J", "match_no": 69, "kickoff_utc": "2026-06-28T02:00:00Z", "home": "Algeria", "away": "Austria", "location": "Arrowhead Stadium, Kansas City"}, {"stage": "Group J", "match_no": 70, "kickoff_utc": "2026-06-28T02:00:00Z", "home": "Jordan", "away": "Argentina", "location": "AT&T Stadium, Arlington"}, {"stage": "Group K", "match_no": 71, "kickoff_utc": "2026-06-27T23:30:00Z", "home": "Colombia", "away": "Portugal", "location": "Hard Rock Stadium, Miami Gardens"}, {"stage": "Group K", "match_no": 72, "kickoff_utc": "2026-06-27T23:30:00Z", "home": "Congo DR", "away": "Uzbekistan", "location": "Mercedes-Benz Stadium, Atlanta"}, {"stage": "Round of 32", "match_no": 73, "kickoff_utc": "2026-06-28T19:00:00Z", "home": "2A", "away": "2B", "location": "Sofi Stadium, Inglewood"}, {"stage": "Round of 32", "match_no": 74, "kickoff_utc": "2026-06-29T20:30:00Z", "home": "1E", "away": "3ABCDF", "location": "Gillette Stadium, Foxborough"}, {"stage": "Round of 32", "match_no": 75, "kickoff_utc": "2026-06-30T01:00:00Z", "home": "1F", "away": "2C", "location": "Estadio BBVA, Guadalupe"}, {"stage": "Round of 32", "match_no": 76, "kickoff_utc": "2026-06-29T17:00:00Z", "home": "1C", "away": "2F", "location": "NRG Stadium, Houston"}, {"stage": "Round of 32", "match_no": 77, "kickoff_utc": "2026-06-30T21:00:00Z", "home": "1I", "away": "3CDFGH", "location": "MetLife Stadium, East Rutherford"}, {"stage": "Round of 32", "match_no": 78, "kickoff_utc": "2026-06-30T17:00:00Z", "home": "2E", "away": "2I", "location": "AT&T Stadium, Arlington"}, {"stage": "Round of 32", "match_no": 79, "kickoff_utc": "2026-07-01T01:00:00Z", "home": "1A", "away": "3CEFHI", "location": "Estadio Azteca, Mexico City"}, {"stage": "Round of 32", "match_no": 80, "kickoff_utc": "2026-07-01T16:00:00Z", "home": "1L", "away": "3EHIJK", "location": "Mercedes-Benz Stadium, Atlanta"}, {"stage": "Round of 32", "match_no": 81, "kickoff_utc": "2026-07-02T00:00:00Z", "home": "1D", "away": "3BEFIJ", "location": "Levi's Stadium, Santa Clara"}, {"stage": "Round of 32", "match_no": 82, "kickoff_utc": "2026-07-01T20:00:00Z", "home": "1G", "away": "3AEHIJ", "location": "Lumen Field, Seattle"}, {"stage": "Round of 32", "match_no": 83, "kickoff_utc": "2026-07-02T23:00:00Z", "home": "2K", "away": "2L", "location": "BMO Field, Toronto"}, {"stage": "Round of 32", "match_no": 84, "kickoff_utc": "2026-07-02T19:00:00Z", "home": "1H", "away": "2J", "location": "Sofi Stadium, Inglewood"}, {"stage": "Round of 32", "match_no": 85, "kickoff_utc": "2026-07-03T03:00:00Z", "home": "2B", "away": "3EFGIJ", "location": "BC Place, Vancouver"}, {"stage": "Round of 32", "match_no": 86, "kickoff_utc": "2026-07-03T22:00:00Z", "home": "1J", "away": "2H", "location": "Hard Rock Stadium, Miami Gardens"}, {"stage": "Round of 32", "match_no": 87, "kickoff_utc": "2026-07-04T01:30:00Z", "home": "1K", "away": "3DEIJL", "location": "Arrowhead Stadium, Kansas City"}, {"stage": "Round of 32", "match_no": 88, "kickoff_utc": "2026-07-03T18:00:00Z", "home": "2D", "away": "2G", "location": "AT&T Stadium, Arlington"}, {"stage": "Round of 16", "match_no": 89, "kickoff_utc": "2026-07-04T21:00:00Z", "home": "W74", "away": "W77", "location": "Lincoln Financial Field, Philadelphia"}, {"stage": "Round of 16", "match_no": 90, "kickoff_utc": "2026-07-04T17:00:00Z", "home": "W73", "away": "W75", "location": "NRG Stadium, Houston"}, {"stage": "Round of 16", "match_no": 91, "kickoff_utc": "2026-07-05T20:00:00Z", "home": "W76", "away": "W78", "location": "MetLife Stadium, East Rutherford"}, {"stage": "Round of 16", "match_no": 92, "kickoff_utc": "2026-07-06T00:00:00Z", "home": "W79", "away": "W80", "location": "Estadio Azteca, Mexico City"}, {"stage": "Round of 16", "match_no": 93, "kickoff_utc": "2026-07-06T19:00:00Z", "home": "W83", "away": "W84", "location": "AT&T Stadium, Arlington"}, {"stage": "Round of 16", "match_no": 94, "kickoff_utc": "2026-07-07T00:00:00Z", "home": "W81", "away": "W82", "location": "Lumen Field, Seattle"}, {"stage": "Round of 16", "match_no": 95, "kickoff_utc": "2026-07-07T16:00:00Z", "home": "W86", "away": "W88", "location": "Mercedes-Benz Stadium, Atlanta"}, {"stage": "Round of 16", "match_no": 96, "kickoff_utc": "2026-07-07T20:00:00Z", "home": "W85", "away": "W87", "location": "BC Place, Vancouver"}, {"stage": "Quarterfinals", "match_no": 97, "kickoff_utc": "2026-07-09T20:00:00Z", "home": "W89", "away": "W90", "location": "Gillette Stadium, Foxborough"}, {"stage": "Quarterfinals", "match_no": 98, "kickoff_utc": "2026-07-10T19:00:00Z", "home": "W93", "away": "W94", "location": "Sofi Stadium, Inglewood"}, {"stage": "Quarterfinals", "match_no": 99, "kickoff_utc": "2026-07-11T21:00:00Z", "home": "W91", "away": "W92", "location": "Hard Rock Stadium, Miami Gardens"}, {"stage": "Quarterfinals", "match_no": 100, "kickoff_utc": "2026-07-12T01:00:00Z", "home": "W95", "away": "W96", "location": "Arrowhead Stadium, Kansas City"}, {"stage": "Semifinals", "match_no": 101, "kickoff_utc": "2026-07-14T19:00:00Z", "home": "W97", "away": "W98", "location": "AT&T Stadium, Arlington"}, {"stage": "Semifinals", "match_no": 102, "kickoff_utc": "2026-07-15T19:00:00Z", "home": "W99", "away": "W100", "location": "Mercedes-Benz Stadium, Atlanta"}, {"stage": "Third Place", "match_no": 103, "kickoff_utc": "2026-07-18T21:00:00Z", "home": "L101", "away": "L102", "location": "Hard Rock Stadium, Miami Gardens"}, {"stage": "Final", "match_no": 104, "kickoff_utc": "2026-07-19T19:00:00Z", "home": "W101", "away": "W102", "location": "MetLife Stadium, East Rutherford"}];
 
+// Ametlikud ajaparandused, mida API-Football ei tohi tagasi valeks kirjutada.
+// Võti on MM mängunumber ja väärtus on UTC aeg.
+const OFFICIAL_KICKOFF_OVERRIDES_UTC = {
+  78: "2026-06-30T17:00:00Z"
+};
+
+function normalizedIsoTime(value){
+  if (!value) return "";
+  const d = new Date(value);
+  return Number.isFinite(d.getTime()) ? d.toISOString() : "";
+}
+
+function officialKickoffOverrideUtcForMatch(match){
+  const no = Number(match?.match_no);
+  if (!Number.isFinite(no)) return "";
+  return OFFICIAL_KICKOFF_OVERRIDES_UTC[no] || "";
+}
+
+function forcedOfficialKickoffPatchForMatch(match){
+  const official = officialKickoffOverrideUtcForMatch(match);
+  if (!official) return {};
+  if (normalizedIsoTime(match?.kickoff_utc) === normalizedIsoTime(official)) return {};
+  return { kickoff_utc: official };
+}
+
 
 
 const U17_TEST_MATCHES = [
@@ -716,6 +741,151 @@ function isPlaceholderTeam(name){
   return /^[WL]\d+$/i.test(s) || /^[123][A-Z]+$/i.test(s) || /^[12][A-L]$/i.test(s) || /^3[A-Z]+$/i.test(s);
 }
 
+
+function apiStatusShort(fx){
+  return String(fx?.fixture?.status?.short || "").trim().toUpperCase();
+}
+
+function apiFixtureFinished(fx){
+  const short = apiStatusShort(fx);
+  return ["FT", "AET", "PEN", "AWD", "WO"].includes(short);
+}
+
+function apiFixtureWentExtra(fx){
+  return ["AET", "PEN"].includes(apiStatusShort(fx));
+}
+
+function apiFixtureWinner(fx){
+  if (fx?.teams?.home?.winner === true) return "home";
+  if (fx?.teams?.away?.winner === true) return "away";
+
+  const gh = Number(fx?.goals?.home);
+  const ga = Number(fx?.goals?.away);
+  if (Number.isFinite(gh) && Number.isFinite(ga) && gh !== ga) {
+    return gh > ga ? "home" : "away";
+  }
+
+  return null;
+}
+
+function apiNormalTimeScore(fx){
+  const fh = fx?.score?.fulltime?.home;
+  const fa = fx?.score?.fulltime?.away;
+
+  if (fh !== null && fa !== null && fh !== undefined && fa !== undefined) {
+    return { home: Number(fh), away: Number(fa) };
+  }
+
+  if (apiFixtureWentExtra(fx)) return null;
+
+  const gh = fx?.goals?.home;
+  const ga = fx?.goals?.away;
+  if (gh !== null && ga !== null && gh !== undefined && ga !== undefined) {
+    return { home: Number(gh), away: Number(ga) };
+  }
+
+  return null;
+}
+
+function teamNamesMatch(a, b){
+  const x = normalizeTeamName(a);
+  const y = normalizeTeamName(b);
+  if (!x || !y) return false;
+  if (x === y) return true;
+  if (x.length >= 5 && y.length >= 5 && (x.includes(y) || y.includes(x))) return true;
+  return false;
+}
+
+function fixtureHasTeamNameOverlap(dbMatch, fx){
+  const dbTeams = [
+    { raw: dbMatch?.home, normalized: normalizeTeamName(dbMatch?.home) },
+    { raw: dbMatch?.away, normalized: normalizeTeamName(dbMatch?.away) }
+  ].filter(t => t.normalized && !isPlaceholderTeam(t.raw));
+
+  if (!dbTeams.length) return false;
+
+  const apiTeams = [
+    fx?.teams?.home?.name,
+    fx?.teams?.away?.name
+  ];
+
+  return dbTeams.some(db => apiTeams.some(api => teamNamesMatch(db.normalized, api)));
+}
+
+function fixtureKickoffMs(fx){
+  const raw = fx?.fixture?.date;
+  if (!raw) return null;
+  const t = new Date(raw).getTime();
+  return Number.isFinite(t) ? t : null;
+}
+
+function scoreFixtureMatch(dbMatch, fx){
+  let score = 0;
+  const dbKick = dbMatch?.kickoff_utc ? new Date(dbMatch.kickoff_utc).getTime() : null;
+  const fxKick = fixtureKickoffMs(fx);
+
+  if (Number.isFinite(dbKick) && Number.isFinite(fxKick)){
+    const diffMin = Math.abs(dbKick - fxKick) / 60000;
+    if (diffMin <= 5) score += 6;
+    else if (diffMin <= 30) score += 4;
+    else if (diffMin <= 120) score += 2;
+  }
+
+  const dbHome = normalizeTeamName(dbMatch?.home);
+  const dbAway = normalizeTeamName(dbMatch?.away);
+  const fxHome = normalizeTeamName(fx?.teams?.home?.name);
+  const fxAway = normalizeTeamName(fx?.teams?.away?.name);
+
+  if (!isPlaceholderTeam(dbMatch?.home) && dbHome && dbHome === fxHome) score += 3;
+  if (!isPlaceholderTeam(dbMatch?.away) && dbAway && dbAway === fxAway) score += 3;
+
+  const venue = normalizeTeamName(dbMatch?.location);
+  const fxVenue = normalizeTeamName(fx?.fixture?.venue?.name);
+  if (venue && fxVenue && (venue.includes(fxVenue) || fxVenue.includes(venue))) score += 2;
+
+  const stage = normalizeTeamName(dbMatch?.stage);
+  const round = normalizeTeamName(fx?.league?.round);
+  if (stage && round && (round.includes(stage) || stage.includes(round))) score += 1;
+
+  return score;
+}
+
+function fixtureDisplayName(fx){
+  const id = fx?.fixture?.id || "";
+  const home = fx?.teams?.home?.name || "";
+  const away = fx?.teams?.away?.name || "";
+  return `${id ? "#" + id + " " : ""}${home} - ${away}`.trim();
+}
+
+function normalizePlayoffRoundKey(value){
+  const s = normalizeTeamName(value);
+  if (!s) return "";
+  if (s.includes("round of 32") || s.includes("1 16") || s.includes("last 32")) return "r32";
+  if (s.includes("round of 16") || s.includes("1 8") || s.includes("last 16")) return "r16";
+  if (s.includes("quarter")) return "qf";
+  if (s.includes("semi")) return "sf";
+  if (s.includes("third") || s.includes("3rd") || s.includes("3 place") || s.includes("third place")) return "third";
+  if (s.includes("final")) return "final";
+  return "";
+}
+
+function playoffRoundKeyFromMatch(match){
+  const n = Number(match?.match_no);
+  if (Number.isFinite(n)) {
+    if (n >= 73 && n <= 88) return "r32";
+    if (n >= 89 && n <= 96) return "r16";
+    if (n >= 97 && n <= 100) return "qf";
+    if (n >= 101 && n <= 102) return "sf";
+    if (n === 103) return "third";
+    if (n === 104) return "final";
+  }
+  return normalizePlayoffRoundKey(match?.stage);
+}
+
+function playoffRoundKeyFromFixture(fx){
+  return normalizePlayoffRoundKey(fx?.league?.round);
+}
+
 function isMainWorldCupMatch(match){
   const n = Number(match?.match_no);
   return Number.isFinite(n) && n >= 1 && n <= 104;
@@ -788,9 +958,16 @@ function apiFixtureIsMainWorldCup(fx){
   const leagueId = Number(fx?.league?.id);
   const season = Number(fx?.league?.season);
   const leagueName = normalizeTeamName(fx?.league?.name);
+  const seasonOk = !Number.isFinite(season) || season === Number(API_FOOTBALL_SEASON);
 
-  if (leagueId === Number(API_FOOTBALL_LEAGUE_ID) && (!Number.isFinite(season) || season === Number(API_FOOTBALL_SEASON))) return true;
-  if (leagueName.includes("world cup") && (!Number.isFinite(season) || season === Number(API_FOOTBALL_SEASON))) return true;
+  // Päris MM mängud 1-104 tohivad võtta vaste ainult API-Footballi põhiliigast.
+  // Kuupäeva endpoint võib samal päeval tagastada ka World Cup U17/U20, naiste, klubi või muu sarja mänge.
+  // Nime järgi "world cup" lubamine oli liiga lai ja põhjustas U20 nimede sattumist MM tabelisse.
+  if (leagueId === Number(API_FOOTBALL_LEAGUE_ID) && seasonOk) return true;
+
+  // Harv fallback ainult siis, kui API ei anna league.id väärtust, aga liiga nimi on täpselt põhivõistlus.
+  if (!Number.isFinite(leagueId) && seasonOk && ["world cup", "fifa world cup"].includes(leagueName)) return true;
+
   return false;
 }
 
@@ -808,6 +985,10 @@ function sanitizeWorldCupMatchForDisplay(match){
   const clean = { ...match };
   if (String(clean.home || "").trim() && !isExpectedWorldCupTeamName(clean.home)) clean.home = seed.home;
   if (String(clean.away || "").trim() && !isExpectedWorldCupTeamName(clean.away)) clean.away = seed.away;
+
+  const officialKickoff = officialKickoffOverrideUtcForMatch(clean);
+  if (officialKickoff) clean.kickoff_utc = officialKickoff;
+
   return clean;
 }
 
@@ -858,6 +1039,11 @@ function apiTeamPatchForMatch(match, fx){
 
 function apiKickoffPatchForMatch(match, fx){
   if (!isMainWorldCupMatch(match)) return {};
+
+  const forcedPatch = forcedOfficialKickoffPatchForMatch(match);
+  if (Object.keys(forcedPatch).length) return forcedPatch;
+  if (officialKickoffOverrideUtcForMatch(match)) return {};
+
   if (!fixtureAllowedForMatch(match, fx)) return {};
 
   const rawDate = fx?.fixture?.date;
@@ -1708,6 +1894,24 @@ async function syncApiFootballResults(sb, { force=false } = {}){
   for (const rawMatch of matchesRes.data || []){
     let match = { ...rawMatch };
     const hasManualResultOverride = !!match.manual_result_override;
+
+    const forcedKickoffPatch = forcedOfficialKickoffPatchForMatch(match);
+    if (Object.keys(forcedKickoffPatch).length) {
+      const forcedUpd = await sb
+        .from("matches")
+        .update(forcedKickoffPatch)
+        .eq("id", match.id)
+        .select("id,match_no,home,away,kickoff_utc")
+        .single();
+
+      if (!forcedUpd.error) {
+        match = { ...match, ...forcedUpd.data };
+        updated_playoff_team_matches.push(`#${match.match_no} ametlik aeg ${match.kickoff_utc}`);
+      } else {
+        update_errors += 1;
+        update_error_examples.push(`#${match.match_no} ametlik aeg: ${forcedUpd.error.message}`);
+      }
+    }
 
     if (hasManualResultOverride) {
       skipped_manual += 1;
@@ -2572,7 +2776,7 @@ if (event.httpMethod === "GET" && route === "predictions/public") {
 
   const now = Date.now();
   const openMatchIds = [];
-  for (const m of (matchesRes.data || []).filter(isVisiblePredictionMatch)) {
+  for (const m of sanitizeWorldCupMatchesForDisplay(matchesRes.data || [])) {
     const kickoff = m.kickoff_utc ? new Date(m.kickoff_utc).getTime() : null;
     const locked = m.is_finished || (kickoff && now >= (kickoff - 60 * 60 * 1000));
     if (locked) openMatchIds.push(m.id);
@@ -2694,10 +2898,11 @@ if (event.httpMethod === "GET" && route === "predictions/matrix") {
     .single();
 
   if (m.error) return json(500, { error: m.error.message });
-  if (!isVisiblePredictionMatch(m.data)) return json(400, { error: "See ei ole MM ennustusmäng." });
+  const matchForPrediction = sanitizeWorldCupMatchForDisplay(m.data);
+  if (!isVisiblePredictionMatch(matchForPrediction)) return json(400, { error: "See ei ole MM ennustusmäng." });
 
-  if (!u.is_admin && m.data.kickoff_utc) {
-    const kickoff = new Date(m.data.kickoff_utc).getTime();
+  if (!u.is_admin && matchForPrediction.kickoff_utc) {
+    const kickoff = new Date(matchForPrediction.kickoff_utc).getTime();
     const lockAt = kickoff - 60 * 60 * 1000;
     const now = Date.now();
     if (Number.isFinite(kickoff) && now >= lockAt) {
@@ -2705,7 +2910,7 @@ if (event.httpMethod === "GET" && route === "predictions/matrix") {
     }
   }
 
-  const playoff = isPlayoffMatch(m.data);
+  const playoff = isPlayoffMatch(matchForPrediction);
   const needsWinner = playoff && pred_home === pred_away;
 
   if (needsWinner && !pred_winner) {

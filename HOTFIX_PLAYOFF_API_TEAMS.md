@@ -1,18 +1,21 @@
-# Hotfix: play-off tiimid, placeholderid ja algusajad
+# Hotfix: play-off API team sync, placeholder hiding and official kickoff override
 
-See pakk parandab Võhma MM 2026 deploys kolm seotud probleemi:
+This package keeps the Võhma deployment on the FIFA World Cup 2026 data set only.
 
-1. API-Footballi MM fixture võib muuta play-off mängu algusaega. Sync uuendab nüüd ka `kickoff_utc` väärtust ainult päris MM mängudel 1 kuni 104.
-2. API-Footballi tiiminimede aliasid normaliseeritakse kohaliku MM tiiminime vastu. Näiteks `Cape Verde Islands` salvestub kujul `Cape Verde`, et `Argentina vs 2H` ei tekiks tagasi.
-3. Tulevased lahendamata placeholder mängud nagu `W101 vs W102` jäävad kasutaja vaadetest peitu ja nende fake tulemused puhastatakse synci ajal.
+Changes in this version:
 
-Ei muudeta:
+- API-Football fixture matching for World Cup matches is restricted to league id `1` and season `2026`.
+- U17, U20, women's or other World Cup-like API fixtures cannot overwrite World Cup matches.
+- Unresolved knockout placeholders such as `W73`, `L101`, `2H` and `3DEIJL` are hidden from user prediction views until both teams are resolved.
+- Existing bogus scores on unresolved placeholder matches are cleaned during sync.
+- Match #78 Ivory Coast vs Norway has an official kickoff override of `2026-06-30T17:00:00Z`, which is 20:00 in Estonia.
+- The #78 override is applied in display output and during API sync, so API-Football cannot move that match back to 21:00 in the app.
+
+Not changed:
 
 - `matches.id`
-- `predictions` ridu
-- kasutajaid
-- punktiarvestuse reegleid
-- play-off viigi korral edasipääseja valiku loogikat
-- bonusküsimuste loogikat
-
-Pärast deployd käivita adminis `Sünkroniseeri tulemused`.
+- user rows
+- predictions
+- the scoring formulas
+- play-off draw winner selection logic
+- bonus question scoring
