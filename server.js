@@ -897,9 +897,12 @@ function matchHasUnresolvedTeamSlot(match){
 }
 
 function isVisiblePredictionMatch(match){
-  // Kasutaja vaadetesse lähevad ainult päris MM mängud, mille mõlemad tiimid on teada.
-  // Tulevased play-off kohad nagu W73, L101, 2H või 3DEIJL jäävad peitu kuni sync/tuletus need päris riigiks muudab.
-  return isMainWorldCupMatch(match) && !matchHasUnresolvedTeamSlot(match);
+  // Context-free fallback: for future knockout rounds (89-104) this is intentionally strict.
+  // Call sanitizeWorldCupMatchesForDisplay(list) when full bracket context is available.
+  if (!isDisplayBasicWorldCupMatch(match)) return false;
+  const no = Number(match?.match_no);
+  if (Number.isFinite(no) && no >= 89 && no <= 104) return false;
+  return true;
 }
 
 let worldCupTeamNameCache = null;
@@ -954,6 +957,109 @@ function matchHasPlaceholderTeam(match){
   return isPlaceholderTeam(match?.home) || isPlaceholderTeam(match?.away);
 }
 
+
+// Official local knockout dependency map. Display and scoring guards must use this map,
+// not only current home/away text, because an earlier bad API sync can leave a future
+// match with two real-looking but wrong teams (for example #91 Brazil - Morocco).
+const WORLD_CUP_KNOCKOUT_SOURCES = Object.freeze({
+  89: { home: { type: "W", match_no: 74 }, away: { type: "W", match_no: 77 } },
+  90: { home: { type: "W", match_no: 73 }, away: { type: "W", match_no: 75 } },
+  91: { home: { type: "W", match_no: 76 }, away: { type: "W", match_no: 78 } },
+  92: { home: { type: "W", match_no: 79 }, away: { type: "W", match_no: 80 } },
+  93: { home: { type: "W", match_no: 83 }, away: { type: "W", match_no: 84 } },
+  94: { home: { type: "W", match_no: 81 }, away: { type: "W", match_no: 82 } },
+  95: { home: { type: "W", match_no: 86 }, away: { type: "W", match_no: 88 } },
+  96: { home: { type: "W", match_no: 85 }, away: { type: "W", match_no: 87 } },
+  97: { home: { type: "W", match_no: 89 }, away: { type: "W", match_no: 90 } },
+  98: { home: { type: "W", match_no: 93 }, away: { type: "W", match_no: 94 } },
+  99: { home: { type: "W", match_no: 91 }, away: { type: "W", match_no: 92 } },
+  100: { home: { type: "W", match_no: 95 }, away: { type: "W", match_no: 96 } },
+  101: { home: { type: "W", match_no: 97 }, away: { type: "W", match_no: 98 } },
+  102: { home: { type: "W", match_no: 99 }, away: { type: "W", match_no: 100 } },
+  103: { home: { type: "L", match_no: 101 }, away: { type: "L", match_no: 102 } },
+  104: { home: { type: "W", match_no: 101 }, away: { type: "W", match_no: 102 } }
+});
+
+function matchHasUsableResult(match){
+  return !!match && (
+    !!match.is_finished ||
+    (match.final_home !== null && match.final_home !== undefined && match.final_away !== null && match.final_away !== undefined)
+  );
+}
+
+function actualAdvancingSideForMatch(match){
+  if (!matchHasUsableResult(match)) return null;
+  const fh = Number(match?.final_home);
+  const fa = Number(match?.final_away);
+  const winner = normalizeWinner(match?.winner);
+  if (winner) return winner;
+  if (Number.isFinite(fh) && Number.isFinite(fa) && fh !== fa) return fh > fa ? "home" : "away";
+  return null;
+}
+
+function actualLosingSideForMatch(match){
+  const winner = actualAdvancingSideForMatch(match);
+  if (winner === "home") return "away";
+  if (winner === "away") return "home";
+  return null;
+}
+
+function isDisplayBasicWorldCupMatch(match){
+  return isMainWorldCupMatch(match) && !matchHasUnresolvedTeamSlot(match) && !matchNeedsWorldCupTeamRepair(match);
+}
+
+function resolvedKnockoutSourceTeamName(source, byNo, stack = new Set()){
+  const refNo = Number(source?.match_no);
+  const type = String(source?.type || "W").toUpperCase();
+  if (!Number.isFinite(refNo)) return null;
+  const refMatch = byNo.get(refNo);
+  if (!refMatch) return null;
+
+  // Source match itself must be valid for display/bracket first. This blocks chained bad data.
+  if (!isVisiblePredictionMatchInContext(refMatch, byNo, stack)) return null;
+  if (!matchHasUsableResult(refMatch)) return null;
+
+  const side = type === "L" ? actualLosingSideForMatch(refMatch) : actualAdvancingSideForMatch(refMatch);
+  if (side === "home") return String(refMatch.home || "").trim();
+  if (side === "away") return String(refMatch.away || "").trim();
+  return null;
+}
+
+function isVisiblePredictionMatchInContext(match, byNo, stack = new Set()){
+  if (!isDisplayBasicWorldCupMatch(match)) return false;
+
+  const no = Number(match?.match_no);
+  if (!Number.isFinite(no)) return false;
+  if (no <= 88) return true;
+
+  const sources = WORLD_CUP_KNOCKOUT_SOURCES[no];
+  if (!sources) return true;
+  if (stack.has(no)) return false;
+
+  const nextStack = new Set(stack);
+  nextStack.add(no);
+
+  const expectedHome = resolvedKnockoutSourceTeamName(sources.home, byNo, nextStack);
+  const expectedAway = resolvedKnockoutSourceTeamName(sources.away, byNo, nextStack);
+
+  if (!expectedHome || !expectedAway) return false;
+  return teamNamesMatch(match.home, expectedHome) && teamNamesMatch(match.away, expectedAway);
+}
+
+function isInvalidResolvedKnockoutMatch(match, byNo){
+  if (!isMainWorldCupMatch(match)) return false;
+  const no = Number(match?.match_no);
+  if (!Number.isFinite(no) || no < 89 || no > 104) return false;
+
+  const sources = WORLD_CUP_KNOCKOUT_SOURCES[no];
+  if (!sources) return false;
+
+  // If the row has score/status but is not a valid resolved bracket slot, treat that as bad sync data.
+  if (!matchHasUsableResult(match) && !normalizeWinner(match?.winner) && !truthyDbBool(match?.went_extra) && !String(match?.api_status_short || "").trim()) return false;
+
+  return !isVisiblePredictionMatchInContext(match, byNo);
+}
+
 function apiFixtureIsMainWorldCup(fx){
   const leagueId = Number(fx?.league?.id);
   const season = Number(fx?.league?.season);
@@ -994,11 +1100,11 @@ function sanitizeWorldCupMatchForDisplay(match){
 
 function sanitizeWorldCupMatchesForDisplay(matches){
   // Kõigepealt puhastame rikutud tiiminimed tagasi seed tabeli kujule ja alles siis filtreerime.
-  // Varem jäi siia auk: Galicia U20 laadne vale nimi ei olnud placeholder, pääses filtrist läbi
-  // ning sanitize muutis selle hiljem W101/W102 kujule, mis ilmus kasutaja vaadetes.
-  return (matches || [])
-    .map(sanitizeWorldCupMatchForDisplay)
-    .filter(isVisiblePredictionMatch);
+  // Lisaks kontrollime 1/8 finaalist alates päris bracketi eelmiste mängude võitjaid/kaotajaid.
+  // See väldib olukorda, kus halb API sync on jätnud #91 külge kaks päris nime ja fake skoori.
+  const cleaned = (matches || []).map(sanitizeWorldCupMatchForDisplay);
+  const byNo = new Map(cleaned.map(m => [Number(m.match_no), m]));
+  return cleaned.filter(m => isVisiblePredictionMatchInContext(m, byNo));
 }
 
 function isApiRealTeamName(name){
@@ -1014,6 +1120,13 @@ function apiTeamPatchForMatch(match, fx){
   // Tiiminimede automaatne asendamine on vajalik ainult play-offis.
   // Ennustused on seotud matches.id külge, seega muudame ainult kodu/võõrsil nimevälju.
   if (!isPlayoffMatch(match)) return {};
+
+  const no = Number(match?.match_no);
+  if (Number.isFinite(no) && no >= 89 && no <= 104) {
+    // 1/8 finaalist alates tuletame nimed ainult ametliku W/L bracketi eelmiste mängude põhjal.
+    // See takistab halval API vastel #91 vms tulevast mängu Brazil - Morocco tüüpi valeks muuta.
+    return {};
+  }
 
   const patch = {};
   const apiHome = fx?.teams?.home?.name;
@@ -1677,7 +1790,14 @@ async function updateDerivedPlayoffMatches(sb){
     let away = match.away;
 
     const seed = seedMatchByNoMap().get(Number(match.match_no));
-    if (seed) {
+    const no = Number(match.match_no);
+
+    if (seed && no >= 89 && no <= 104) {
+      // Later knockout rounds must always be derived from the official local W/L bracket.
+      // Do not trust current real-looking names here, because a bad API sync can set #91 to Brazil - Morocco.
+      home = seed.home;
+      away = seed.away;
+    } else if (seed) {
       if (String(home || "").trim() && !isExpectedWorldCupTeamName(home)) home = seed.home;
       if (String(away || "").trim() && !isExpectedWorldCupTeamName(away)) away = seed.away;
     }
@@ -1730,12 +1850,13 @@ async function updateDerivedPlayoffMatches(sb){
 }
 
 
-function shouldClearUnresolvedWorldCupResult(match){
+function shouldClearUnresolvedWorldCupResult(match, byNo = null){
   if (!isMainWorldCupMatch(match)) return false;
 
   const sanitized = sanitizeWorldCupMatchForDisplay(match);
   const unresolvedOrRepair = matchNeedsWorldCupTeamRepair(match) || matchHasUnresolvedTeamSlot(sanitized);
-  if (!unresolvedOrRepair) return false;
+  const badResolvedKnockout = byNo ? isInvalidResolvedKnockoutMatch(sanitized, byNo) : false;
+  if (!unresolvedOrRepair && !badResolvedKnockout) return false;
 
   return (
     match.final_home !== null && match.final_home !== undefined ||
@@ -1753,7 +1874,9 @@ async function clearUnresolvedWorldCupResults(sb, matches = null){
     .select("id,match_no,stage,home,away,final_home,final_away,winner,is_finished,went_extra,api_status_short,manual_result_override")
     .order("match_no", { ascending: true })).data || [];
 
-  const toClear = (source || []).filter(shouldClearUnresolvedWorldCupResult);
+  const cleanedSource = (source || []).map(sanitizeWorldCupMatchForDisplay);
+  const byNo = new Map(cleanedSource.map(m => [Number(m.match_no), m]));
+  const toClear = (source || []).filter(m => shouldClearUnresolvedWorldCupResult(m, byNo));
   let cleared_matches = 0;
   let reset_predictions = 0;
   const examples = [];
@@ -1879,6 +2002,8 @@ async function syncApiFootballResults(sb, { force=false } = {}){
   }
 
   const fixtures = fetched.fixtures || [];
+  const initialDisplayGuardMatches = (matchesRes.data || []).map(sanitizeWorldCupMatchForDisplay);
+  const initialDisplayGuardByNo = new Map(initialDisplayGuardMatches.map(m => [Number(m.match_no), m]));
   let updated = 0;
   let matched = 0;
   let finished_found = 0;
@@ -1915,6 +2040,18 @@ async function syncApiFootballResults(sb, { force=false } = {}){
 
     if (hasManualResultOverride) {
       skipped_manual += 1;
+    }
+
+    const no = Number(match.match_no);
+    const hiddenFutureKnockout = Number.isFinite(no) && no >= 89 && no <= 104 && !isVisiblePredictionMatchInContext(
+      sanitizeWorldCupMatchForDisplay(match),
+      initialDisplayGuardByNo
+    );
+
+    if (hiddenFutureKnockout) {
+      // Ära lase API-l lahendamata või valesti lahendatud järgmise ringi mängule tiime/skoori külge panna.
+      // updateDerivedPlayoffMatches paneb W/L kohad õigeks siis, kui eelmiste mängude võitjad/kaotajad on teada.
+      continue;
     }
 
     if (match.api_football_fixture_id) {
@@ -2898,8 +3035,19 @@ if (event.httpMethod === "GET" && route === "predictions/matrix") {
     .single();
 
   if (m.error) return json(500, { error: m.error.message });
-  const matchForPrediction = sanitizeWorldCupMatchForDisplay(m.data);
-  if (!isVisiblePredictionMatch(matchForPrediction)) return json(400, { error: "See ei ole MM ennustusmäng." });
+
+  const allMatchesForVisibility = await fetchAllRows(() => sb
+    .from("matches")
+    .select("id,match_no,stage,home,away,final_home,final_away,winner,kickoff_utc,is_finished")
+    .gte("match_no", 1)
+    .lte("match_no", 104)
+    .order("match_no", { ascending: true }));
+
+  if (allMatchesForVisibility.error) return json(500, { error: allMatchesForVisibility.error.message });
+
+  const visibleForPrediction = sanitizeWorldCupMatchesForDisplay(allMatchesForVisibility.data || []);
+  const matchForPrediction = visibleForPrediction.find(x => Number(x.id) === match_id);
+  if (!matchForPrediction) return json(400, { error: "See ei ole MM ennustusmäng." });
 
   if (!u.is_admin && matchForPrediction.kickoff_utc) {
     const kickoff = new Date(matchForPrediction.kickoff_utc).getTime();
@@ -3452,7 +3600,8 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
   const allPlayers = (players.data || []).filter(p => !p.is_admin);
   const allPreds = preds.data || [];
   const allMatches = matches.data || [];
-  const matchMap = new Map(allMatches.map(m => [m.id, m]));
+  const visibleLeaderboardMatches = sanitizeWorldCupMatchesForDisplay(allMatches);
+  const matchMap = new Map(visibleLeaderboardMatches.map(m => [m.id, m]));
 
   const bonusMap = new Map();
   for (const b of bonus.data || []) {
@@ -3469,9 +3618,8 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
   const playoffPointsMap = new Map();
 
   for (const pr of allPreds) {
-    const rawMatch = matchMap.get(pr.match_id);
-    const match = rawMatch ? sanitizeWorldCupMatchForDisplay(rawMatch) : null;
-    if (!match || !isVisiblePredictionMatch(match)) continue;
+    const match = matchMap.get(pr.match_id);
+    if (!match) continue;
 
     const pts = Number(pr.points) || 0;
     predictionTotalMap.set(pr.player_id, (predictionTotalMap.get(pr.player_id) || 0) + pts);
