@@ -6715,14 +6715,39 @@ function updateRunningEquivalent(){
   if ($("runningEquivalent")) $("runningEquivalent").value = `${runningKm(equivalent)} km`;
 }
 
+function tallinnDateInputValue(date = new Date()){
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Tallinn",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(date);
+
+  const get = (type) => parts.find(p => p.type === type)?.value || "";
+  const yyyy = get("year");
+  const mm = get("month");
+  const dd = get("day");
+
+  if (!yyyy || !mm || !dd) {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 function setRunningToday(){
   const input = $("runningDate");
-  if (!input || input.value) return;
-  const d = new Date();
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  input.value = `${yyyy}-${mm}-${dd}`;
+  if (!input) return;
+
+  const today = tallinnDateInputValue();
+
+  // Date input may be restored by the browser with yesterday's value.
+  // Default value must always follow the Estonian calendar day; users can still manually change it afterwards.
+  if (!input.dataset.userChangedRunningDate) {
+    input.value = today;
+    input.dataset.autoRunningDate = today;
+  }
 }
 
 function renderRunningSummary(data){
@@ -6831,6 +6856,14 @@ async function saveRunningEntry(){
     updateRunningEquivalent();
     if ($("runningNote")) $("runningNote").value = "";
 
+    const dateInput = $("runningDate");
+    if (dateInput) {
+      delete dateInput.dataset.userChangedRunningDate;
+      const today = tallinnDateInputValue();
+      dateInput.value = today;
+      dateInput.dataset.autoRunningDate = today;
+    }
+
     setMsg(msg, true, "Jooks salvestatud.");
     await loadRunningChallenge();
   }catch(err){
@@ -6844,6 +6877,14 @@ async function saveRunningEntry(){
 }
 
 function bindRunningButtons(){
+  const dateInput = $("runningDate");
+  if (dateInput && dateInput.dataset.boundRunningDate !== "1") {
+    dateInput.dataset.boundRunningDate = "1";
+    dateInput.addEventListener("change", ()=>{
+      dateInput.dataset.userChangedRunningDate = "1";
+    });
+  }
+
   const btn = $("btnSaveRunning");
   if (btn && btn.dataset.boundRunning !== "1") {
     btn.dataset.boundRunning = "1";
