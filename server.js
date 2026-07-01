@@ -88,6 +88,22 @@ function officialKickoffOverrideUtcForMatch(match){
   return OFFICIAL_KICKOFF_OVERRIDES_UTC[no] || "";
 }
 
+function seedKickoffUtcForMatch(match){
+  const no = Number(match?.match_no);
+  if (!Number.isFinite(no)) return "";
+  const seed = (SEED_MATCHES || []).find(m => Number(m?.match_no) === no);
+  return seed?.kickoff_utc || "";
+}
+
+function trustedKickoffUtcForLock(match){
+  if (!isMainWorldCupMatch(match)) return match?.kickoff_utc || "";
+
+  // Teiste ennustuste avamine ja tulevase fake tulemuse puhastus ei tohi sõltuda
+  // andmebaasis kogemata valeks kirjutatud kickoff_utc väärtusest.
+  // Kasutame esmalt käsitsi lukustatud ametlikku override'i, siis seed-tabeli MM aega.
+  return officialKickoffOverrideUtcForMatch(match) || seedKickoffUtcForMatch(match) || match?.kickoff_utc || "";
+}
+
 function forcedOfficialKickoffPatchForMatch(match){
   const official = officialKickoffOverrideUtcForMatch(match);
   if (!official) return {};
@@ -995,12 +1011,14 @@ function isPrematureWorldCupResult(match, now = Date.now()){
   if (!isMainWorldCupMatch(match)) return false;
   if (!worldCupMatchHasStoredResultFields(match)) return false;
 
-  const kickoff = match?.kickoff_utc ? new Date(match.kickoff_utc).getTime() : null;
+  const kickoffUtc = trustedKickoffUtcForLock(match);
+  const kickoff = kickoffUtc ? new Date(kickoffUtc).getTime() : null;
   return Number.isFinite(kickoff) && now < kickoff;
 }
 
 function isPredictionRevealOpen(match, now = Date.now()){
-  const kickoff = match?.kickoff_utc ? new Date(match.kickoff_utc).getTime() : null;
+  const kickoffUtc = trustedKickoffUtcForLock(match);
+  const kickoff = kickoffUtc ? new Date(kickoffUtc).getTime() : null;
   if (Number.isFinite(kickoff)) return now >= (kickoff - 60 * 60 * 1000);
   // Fallback for legacy/admin rows without kickoff. Normal MM rows must have kickoff_utc.
   return !!match?.is_finished;
@@ -1131,8 +1149,8 @@ function sanitizeWorldCupMatchForDisplay(match){
   if (String(clean.home || "").trim() && !isExpectedWorldCupTeamName(clean.home)) clean.home = seed.home;
   if (String(clean.away || "").trim() && !isExpectedWorldCupTeamName(clean.away)) clean.away = seed.away;
 
-  const officialKickoff = officialKickoffOverrideUtcForMatch(clean);
-  if (officialKickoff) clean.kickoff_utc = officialKickoff;
+  const trustedKickoff = trustedKickoffUtcForLock(clean);
+  if (trustedKickoff) clean.kickoff_utc = trustedKickoff;
 
   // Kui varasem halb API vaste on pannud tulevasele mängule skoori külge,
   // siis seda ei tohi avalikes vaadetes kasutada ega edasi bracketisse kanda.
