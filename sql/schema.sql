@@ -21,6 +21,10 @@ create table if not exists public.matches (
   location text,
   final_home int,
   final_away int,
+  -- Jooksu vaate eesmärgi jaoks: 90 min + lisaaeg, penaltiseeria väravaid ei loeta.
+  -- Ennustuspunktid kasutavad endiselt final_home/final_away ehk 90 minuti skoori.
+  goals_home_120 int,
+  goals_away_120 int,
   winner text,
   is_finished boolean not null default false,
   manual_result_override boolean not null default false,

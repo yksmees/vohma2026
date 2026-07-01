@@ -803,6 +803,35 @@ function apiNormalTimeScore(fx){
   return null;
 }
 
+function numericScorePair(home, away){
+  if (home === null || home === undefined || away === null || away === undefined) return null;
+  const h = Number(home);
+  const a = Number(away);
+  if (!Number.isFinite(h) || !Number.isFinite(a)) return null;
+  return { home: h, away: a };
+}
+
+function apiPlayingTimeScoreWithoutPenalties(fx){
+  // Jooksu eesmärk = 90 min + lisaaeg. Penaltiseeria väravaid ei arvestata.
+  // Ennustusmängu punktiarvestus kasutab endiselt apiNormalTimeScore() ehk 90 minuti skoori.
+  const normal = apiNormalTimeScore(fx);
+  const extra = numericScorePair(fx?.score?.extratime?.home, fx?.score?.extratime?.away);
+
+  if (normal && extra && apiFixtureWentExtra(fx)) {
+    // API-Football võib anda extratime väärtuse kas lisaaja väravatena või 120 minuti koguskoorina.
+    // Kui väärtus on vähemalt 90 minuti skoor, käsitle seda koguskoorina; muidu lisa 90 minuti skoorile.
+    if (extra.home >= normal.home && extra.away >= normal.away) return extra;
+    return { home: normal.home + extra.home, away: normal.away + extra.away };
+  }
+
+  const goals = numericScorePair(fx?.goals?.home, fx?.goals?.away);
+  if (apiFixtureWentExtra(fx) && goals) return goals;
+  if (normal) return normal;
+  if (goals && !apiFixtureWentExtra(fx)) return goals;
+
+  return null;
+}
+
 function teamNamesMatch(a, b){
   const x = normalizeTeamName(a);
   const y = normalizeTeamName(b);
@@ -2214,11 +2243,26 @@ async function syncApiFootballResults(sb, { force=false } = {}){
         };
         if (apiWinner) resultPatch.winner = apiWinner;
 
+        const runningGoalScore = apiPlayingTimeScoreWithoutPenalties(fx);
+
         const upd = await sb.from("matches").update(resultPatch).eq("id", match.id).select("*").single();
 
         if (!upd.error){
+          if (runningGoalScore && Number.isFinite(runningGoalScore.home) && Number.isFinite(runningGoalScore.away)) {
+            // Vabatahtlikud veerud jooksu eesmärgi jaoks. Kui SQL migratsioon on veel käivitamata, ei katkesta sync'i.
+            try {
+              await sb
+                .from("matches")
+                .update({ goals_home_120: runningGoalScore.home, goals_away_120: runningGoalScore.away })
+                .eq("id", match.id);
+            } catch (_) {}
+          }
+
           updated += 1;
-          updated_matches.push(`#${match.match_no} ${match.home} - ${match.away} ${homeGoals}:${awayGoals}${wentExtra ? " lisa/pen" : ""}`);
+          const runningGoalText = runningGoalScore && (runningGoalScore.home !== homeGoals || runningGoalScore.away !== awayGoals)
+            ? `, jooks ${runningGoalScore.home}:${runningGoalScore.away}`
+            : "";
+          updated_matches.push(`#${match.match_no} ${match.home} - ${match.away} ${homeGoals}:${awayGoals}${wentExtra ? " lisa/pen" : ""}${runningGoalText}`);
           if (changed){
             await recalcPointsForMatch(sb, match.id);
           }
@@ -3926,20 +3970,42 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
       const activeActivityMap = new Map(activeActivities.map(a => [String(a.code), a]));
       const allActivityMap = new Map(allActivities.map(a => [String(a.code), a]));
 
-      const matchesRes = await sb
+      let matchesRes = await sb
         .from("matches")
-        .select("id,match_no,final_home,final_away,is_finished")
+        .select("id,match_no,stage,home,away,kickoff_utc,final_home,final_away,winner,is_finished,went_extra,api_status_short,manual_result_override,goals_home_120,goals_away_120")
         .gte("match_no", 1)
         .lte("match_no", 104);
+
+      if (matchesRes.error && /goals_home_120|goals_away_120|column/i.test(String(matchesRes.error.message || ""))) {
+        // SQL migratsioon võib live'is veel käivitamata olla. Sellisel juhul töötab jooksu vaade edasi 90 minuti skoori pealt.
+        matchesRes = await sb
+          .from("matches")
+          .select("id,match_no,stage,home,away,kickoff_utc,final_home,final_away,winner,is_finished,went_extra,api_status_short,manual_result_override")
+          .gte("match_no", 1)
+          .lte("match_no", 104);
+      }
 
       if (matchesRes.error) return json(500, { error: matchesRes.error.message });
 
       let goalTotal = 0;
-      for (const m of matchesRes.data || []) {
-        const h = Number(m.final_home);
-        const a = Number(m.final_away);
-        const hasScore = m.final_home !== null && m.final_home !== undefined && m.final_away !== null && m.final_away !== undefined && Number.isFinite(h) && Number.isFinite(a);
-        if (hasScore) goalTotal += h + a;
+      for (const rawMatch of matchesRes.data || []) {
+        const m = sanitizeWorldCupMatchForDisplay(rawMatch);
+        if (!matchHasUsableResult(m)) continue;
+
+        const h120 = Number(rawMatch.goals_home_120);
+        const a120 = Number(rawMatch.goals_away_120);
+        const h90 = Number(m.final_home);
+        const a90 = Number(m.final_away);
+
+        const has120Score = rawMatch.goals_home_120 !== null && rawMatch.goals_home_120 !== undefined &&
+          rawMatch.goals_away_120 !== null && rawMatch.goals_away_120 !== undefined &&
+          Number.isFinite(h120) && Number.isFinite(a120);
+        const has90Score = m.final_home !== null && m.final_home !== undefined &&
+          m.final_away !== null && m.final_away !== undefined &&
+          Number.isFinite(h90) && Number.isFinite(a90);
+
+        if (has120Score) goalTotal += h120 + a120;
+        else if (has90Score) goalTotal += h90 + a90;
       }
 
       const entriesRes = await sb
