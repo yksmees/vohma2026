@@ -544,6 +544,16 @@ function isGroupMatchForLeaderboard(match){
   return Number.isFinite(n) && n >= 1 && n <= 72;
 }
 
+function isFinishedGroupStageScoreLocked(match){
+  // Alagrupimängude tulemused ei tohi hilisemate API sync'idega enam muutuda.
+  // Kui parandust on vaja, teeb admin selle käsitsi tulemuse sisestusega.
+  const n = Number(match?.match_no);
+  if (!Number.isFinite(n) || n < 1 || n > 72) return false;
+  const h = Number(match?.final_home);
+  const a = Number(match?.final_away);
+  return !!match?.is_finished && Number.isFinite(h) && Number.isFinite(a);
+}
+
 function isPlayoffMatchForLeaderboard(match){
   const n = Number(match?.match_no);
   return Number.isFinite(n) && n >= 73 && n <= 104;
@@ -1188,13 +1198,69 @@ function sanitizeWorldCupMatchForDisplay(match){
   return clean;
 }
 
+function stripUnsafeRepairedPlayoffResultForDisplay(original, repaired){
+  // Kui play-off rea tiimid tuli avaliku vaate jaoks seed/bracket loogika järgi ümber parandada,
+  // siis sama rea vana skoor võib pärineda valelt API fixture'ilt. Sellist skoori ei tohi
+  // teiste ennustuste vaates ega edetabeli kuvamisel kasutada. Sync kirjutab õige fixture'i
+  // järgi tulemuse uuesti peale.
+  if (!original || !repaired || !isMainWorldCupPlayoffMatch(repaired)) return repaired;
+  if (!matchHasUsableResult(repaired)) return repaired;
+  if (repaired.manual_result_override || original.manual_result_override) return repaired;
+
+  const originalHome = String(original.home || "").trim();
+  const originalAway = String(original.away || "").trim();
+  const repairedHome = String(repaired.home || "").trim();
+  const repairedAway = String(repaired.away || "").trim();
+
+  const homeChanged = originalHome && repairedHome && !teamNamesMatch(originalHome, repairedHome);
+  const awayChanged = originalAway && repairedAway && !teamNamesMatch(originalAway, repairedAway);
+
+  if (!homeChanged && !awayChanged) return repaired;
+
+  return {
+    ...repaired,
+    final_home: null,
+    final_away: null,
+    winner: null,
+    is_finished: false,
+    went_extra: false,
+    api_status_short: "",
+    unsafe_result_hidden: true
+  };
+}
+
 function sanitizeWorldCupMatchesForDisplay(matches){
-  // Kõigepealt puhastame rikutud tiiminimed tagasi seed tabeli kujule ja alles siis filtreerime.
-  // Lisaks kontrollime 1/8 finaalist alates päris bracketi eelmiste mängude võitjaid/kaotajaid.
-  // See väldib olukorda, kus halb API sync on jätnud #91 külge kaks päris nime ja fake skoori.
-  const cleaned = (matches || []).map(sanitizeWorldCupMatchForDisplay);
-  const byNo = new Map(cleaned.map(m => [Number(m.match_no), m]));
-  return cleaned.filter(m => isVisiblePredictionMatchInContext(m, byNo));
+  // Avalikud ennustusvaated ei tohi usaldada play-off ridade home/away väärtusi pimesi.
+  // Varem võis halb API vaste kirjutada play-off reale päris, aga vale alagrupimängu nimed
+  // näiteks Belgium - Egypt. Ennustused ise on seotud matches.id külge, seega kuvamiseks
+  // taastame play-off tiimid alati ametliku seed-slot/bracket loogika järgi.
+  const sourceById = new Map((matches || []).map(m => [m.id, m]));
+  const baseCleaned = (matches || []).map(sanitizeWorldCupMatchForDisplay);
+  const groupStandings = buildGroupStandingsFromMatches(baseCleaned);
+  const byNo = new Map();
+
+  const repairedSorted = baseCleaned
+    .slice()
+    .sort((a, b) => (Number(a?.match_no) || 0) - (Number(b?.match_no) || 0))
+    .map(match => {
+      const no = Number(match?.match_no);
+      const seed = seedMatchByNoMap().get(no);
+      let clean = { ...match };
+
+      if (seed && Number.isFinite(no) && no >= 73 && no <= 104) {
+        clean.home = resolveSeededPlayoffSlotTeamName(seed.home, clean.home, byNo, groupStandings);
+        clean.away = resolveSeededPlayoffSlotTeamName(seed.away, clean.away, byNo, groupStandings);
+        clean = stripUnsafeRepairedPlayoffResultForDisplay(sourceById.get(clean.id), clean);
+      }
+
+      byNo.set(no, clean);
+      return clean;
+    });
+
+  const repairedById = new Map(repairedSorted.map(m => [m.id, m]));
+  const repaired = baseCleaned.map(m => repairedById.get(m.id) || m);
+
+  return repaired.filter(m => isVisiblePredictionMatchInContext(m, byNo));
 }
 
 function isApiRealTeamName(name){
@@ -1329,15 +1395,67 @@ function choosePlayoffFixtureByRoundOrder(dbMatch, fixtures){
   return null;
 }
 
+function isMainWorldCupPlayoffMatch(match){
+  const no = Number(match?.match_no);
+  return isMainWorldCupMatch(match) && Number.isFinite(no) && no >= 73 && no <= 104;
+}
+
+function playoffFixtureMatchesTrustedKickoff(dbMatch, fx, toleranceMinutes = 150){
+  if (!isMainWorldCupPlayoffMatch(dbMatch)) return false;
+
+  const expectedRaw = trustedKickoffUtcForLock(dbMatch);
+  const expected = expectedRaw ? new Date(expectedRaw).getTime() : null;
+  const actual = fixtureKickoffMs(fx);
+  if (!Number.isFinite(expected) || !Number.isFinite(actual)) return false;
+
+  const diffMin = Math.abs(expected - actual) / 60000;
+  if (diffMin > toleranceMinutes) return false;
+
+  const dbRound = playoffRoundKeyFromMatch(dbMatch);
+  const fxRound = playoffRoundKeyFromFixture(fx);
+  if (dbRound && fxRound && dbRound !== fxRound) return false;
+
+  return true;
+}
+
+function choosePlayoffFixtureByTrustedKickoff(dbMatch, fixtures){
+  if (!isMainWorldCupPlayoffMatch(dbMatch)) return null;
+
+  const expectedRaw = trustedKickoffUtcForLock(dbMatch);
+  const expected = expectedRaw ? new Date(expectedRaw).getTime() : null;
+  if (!Number.isFinite(expected)) return null;
+
+  const candidates = (fixtures || [])
+    .filter(fx => fixtureAllowedForMatch(dbMatch, fx))
+    .filter(fx => playoffFixtureMatchesTrustedKickoff(dbMatch, fx))
+    .map(fx => ({ fx, diff: Math.abs(expected - fixtureKickoffMs(fx)) }))
+    .sort((a, b) => {
+      if (a.diff !== b.diff) return a.diff - b.diff;
+      return Number(a.fx?.fixture?.id || 0) - Number(b.fx?.fixture?.id || 0);
+    });
+
+  return candidates[0]?.fx || null;
+}
+
 function chooseFixtureForMatch(dbMatch, fixtures){
   const hasPlaceholder = matchHasPlaceholderTeam(dbMatch);
   const needsRepair = matchNeedsWorldCupTeamRepair(dbMatch);
   const allowTeamFallback = hasPlaceholder || needsRepair;
 
+  if (isMainWorldCupPlayoffMatch(dbMatch)) {
+    // Play-off vaste valitakse esmalt ametliku match_no seed-kellaaja järgi.
+    // Vana api_football_fixture_id võib olla jäänud alagrupimängust külge
+    // näiteks #77 France-Senegal või #82 Belgium-Egypt, seega seda ei tohi esimesena usaldada.
+    const trustedPlayoffFixture = choosePlayoffFixtureByTrustedKickoff(dbMatch, fixtures);
+    if (trustedPlayoffFixture) return trustedPlayoffFixture;
+  }
+
   if (dbMatch.api_football_fixture_id){
     const exact = fixtures.find(fx => Number(fx?.fixture?.id) === Number(dbMatch.api_football_fixture_id));
     // MM mängude puhul ei kasuta kunagi muu liiga fixture'it, isegi kui vana fixture_id on varem valesti salvestunud.
-    if (exact && fixtureAllowedForMatch(dbMatch, exact) && (allowTeamFallback || fixtureHasTeamNameOverlap(dbMatch, exact))) return exact;
+    // Play-offis peab vana fixture_id lisaks klappima ametliku seed-kella ja ringiga.
+    const exactAllowedByPlayoffTime = !isMainWorldCupPlayoffMatch(dbMatch) || playoffFixtureMatchesTrustedKickoff(dbMatch, exact);
+    if (exact && exactAllowedByPlayoffTime && fixtureAllowedForMatch(dbMatch, exact) && (allowTeamFallback || fixtureHasTeamNameOverlap(dbMatch, exact))) return exact;
   }
 
   let best = null;
@@ -1712,6 +1830,70 @@ function resolveGroupSlotTeamName(value, groupStandings){
   return null;
 }
 
+function groupStandingRankForTeam(team, groupStandings){
+  const raw = String(team || "").trim();
+  if (!raw) return null;
+
+  for (const [group, standing] of groupStandings.entries()) {
+    if (!standing?.complete) continue;
+    for (let i = 0; i < (standing.ranked || []).length; i += 1) {
+      const row = standing.ranked[i];
+      if (row?.team && teamNamesMatch(row.team, raw)) {
+        return { group, pos: i + 1, team: row.team };
+      }
+    }
+  }
+
+  return null;
+}
+
+function groupSlotAllowsCurrentTeam(slot, currentTeam, groupStandings){
+  const token = String(slot || "").trim().toUpperCase();
+  const team = String(currentTeam || "").trim();
+  if (!token || !team || isPlaceholderTeam(team)) return false;
+
+  const direct = token.match(/^([12])([A-L])$/);
+  if (direct) {
+    const pos = Number(direct[1]);
+    const group = direct[2];
+    const standing = groupStandings.get(group);
+    const expected = standing?.complete ? standing.ranked?.[pos - 1]?.team : null;
+    return !!expected && teamNamesMatch(expected, team);
+  }
+
+  const third = token.match(/^3([A-L]+)$/);
+  if (third) {
+    const allowed = new Set(third[1].split(""));
+    const rank = groupStandingRankForTeam(team, groupStandings);
+    if (!rank || rank.pos !== 3 || !allowed.has(rank.group)) return false;
+
+    // 3ABC... sloti tohib täita ainult turniiri tegeliku parima kolmanda koha tiimiga.
+    // See väldib olukorda, kus vale API vaste paneb play-off reale suvalise sama MM-i tiimi
+    // nagu näiteks alagrupimängu Belgium - Egypt.
+    return bestThirdPlaceGroups(groupStandings).some(item =>
+      item.group === rank.group && item.team && teamNamesMatch(item.team, team)
+    );
+  }
+
+  return false;
+}
+
+function resolveSeededPlayoffSlotTeamName(slot, currentTeam, byMatchNo, groupStandings){
+  const token = String(slot || "").trim();
+  if (!token) return String(currentTeam || "").trim();
+
+  const resolved = resolvePlaceholderTeamName(token, byMatchNo) || resolveGroupSlotTeamName(token, groupStandings);
+  if (resolved) return resolved;
+
+  // Kui andmebaasis on juba päris tiiminimi ja see sobib täpselt selle seed-slotiga,
+  // võib selle alles jätta. Kui ei sobi, läheme tagasi placeholderi peale ja avalik vaade peidab mängu.
+  if (groupSlotAllowsCurrentTeam(token, currentTeam, groupStandings)) {
+    return String(currentTeam || "").trim();
+  }
+
+  return token;
+}
+
 function resolveAnyPlayoffPlaceholderTeamName(value, byMatchNo, groupStandings){
   return resolvePlaceholderTeamName(value, byMatchNo) || resolveGroupSlotTeamName(value, groupStandings);
 }
@@ -1882,21 +2064,16 @@ async function updateDerivedPlayoffMatches(sb){
     const seed = seedMatchByNoMap().get(Number(match.match_no));
     const no = Number(match.match_no);
 
-    if (seed && no >= 89 && no <= 104) {
-      // Later knockout rounds must always be derived from the official local W/L bracket.
-      // Do not trust current real-looking names here, because a bad API sync can set #91 to Brazil - Morocco.
-      home = seed.home;
-      away = seed.away;
+    if (seed && no >= 73 && no <= 104) {
+      // Play-off read tuletame alati ametliku seed-slot/bracket loogika järgi.
+      // Kui andmebaasis on varasema API vea tõttu real päris, aga vale mängupaar
+      // näiteks Belgium - Egypt, siis see ei tohi avalikus play-off vaatesse jääda.
+      home = resolveSeededPlayoffSlotTeamName(seed.home, home, byNo, groupStandings);
+      away = resolveSeededPlayoffSlotTeamName(seed.away, away, byNo, groupStandings);
     } else if (seed) {
       if (String(home || "").trim() && !isExpectedWorldCupTeamName(home)) home = seed.home;
       if (String(away || "").trim() && !isExpectedWorldCupTeamName(away)) away = seed.away;
     }
-
-    const resolvedHome = resolveAnyPlayoffPlaceholderTeamName(home, byNo, groupStandings);
-    const resolvedAway = resolveAnyPlayoffPlaceholderTeamName(away, byNo, groupStandings);
-
-    if (resolvedHome) home = resolvedHome;
-    if (resolvedAway) away = resolvedAway;
 
     // U17 testfinaal: võitjad poolfinaalidest -3 ja -2.
     if (Number(match.match_no) === -1) {
@@ -1923,6 +2100,8 @@ async function updateDerivedPlayoffMatches(sb){
       if (semi1?.winnerName) home = semi1.winnerName;
       if (semi2?.winnerName) away = semi2.winnerName;
     }
+
+    byNo.set(Number(match.match_no), { ...match, home, away });
 
     if (home !== match.home || away !== match.away) {
       const upd = await sb
@@ -2091,11 +2270,12 @@ async function syncApiFootballResults(sb, { force=false } = {}){
   const matchDates = (matchesRes.data || [])
     .filter(m => !m.manual_result_override)
     .filter(m => {
-      if (!m.kickoff_utc) return false;
-      const t = new Date(m.kickoff_utc).getTime();
+      const trustedKickoff = trustedKickoffUtcForLock(m) || m.kickoff_utc;
+      if (!trustedKickoff) return false;
+      const t = new Date(trustedKickoff).getTime();
       return Number.isFinite(t) && t <= Date.now() + 24 * 60 * 60 * 1000;
     })
-    .map(m => apiFootballDateOnly(m.kickoff_utc));
+    .map(m => apiFootballDateOnly(trustedKickoffUtcForLock(m) || m.kickoff_utc));
 
   const fetched = await fetchApiFootballFixtures(matchDates);
   if (!fetched.ok){
@@ -2109,6 +2289,7 @@ async function syncApiFootballResults(sb, { force=false } = {}){
   let matched = 0;
   let finished_found = 0;
   let skipped_manual = 0;
+  let skipped_locked_group_results = 0;
   let update_errors = 0;
   let updated_playoff_teams = 0;
   const unmatched = [];
@@ -2141,6 +2322,13 @@ async function syncApiFootballResults(sb, { force=false } = {}){
 
     if (hasManualResultOverride) {
       skipped_manual += 1;
+    }
+
+    if (isFinishedGroupStageScoreLocked(match)) {
+      // Kaitse: group stage on läbi ja tulemus juba olemas.
+      // Ära lase API-Footballil hiljem final_home/final_away väärtusi ega kasutajate punkte muuta.
+      skipped_locked_group_results += 1;
+      continue;
     }
 
     const no = Number(match.match_no);
@@ -2284,6 +2472,7 @@ async function syncApiFootballResults(sb, { force=false } = {}){
     matched,
     finished_found,
     skipped_manual,
+    skipped_locked_group_results,
     update_errors,
     updated_playoff_teams,
     cleanup_before: cleanupBefore,
@@ -2508,7 +2697,7 @@ if (event.httpMethod === "GET" && route === "me") {
       const matchRes = await sb.from("matches").select("*").eq("match_no", no).single();
       if (matchRes.error) return json(500, { error: matchRes.error.message });
 
-      const date = apiFootballDateOnly(matchRes.data.kickoff_utc);
+      const date = apiFootballDateOnly(trustedKickoffUtcForLock(matchRes.data) || matchRes.data.kickoff_utc);
       const fetched = await fetchApiFootballFixtures(date ? [date] : []);
       if (!fetched.ok) return json(500, { error: fetched.error || "API-Football viga" });
 
@@ -3111,7 +3300,14 @@ if (event.httpMethod === "GET" && route === "predictions/matrix") {
       .order("id", { ascending: true }));
 
     if (predsRes.error) return json(500, { error: predsRes.error.message });
-    predictions = predsRes.data || [];
+    const visibleMatchMap = new Map(visibleMatches.map(m => [m.id, m]));
+    predictions = (predsRes.data || []).map(p => {
+      const match = visibleMatchMap.get(p.match_id);
+      const correctedPoints = matchHasUsableResult(match)
+        ? calcPoints(p.pred_home, p.pred_away, match.final_home, match.final_away, { match, pred_winner: p.pred_winner })
+        : 0;
+      return { ...p, points: correctedPoints, stored_points: Number(p.points) || 0 };
+    });
   }
 
   return json(200, {
@@ -3696,7 +3892,7 @@ async function fetchAllRows(queryFactory, pageSize = 1000){
 // Leaderboard
 if (event.httpMethod === "GET" && route === "leaderboard") {
   const players = await fetchAllRows(() => sb.from("players").select("id,display_name,is_admin").order("created_at", { ascending: true }));
-  const preds = await fetchAllRows(() => sb.from("predictions").select("player_id,match_id,points").order("id", { ascending: true }));
+  const preds = await fetchAllRows(() => sb.from("predictions").select("player_id,match_id,pred_home,pred_away,pred_winner,points").order("id", { ascending: true }));
   const matches = await fetchAllRows(() => sb.from("matches").select("id,match_no,stage,home,away,kickoff_utc,is_finished,final_home,final_away,winner,went_extra,api_status_short,manual_result_override").order("match_no", { ascending: true }));
   const bonus = await fetchAllRows(() => sb.from("bonus_answers").select("player_id,points").order("id", { ascending: true }));
 
@@ -3716,11 +3912,13 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
   }
 
   // Edetabeli põhireegel:
-  // - predictions.points on andmebaasis juba arvutatud tõde mängupunktide kohta.
-  // - Üldtabel kasutab seetõttu ALATI otse kõigi predictions.points summat + lisaküsimused.
+  // - Kuvamisel arvutame mängupunktid uuesti praeguse usaldatud tulemuse järgi.
+  // - See väldib vanu stale predictions.points ridu, mis võisid tekkida vale API fixture'i või vana recalc'i ajal.
+  // - DB ridu siin ei muudeta; püsiv ümberarvutus on eraldi admin/recalc-points.
   // - Play-off tabel algab nullist ja kasutab ainult play-off mängude punkte + lisaküsimused.
   // - Alagrupi tabel kasutab ainult alagrupimängude punkte.
   const predictionTotalMap = new Map();
+  const storedPredictionTotalMap = new Map();
   const groupPointsMap = new Map();
   const playoffPointsMap = new Map();
 
@@ -3728,11 +3926,19 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
     const match = matchMap.get(pr.match_id);
     if (!match) continue;
 
-    // Tulevase või fake tulemusega mängu punktid ei tohi edetabelisse jõuda.
-    // Tavalise ennustuse points on enne tulemust niikuinii 0, aga see kaitseb vana vigase sync'i eest.
+    // Edetabel arvutab punktid kuvamisel alati uuesti praeguse usaldatud mängu tulemuse järgi.
+    // See parandab olukorra, kus predictions.points jäi varasema vale API fixture'i või vana recalc'i tõttu seisma.
+    // DB-s olevaid ennustusi ega punkte siin ei muudeta.
     if (!matchHasUsableResult(match)) continue;
 
-    const pts = Number(pr.points) || 0;
+    const storedPts = Number(pr.points) || 0;
+    storedPredictionTotalMap.set(pr.player_id, (storedPredictionTotalMap.get(pr.player_id) || 0) + storedPts);
+
+    const pts = calcPoints(pr.pred_home, pr.pred_away, match.final_home, match.final_away, {
+      match,
+      pred_winner: pr.pred_winner
+    });
+
     predictionTotalMap.set(pr.player_id, (predictionTotalMap.get(pr.player_id) || 0) + pts);
 
     if (isGroupMatchForLeaderboard(match)) {
@@ -3749,6 +3955,7 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
       const groupPoints = Number(groupPointsMap.get(p.id) || 0);
       const playoffMatchPoints = Number(playoffPointsMap.get(p.id) || 0);
       const dbPredictionPoints = Number(predictionTotalMap.get(p.id) || 0);
+      const storedPredictionPoints = Number(storedPredictionTotalMap.get(p.id) || 0);
       const bonusPoints = kind === "group" ? 0 : Number(bonusMap.get(p.id) || 0);
 
       const row = {
@@ -3759,6 +3966,7 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
         playoff_match_points: 0,
         bonus_points: bonusPoints,
         db_prediction_points: dbPredictionPoints,
+        stored_prediction_points: storedPredictionPoints,
         points: 0
       };
 
