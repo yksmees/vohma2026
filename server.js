@@ -711,6 +711,76 @@ function officialR32ActualFixtureForMatchNo(matchNo){
   return OFFICIAL_R32_ACTUAL_FIXTURES.get(no) || null;
 }
 
+// Alagrupiturniir on lõppenud. Hoia ametlikud 90 minuti tulemused koodis eraldi
+// kaitsekihina, et hilisem API sync või vale fixture ei saaks edetabeli kuvamist rikkuda.
+// Seda kasutatakse ainult põhivõistluse #1-#72 kontrolliks ja usaldatud kuvamiseks.
+const OFFICIAL_GROUP_RESULTS = new Map([
+  [1, { home: 2, away: 0 }], [2, { home: 2, away: 1 }], [3, { home: 1, away: 1 }],
+  [4, { home: 4, away: 1 }], [5, { home: 0, away: 1 }], [6, { home: 2, away: 0 }],
+  [7, { home: 1, away: 1 }], [8, { home: 1, away: 1 }], [9, { home: 1, away: 0 }],
+  [10, { home: 7, away: 1 }], [11, { home: 2, away: 2 }], [12, { home: 5, away: 1 }],
+  [13, { home: 1, away: 1 }], [14, { home: 0, away: 0 }], [15, { home: 2, away: 2 }],
+  [16, { home: 1, away: 1 }], [17, { home: 3, away: 1 }], [18, { home: 1, away: 4 }],
+  [19, { home: 3, away: 0 }], [20, { home: 3, away: 1 }], [21, { home: 4, away: 2 }],
+  [22, { home: 1, away: 0 }], [23, { home: 1, away: 1 }], [24, { home: 1, away: 3 }],
+  [25, { home: 1, away: 1 }], [26, { home: 4, away: 1 }], [27, { home: 6, away: 0 }],
+  [28, { home: 1, away: 0 }], [29, { home: 3, away: 0 }], [30, { home: 0, away: 1 }],
+  [31, { home: 0, away: 1 }], [32, { home: 2, away: 0 }], [33, { home: 2, away: 1 }],
+  [34, { home: 0, away: 0 }], [35, { home: 5, away: 1 }], [36, { home: 0, away: 4 }],
+  [37, { home: 2, away: 2 }], [38, { home: 4, away: 0 }], [39, { home: 0, away: 0 }],
+  [40, { home: 1, away: 3 }], [41, { home: 3, away: 2 }], [42, { home: 3, away: 0 }],
+  [43, { home: 2, away: 0 }], [44, { home: 1, away: 2 }], [45, { home: 0, away: 0 }],
+  [46, { home: 0, away: 1 }], [47, { home: 5, away: 0 }], [48, { home: 1, away: 0 }],
+  [49, { home: 0, away: 3 }], [50, { home: 4, away: 2 }], [51, { home: 2, away: 1 }],
+  [52, { home: 3, away: 1 }], [53, { home: 0, away: 3 }], [54, { home: 1, away: 0 }],
+  [55, { home: 0, away: 2 }], [56, { home: 2, away: 1 }], [57, { home: 1, away: 1 }],
+  [58, { home: 1, away: 3 }], [59, { home: 3, away: 2 }], [60, { home: 0, away: 0 }],
+  [61, { home: 1, away: 4 }], [62, { home: 5, away: 0 }], [63, { home: 1, away: 1 }],
+  [64, { home: 1, away: 5 }], [65, { home: 0, away: 0 }], [66, { home: 0, away: 1 }],
+  [67, { home: 0, away: 2 }], [68, { home: 2, away: 1 }], [69, { home: 3, away: 3 }],
+  [70, { home: 1, away: 3 }], [71, { home: 0, away: 0 }], [72, { home: 3, away: 1 }]
+]);
+
+function officialGroupResultForMatchNo(matchNo){
+  const no = Number(matchNo);
+  if (!Number.isFinite(no)) return null;
+  return OFFICIAL_GROUP_RESULTS.get(no) || null;
+}
+
+function officialWinnerFromScore(home, away){
+  const h = Number(home);
+  const a = Number(away);
+  if (!Number.isFinite(h) || !Number.isFinite(a)) return null;
+  if (h > a) return "home";
+  if (h < a) return "away";
+  return null;
+}
+
+function applyOfficialGroupResultForTrustedDisplay(match){
+  const official = officialGroupResultForMatchNo(match?.match_no);
+  if (!official || !isMainWorldCupMatch(match)) return match;
+  return {
+    ...match,
+    final_home: official.home,
+    final_away: official.away,
+    winner: officialWinnerFromScore(official.home, official.away),
+    is_finished: true,
+    official_group_result_guard: true
+  };
+}
+
+function fixtureTeamsMatchExpectedPair(expected, fx){
+  if (!expected || !fx) return false;
+  return (
+    teamNamesMatch(expected.home, fx?.teams?.home?.name) &&
+    teamNamesMatch(expected.away, fx?.teams?.away?.name)
+  );
+}
+
+function fixtureTeamsMatchOfficialR32(matchNo, fx){
+  return fixtureTeamsMatchExpectedPair(officialR32ActualFixtureForMatchNo(matchNo), fx);
+}
+
 function applyOfficialR32ActualTeams(match){
   const actual = officialR32ActualFixtureForMatchNo(match?.match_no);
   if (!actual) return match;
@@ -1223,6 +1293,10 @@ function sanitizeWorldCupMatchForDisplay(match){
   if (String(clean.home || "").trim() && !isExpectedWorldCupTeamName(clean.home)) clean.home = seed.home;
   if (String(clean.away || "").trim() && !isExpectedWorldCupTeamName(clean.away)) clean.away = seed.away;
 
+  // Lõppenud alagrupiturniiri avalikud vaated kasutavad kontrollitud ametlikke tulemusi.
+  // See kaitseb edetabelit ka siis, kui DB-s olev skoor on kunagi vale sync'i tõttu rikutud.
+  clean = applyOfficialGroupResultForTrustedDisplay(clean);
+
   const trustedKickoff = trustedKickoffUtcForLock(clean);
   if (trustedKickoff) clean.kickoff_utc = trustedKickoff;
 
@@ -1495,9 +1569,29 @@ function chooseFixtureForMatch(dbMatch, fixtures){
   const allowTeamFallback = hasPlaceholder || needsRepair;
 
   if (isMainWorldCupPlayoffMatch(dbMatch)) {
-    // Play-off vaste valitakse esmalt ametliku match_no seed-kellaaja järgi.
-    // Vana api_football_fixture_id võib olla jäänud alagrupimängust külge
-    // näiteks #77 France-Senegal või #82 Belgium-Egypt, seega seda ei tohi esimesena usaldada.
+    const officialR32 = officialR32ActualFixtureForMatchNo(dbMatch?.match_no);
+    if (officialR32) {
+      // Round of 32 puhul ei piisa enam ainult kellaajast. Sama kuupäeva API vastuses võib olla
+      // mitu põhivõistluse mängu ja varem tekkisid valed paarid. Siin peab klappima nii
+      // ametlik match_no kellaaeg/ring kui ka mõlemad tiimid.
+      const expectedRaw = trustedKickoffUtcForLock(dbMatch);
+      const expected = expectedRaw ? new Date(expectedRaw).getTime() : null;
+      const strictCandidates = (fixtures || [])
+        .filter(fx => fixtureAllowedForMatch(dbMatch, fx))
+        .filter(fx => playoffFixtureMatchesTrustedKickoff(dbMatch, fx, 30))
+        .filter(fx => fixtureTeamsMatchExpectedPair(officialR32, fx))
+        .map(fx => ({ fx, diff: Math.abs((fixtureKickoffMs(fx) || 0) - (expected || 0)) }))
+        .sort((a, b) => a.diff - b.diff);
+      if (strictCandidates[0]?.fx) return strictCandidates[0].fx;
+
+      // Kui API-s pole ametlike tiimidega fixture'it, ära vali R32 mängule ainult aja põhjal
+      // mõnda muud mängu. Jätame pigem sobitamata kui kirjutame vale mängu ja valed punktid.
+      return null;
+    }
+
+    // Hilisemates play-off ringides valitakse vaste ametliku W/L seed-kellaaja järgi.
+    // Vana api_football_fixture_id võib olla jäänud alagrupimängust külge, seega seda ei
+    // tohi esimesena usaldada.
     const trustedPlayoffFixture = choosePlayoffFixtureByTrustedKickoff(dbMatch, fixtures);
     if (trustedPlayoffFixture) return trustedPlayoffFixture;
   }
@@ -2180,8 +2274,11 @@ async function updateDerivedPlayoffMatches(sb){
 function shouldClearUnresolvedWorldCupResult(match, byNo = null){
   if (!isMainWorldCupMatch(match)) return false;
 
-  // Tulevase mängu küljes olev skoor/tulemus on alati varasema vale sync'i jääk,
-  // välja arvatud juhul, kui admin on tulemuse käsitsi override'inud.
+  // Admini käsitsi sisestatud tulemust ei puhastata automaatse cleanupiga.
+  // Kui käsitsi tulemus on vale, parandab admin selle eraldi käsitsi.
+  if (truthyDbBool(match?.manual_result_override)) return false;
+
+  // Tulevase mängu küljes olev skoor/tulemus on alati varasema vale sync'i jääk.
   if (isPrematureWorldCupResult(match)) return true;
 
   const sanitized = sanitizeWorldCupMatchForDisplay(match);
@@ -2240,13 +2337,61 @@ async function clearUnresolvedWorldCupResults(sb, matches = null){
   };
 }
 
+async function fetchAllRowsForIntegrity(queryFactory, pageSize = 1000){
+  const rows = [];
+  let from = 0;
+
+  while (true) {
+    const to = from + pageSize - 1;
+    const res = await queryFactory().range(from, to);
+    if (res.error) return { data: rows, error: res.error };
+
+    const chunk = res.data || [];
+    rows.push(...chunk);
+    if (chunk.length < pageSize) break;
+
+    from += pageSize;
+    if (from > 200000) {
+      return { data: rows, error: { message: "Liiga palju ridu usalduskontrolliks." } };
+    }
+  }
+
+  return { data: rows, error: null };
+}
+
 async function recalcPointsForMatch(sb, matchId){
   const matchRes = await sb.from("matches").select("*").eq("id", matchId).single();
   if (matchRes.error || !matchRes.data) {
     return { updated_predictions: 0, skipped: true, error: matchRes.error?.message || "Mängu ei leitud." };
   }
 
-  const match = matchRes.data;
+  let match = matchRes.data;
+
+  // Püsiv punktide ümberarvutus peab kasutama sama usaldatud mänguandmete kihti nagu avalikud vaated.
+  // See hoiab ära olukorra, kus admini üldine recalc kirjutab DB-sse tagasi vale fixture'i või
+  // tulevase fake skoori põhjal punktid.
+  if (isMainWorldCupMatch(match)) {
+    const allMatchesRes = await fetchAllRowsForIntegrity(() => sb
+      .from("matches")
+      .select("id,match_no,stage,home,away,kickoff_utc,final_home,final_away,winner,is_finished,went_extra,api_status_short,manual_result_override")
+      .order("match_no", { ascending: true }));
+
+    if (!allMatchesRes.error) {
+      const trustedMatches = sanitizeWorldCupMatchesForDisplay(allMatchesRes.data || []);
+      const trusted = trustedMatches.find(x => Number(x.id) === Number(matchId));
+      if (trusted) match = trusted;
+      else {
+        const predReset = await sb.from("predictions").update({ points: 0 }, { count: "exact" }).eq("match_id", matchId);
+        return {
+          updated_predictions: 0,
+          reset_predictions: predReset.error ? 0 : (predReset.count || 0),
+          skipped: true,
+          reason: "Mäng ei läbinud MM bracketi/fixture usalduskontrolli.",
+          error: predReset.error?.message || null
+        };
+      }
+    }
+  }
 
   // Turvakaitse: tulevase MM mängu küljes olev skoor ei tohi kunagi punkte anda.
   // See ei muuda õigete lõppenud mängude punkte, vaid nullib ainult varasema vale sync/testi jäägi.
@@ -2263,8 +2408,8 @@ async function recalcPointsForMatch(sb, matchId){
 
   const fh = match.final_home;
   const fa = match.final_away;
-  if (fh===null || fa===null || fh===undefined || fa===undefined) {
-    return { updated_predictions: 0, skipped: true, reason: "Tulemus puudub." };
+  if (fh===null || fa===null || fh===undefined || fa===undefined || !matchHasUsableResult(match)) {
+    return { updated_predictions: 0, skipped: true, reason: "Usaldatud tulemus puudub." };
   }
 
   const inferredWentExtra = inferWentExtraFromResult(match, fh, fa, match.winner);
@@ -2355,6 +2500,8 @@ async function syncApiFootballResults(sb, { force=false } = {}){
   const updated_matches = [];
   const updated_playoff_team_matches = [];
   const update_error_examples = [];
+  let blocked_result_overwrites = 0;
+  const blocked_result_overwrite_examples = [];
 
   for (const rawMatch of matchesRes.data || []){
     let match = { ...rawMatch };
@@ -2491,6 +2638,34 @@ async function syncApiFootballResults(sb, { force=false } = {}){
 
         const runningGoalScore = apiPlayingTimeScoreWithoutPenalties(fx);
 
+        // Hard guard: once a main World Cup row already has a finished stored score,
+        // API sync must not silently overwrite it with a different score or winner.
+        // This prevents future "points disappeared/changed" incidents caused by late API corrections,
+        // stale fixture ids or accidental wrong fixture matches. Admin/manual override remains the only way
+        // to change an already-finished score deliberately.
+        const hasStoredFinishedScore = !!match.is_finished &&
+          match.final_home !== null && match.final_home !== undefined &&
+          match.final_away !== null && match.final_away !== undefined &&
+          Number.isFinite(Number(match.final_home)) &&
+          Number.isFinite(Number(match.final_away));
+        const storedWinner = normalizeWinner(match.winner);
+        const incomingWinner = normalizeWinner(apiWinner);
+        const incomingDiffersFromStored = hasStoredFinishedScore && (
+          Number(match.final_home) !== Number(homeGoals) ||
+          Number(match.final_away) !== Number(awayGoals) ||
+          (storedWinner && incomingWinner && storedWinner !== incomingWinner)
+        );
+
+        if (isMainWorldCupMatch(match) && incomingDiffersFromStored && !truthyDbBool(match.manual_result_override)) {
+          blocked_result_overwrites += 1;
+          if (blocked_result_overwrite_examples.length < 20) {
+            blocked_result_overwrite_examples.push(
+              `#${match.match_no} ${match.home} - ${match.away}: DB ${match.final_home}:${match.final_away}${storedWinner ? ` ${storedWinner}` : ""}, API ${homeGoals}:${awayGoals}${incomingWinner ? ` ${incomingWinner}` : ""}`
+            );
+          }
+          continue;
+        }
+
         const upd = await sb.from("matches").update(resultPatch).eq("id", match.id).select("*").single();
 
         if (!upd.error){
@@ -2532,6 +2707,8 @@ async function syncApiFootballResults(sb, { force=false } = {}){
     skipped_manual,
     skipped_locked_group_results,
     update_errors,
+    blocked_result_overwrites,
+    blocked_result_overwrite_examples,
     updated_playoff_teams,
     cleanup_before: cleanupBefore,
     cleanup_after: cleanupAfter,
@@ -3946,6 +4123,173 @@ async function fetchAllRows(queryFactory, pageSize = 1000){
   return { data: rows, error: null };
 }
 
+async function buildWorldCupIntegrityAudit(sb){
+  const matchesRes = await fetchAllRows(() => sb
+    .from("matches")
+    .select("id,match_no,stage,home,away,kickoff_utc,final_home,final_away,winner,is_finished,went_extra,api_status_short,manual_result_override,api_football_fixture_id")
+    .gte("match_no", 1)
+    .lte("match_no", 104)
+    .order("match_no", { ascending: true }));
+
+  if (matchesRes.error) throw new Error(matchesRes.error.message);
+
+  const rawMatches = matchesRes.data || [];
+  const trustedMatches = sanitizeWorldCupMatchesForDisplay(rawMatches);
+  const trustedById = new Map(trustedMatches.map(m => [m.id, m]));
+
+  const byNoCounts = new Map();
+  for (const m of rawMatches) byNoCounts.set(Number(m.match_no), (byNoCounts.get(Number(m.match_no)) || 0) + 1);
+
+  const duplicate_match_no = Array.from(byNoCounts.entries())
+    .filter(([, count]) => count > 1)
+    .map(([match_no, count]) => ({ match_no, count }));
+
+  const group_result_mismatches = [];
+  const r32_team_mismatches = [];
+  const future_result_rows = [];
+  const hidden_trusted_rows_with_stored_result = [];
+  const unlocked_finished_results = [];
+
+  for (const m of rawMatches) {
+    const no = Number(m.match_no);
+    const officialGroup = officialGroupResultForMatchNo(no);
+    if (officialGroup) {
+      const currentHome = Number(m.final_home);
+      const currentAway = Number(m.final_away);
+      if (currentHome !== Number(officialGroup.home) || currentAway !== Number(officialGroup.away)) {
+        group_result_mismatches.push({
+          match_no: no,
+          home: m.home,
+          away: m.away,
+          current: `${m.final_home ?? ""}:${m.final_away ?? ""}`,
+          expected: `${officialGroup.home}:${officialGroup.away}`,
+          manual_result_override: !!m.manual_result_override
+        });
+      }
+    }
+
+    const officialR32 = officialR32ActualFixtureForMatchNo(no);
+    if (officialR32 && (!teamNamesMatch(m.home, officialR32.home) || !teamNamesMatch(m.away, officialR32.away))) {
+      r32_team_mismatches.push({
+        match_no: no,
+        current: `${m.home} - ${m.away}`,
+        expected: `${officialR32.home} - ${officialR32.away}`,
+        manual_result_override: !!m.manual_result_override
+      });
+    }
+
+    if (isPrematureWorldCupResult(m) && !truthyDbBool(m.manual_result_override)) {
+      future_result_rows.push({
+        match_no: no,
+        home: m.home,
+        away: m.away,
+        kickoff_utc: trustedKickoffUtcForLock(m) || m.kickoff_utc,
+        stored_result: `${m.final_home ?? ""}:${m.final_away ?? ""}`,
+        is_finished: !!m.is_finished
+      });
+    }
+
+    if (!trustedById.has(m.id) && worldCupMatchHasStoredResultFields(m)) {
+      hidden_trusted_rows_with_stored_result.push({
+        match_no: no,
+        home: m.home,
+        away: m.away,
+        stored_result: `${m.final_home ?? ""}:${m.final_away ?? ""}`,
+        is_finished: !!m.is_finished,
+        manual_result_override: !!m.manual_result_override
+      });
+    }
+
+    // Informational hardening warning: a finished score without manual_result_override is still eligible
+    // for normal API sync metadata handling. The sync has an overwrite block, but locking verified results
+    // gives an extra database-level safety net against future score changes.
+    const trustedRow = trustedById.get(m.id);
+    if (trustedRow && matchHasUsableResult(trustedRow) && !truthyDbBool(m.manual_result_override)) {
+      unlocked_finished_results.push({
+        match_no: no,
+        home: trustedRow.home,
+        away: trustedRow.away,
+        stored_result: `${trustedRow.final_home ?? ""}:${trustedRow.final_away ?? ""}`,
+        winner: normalizeWinner(trustedRow.winner) || null,
+        went_extra: !!truthyDbBool(trustedRow.went_extra)
+      });
+    }
+  }
+
+  const predsRes = await fetchAllRows(() => sb
+    .from("predictions")
+    .select("id,player_id,match_id,pred_home,pred_away,pred_winner,points")
+    .order("id", { ascending: true }));
+
+  if (predsRes.error) throw new Error(predsRes.error.message);
+
+  const playersRes = await fetchAllRows(() => sb
+    .from("players")
+    .select("id,display_name,is_admin")
+    .order("display_name", { ascending: true }));
+
+  if (playersRes.error) throw new Error(playersRes.error.message);
+
+  const playerName = new Map((playersRes.data || []).map(p => [p.id, p.display_name]));
+  const prediction_point_mismatches = [];
+  let prediction_point_mismatch_count = 0;
+
+  for (const p of predsRes.data || []) {
+    const match = trustedById.get(p.match_id);
+    if (!match || !matchHasUsableResult(match)) continue;
+    const expected = calcPoints(p.pred_home, p.pred_away, match.final_home, match.final_away, { match, pred_winner: p.pred_winner });
+    const stored = Number(p.points) || 0;
+    if (stored !== expected) {
+      prediction_point_mismatch_count += 1;
+      if (prediction_point_mismatches.length < 50) {
+        prediction_point_mismatches.push({
+          player: playerName.get(p.player_id) || p.player_id,
+          match_no: match.match_no,
+          match: `${match.home} - ${match.away}`,
+          prediction: `${p.pred_home}:${p.pred_away}`,
+          stored_points: stored,
+          expected_points: expected,
+          delta: expected - stored
+        });
+      }
+    }
+  }
+
+  const ok = !duplicate_match_no.length &&
+    !group_result_mismatches.length &&
+    !r32_team_mismatches.length &&
+    !future_result_rows.length &&
+    !hidden_trusted_rows_with_stored_result.length &&
+    prediction_point_mismatch_count === 0;
+
+  return {
+    ok,
+    checked_at: new Date().toISOString(),
+    matches_checked: rawMatches.length,
+    trusted_matches_visible: trustedMatches.length,
+    duplicate_match_no,
+    group_result_mismatches,
+    r32_team_mismatches,
+    future_result_rows,
+    hidden_trusted_rows_with_stored_result: hidden_trusted_rows_with_stored_result.slice(0, 50),
+    unlocked_finished_results: unlocked_finished_results.slice(0, 80),
+    unlocked_finished_result_count: unlocked_finished_results.length,
+    prediction_point_mismatch_count,
+    prediction_point_mismatches
+  };
+}
+
+if (event.httpMethod === "GET" && route === "admin/audit/worldcup-integrity") {
+  const u = await requireAdmin(sb, event);
+  if (!u) return json(403, { error: "Admini õigused puuduvad." });
+
+  try {
+    const audit = await buildWorldCupIntegrityAudit(sb);
+    return json(200, audit);
+  } catch (err) {
+    return json(500, { error: err.message || String(err) });
+  }
+}
 
 // Leaderboard
 if (event.httpMethod === "GET" && route === "leaderboard") {
