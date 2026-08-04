@@ -4496,15 +4496,30 @@
         font-weight:900 !important;
       }
 
-      /* Ühtlane ja rahulik mobiilikaardi värvilahendus.
-         Punktide värviklassid ei tohi enam terveid lahtriplokke roheliseks/siniseks/kollaseks värvida. */
-      #pred #mTable tbody tr,
-      #pred #mTable tbody tr:nth-child(odd),
-      #pred #mTable tbody tr:nth-child(even),
-      #pred #mTable tbody tr.row-finished{
-        background:linear-gradient(180deg, rgba(78,31,49,.98), rgba(68,25,43,.98)) !important;
-        border:1px solid rgba(224,120,143,.58) !important;
+      /* Mobiilikaartide värv vastab punktidele:
+         4+ roheline, 3 sinine, 2 kollane, 1 oranž, 0 punane. */
+      #pred #mTable tbody tr{
         box-shadow:0 10px 24px rgba(0,0,0,.24) !important;
+      }
+      #pred #mTable tbody tr.color-green{
+        background:linear-gradient(180deg, rgba(19,91,62,.96), rgba(12,65,47,.98)) !important;
+        border:1px solid rgba(71,211,143,.72) !important;
+      }
+      #pred #mTable tbody tr.color-blue{
+        background:linear-gradient(180deg, rgba(32,66,132,.96), rgba(23,48,105,.98)) !important;
+        border:1px solid rgba(99,155,255,.72) !important;
+      }
+      #pred #mTable tbody tr.color-yellow{
+        background:linear-gradient(180deg, rgba(117,86,25,.96), rgba(82,60,16,.98)) !important;
+        border:1px solid rgba(245,202,77,.76) !important;
+      }
+      #pred #mTable tbody tr.color-orange{
+        background:linear-gradient(180deg, rgba(133,65,25,.96), rgba(92,43,16,.98)) !important;
+        border:1px solid rgba(251,146,60,.78) !important;
+      }
+      #pred #mTable tbody tr.color-red{
+        background:linear-gradient(180deg, rgba(112,38,53,.97), rgba(75,27,42,.99)) !important;
+        border:1px solid rgba(239,105,126,.72) !important;
       }
 
       #pred #mTable tbody tr td,
@@ -4519,6 +4534,28 @@
         background:transparent !important;
         box-shadow:none !important;
         color:#f3f5ff !important;
+      }
+
+      #pred #mTable tbody tr.color-green .points-value{
+        background:#168554 !important;
+        border-color:#62d69a !important;
+      }
+      #pred #mTable tbody tr.color-blue .points-value{
+        background:#315fc0 !important;
+        border-color:#80aaff !important;
+      }
+      #pred #mTable tbody tr.color-yellow .points-value{
+        background:#b88718 !important;
+        border-color:#f5ce5d !important;
+        color:#fff !important;
+      }
+      #pred #mTable tbody tr.color-orange .points-value{
+        background:#c46022 !important;
+        border-color:#f7a365 !important;
+      }
+      #pred #mTable tbody tr.color-red .points-value{
+        background:#b62f39 !important;
+        border-color:#ef8793 !important;
       }
 
       #pred #mTable tbody tr td:first-child{
