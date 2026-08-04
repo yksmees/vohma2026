@@ -3868,8 +3868,6 @@
       }
     }
 
-
-  
     /* BEER COUNTER VIEW */
     .beer-view{
       --beer-line:rgba(255,255,255,.12);
@@ -4276,7 +4274,229 @@
     }
 
 
-  </style>
+  
+
+    /* MOBILE: ainult Ennustused-vaade pildil oleva kompaktse kaardidisainiga */
+    @media (max-width:760px){
+      #pred .m-table-wrap{
+        width:100% !important;
+        max-width:100% !important;
+        margin:0 !important;
+        overflow:visible !important;
+      }
+
+      #pred #mTable,
+      #pred #mTable tbody{
+        display:block !important;
+        width:100% !important;
+        min-width:0 !important;
+      }
+
+      #pred #mTable thead{display:none !important;}
+
+      #pred #mTable tr{
+        position:relative !important;
+        display:grid !important;
+        grid-template-columns:minmax(0,1fr) 58px minmax(0,1fr) !important;
+        grid-template-areas:
+          "number number stage"
+          "home dot away"
+          "save save save"
+          "meta meta meta"
+          "points points points" !important;
+        column-gap:6px !important;
+        row-gap:10px !important;
+        width:100% !important;
+        min-width:0 !important;
+        margin:0 0 14px !important;
+        padding:14px 16px 16px !important;
+        border:1px solid rgba(231,126,147,.55) !important;
+        border-radius:22px !important;
+        box-sizing:border-box !important;
+        overflow:hidden !important;
+      }
+
+      #pred #mTable td{
+        display:block !important;
+        width:auto !important;
+        min-width:0 !important;
+        max-width:none !important;
+        padding:0 !important;
+        border:0 !important;
+        text-align:left !important;
+        overflow:visible !important;
+      }
+
+      #pred #mTable td::before{display:none !important; content:none !important;}
+
+      #pred #mTable td:nth-child(1){
+        grid-area:number !important;
+        align-self:center !important;
+        font-weight:900 !important;
+        font-size:16px !important;
+        color:#f3f5ff !important;
+        padding-right:68px !important;
+      }
+      #pred #mTable td:nth-child(1)::before{
+        display:inline !important;
+        content:"Mäng " !important;
+      }
+
+      #pred #mTable td:nth-child(2){
+        grid-area:stage !important;
+        align-self:center !important;
+        justify-self:end !important;
+        text-align:right !important;
+      }
+      #pred #mTable td:nth-child(2) .pill{
+        padding:0 !important;
+        border:0 !important;
+        background:transparent !important;
+        color:#e9eaf3 !important;
+        font-weight:900 !important;
+        font-size:15px !important;
+        white-space:nowrap !important;
+      }
+
+      #pred #mTable td:nth-child(3){grid-area:home !important;}
+      #pred #mTable td:nth-child(4){grid-area:away !important;}
+
+      #pred #mTable .team-pred-cell{
+        display:flex !important;
+        align-items:center !important;
+        gap:8px !important;
+        min-width:0 !important;
+        font-weight:900 !important;
+        font-size:16px !important;
+        line-height:1.15 !important;
+      }
+      #pred #mTable td:nth-child(3){justify-content:flex-end !important; text-align:right !important;}
+      #pred #mTable td:nth-child(4){justify-content:flex-start !important; text-align:left !important;}
+      #pred #mTable td:nth-child(4) input{order:-1 !important;}
+      #pred #mTable .team-pred-cell > span{
+        min-width:0 !important;
+        overflow:hidden !important;
+        text-overflow:ellipsis !important;
+        white-space:nowrap !important;
+      }
+
+      #pred #mTable .team-score-input{
+        flex:0 0 58px !important;
+        width:58px !important;
+        min-width:58px !important;
+        height:58px !important;
+        padding:0 !important;
+        border-radius:16px !important;
+        text-align:center !important;
+        font-size:23px !important;
+        font-weight:900 !important;
+        box-sizing:border-box !important;
+      }
+
+      #pred #mTable tr::after{
+        content:":" !important;
+        grid-area:dot !important;
+        align-self:center !important;
+        justify-self:center !important;
+        font-size:22px !important;
+        font-weight:900 !important;
+        color:#eef1ff !important;
+      }
+
+      #pred #mTable td:nth-child(6){
+        grid-area:save !important;
+        width:100% !important;
+      }
+      #pred #mTable .pred-note:empty{display:none !important;}
+      #pred #mTable .pred-note{
+        margin:0 0 8px !important;
+        text-align:center !important;
+      }
+      #pred #mTable .pred-controls{
+        display:block !important;
+        width:100% !important;
+        min-width:0 !important;
+      }
+      #pred #mTable .pred-controls button{
+        width:100% !important;
+        min-width:0 !important;
+        height:48px !important;
+        border-radius:16px !important;
+        font-size:17px !important;
+        font-weight:900 !important;
+      }
+
+      #pred #mTable .winner-pick{
+        width:100% !important;
+        margin:0 0 10px !important;
+      }
+
+      #pred #mTable td:nth-child(5){
+        grid-area:meta !important;
+        display:flex !important;
+        flex-wrap:wrap !important;
+        align-items:center !important;
+        gap:7px 10px !important;
+        font-size:15px !important;
+        font-weight:700 !important;
+        color:#d8dbea !important;
+      }
+      #pred #mTable td:nth-child(5)::before{
+        display:inline !important;
+        content:"Aeg:" !important;
+        font-weight:900 !important;
+        color:#f0f1f8 !important;
+      }
+      #pred #mTable td:nth-child(5) > .pill{
+        position:absolute !important;
+        top:10px !important;
+        left:88px !important;
+        padding:5px 10px !important;
+        border-radius:999px !important;
+        background:rgba(150,103,34,.55) !important;
+        border:1px solid rgba(222,170,70,.45) !important;
+        color:#ffd978 !important;
+        font-weight:900 !important;
+      }
+      #pred #mTable .final-score-badge,
+      #pred #mTable .advance-badge{
+        flex-basis:100% !important;
+        margin:0 !important;
+        padding:0 !important;
+        background:transparent !important;
+        border:0 !important;
+        color:#e8e9f2 !important;
+        font-size:15px !important;
+      }
+
+      #pred #mTable td:nth-child(7){
+        grid-area:points !important;
+        display:flex !important;
+        align-items:center !important;
+        justify-content:flex-start !important;
+        gap:10px !important;
+        text-align:left !important;
+        font-weight:900 !important;
+      }
+      #pred #mTable td:nth-child(7)::before{
+        display:inline !important;
+        content:"Punktid:" !important;
+        color:#f0f1f8 !important;
+      }
+      #pred #mTable .points-value{
+        display:inline-flex !important;
+        align-items:center !important;
+        justify-content:center !important;
+        min-width:62px !important;
+        padding:4px 12px !important;
+        border-radius:999px !important;
+        background:#b62f39 !important;
+        border:1px solid rgba(255,255,255,.35) !important;
+        color:#fff !important;
+        font-weight:900 !important;
+      }
+    }
+</style>
 </head>
 <body>
   
@@ -5305,7 +5525,7 @@ function predictionWinnerHtml(row, pr, locked){
   const ph = Number(pr?.pred_home);
   const pa = Number(pr?.pred_away);
   const savedDraw = hasHome && hasAway && Number.isFinite(ph) && Number.isFinite(pa) && ph === pa;
-  const show = savedDraw;
+  const show = savedDraw || !!selected;
 
   return `
     <div class="winner-pick${show ? "" : " hide"}" data-winner-box="${row.id}" data-saved-winner="${selected}">
@@ -5337,7 +5557,8 @@ function updateWinnerVisibility(mid){
   const pa = Number(aRaw);
 
   const drawNow = hasHome && hasAway && Number.isFinite(ph) && Number.isFinite(pa) && ph === pa;
-  const show = drawNow;
+  const hasSavedWinner = !!String(box.dataset.savedWinner || "").trim();
+  const show = drawNow || hasSavedWinner;
 
   box.classList.toggle("hide", !show);
 
@@ -5804,11 +6025,10 @@ tbody.querySelectorAll(`input[name="winner_${mid}"]`).forEach(inp=>{
         const a = aInput.value;
         const ph = Number(h), pa = Number(a);
         if (!Number.isFinite(ph) || !Number.isFinite(pa)) return setMsg($("predMsg"), false, "Sisesta numbrid.");
-        const winnerBox = tbody.querySelector(`[data-winner-box="${mid}"]`);
-        const needsWinner = !!winnerBox && ph === pa;
-        const winnerInput = needsWinner ? tbody.querySelector(`input[name="winner_${mid}"]:checked`) : null;
+        const winnerInput = tbody.querySelector(`input[name="winner_${mid}"]:checked`);
         const pred_winner = winnerInput ? winnerInput.value : null;
-        if (needsWinner && !pred_winner) return setMsg($("predMsg"), false, "Vali edasipääseja.");
+        const winnerBox = tbody.querySelector(`[data-winner-box="${mid}"]`);
+        if (winnerBox && !winnerBox.classList.contains("hide") && !pred_winner) return setMsg($("predMsg"), false, "Vali edasipääseja.");
         try{
           const resp = await call("predictions",{method:"POST", body: JSON.stringify({match_id: mid, pred_home: ph, pred_away: pa, pred_winner})});
           setMsg($("predMsg"), true, "Salvestatud.");
