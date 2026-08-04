@@ -3870,79 +3870,6 @@
 
 
   
-
-    /* MOBILE: Jooks-vaade sama lai ja üheveeruline nagu Ennustused-vaade */
-    @media (max-width:760px){
-      #running{
-        width:100% !important;
-        max-width:100% !important;
-        min-width:0 !important;
-        margin-top:8px !important;
-        box-sizing:border-box !important;
-        overflow-x:hidden !important;
-      }
-
-      #running .running-top,
-      #running .running-grid,
-      #running .running-card,
-      #running .running-runner-card,
-      #running .running-entry-card{
-        width:100% !important;
-        max-width:100% !important;
-        min-width:0 !important;
-        box-sizing:border-box !important;
-      }
-
-      #running .running-grid,
-      #running .running-cols3,
-      #running .running-cols2{
-        display:grid !important;
-        grid-template-columns:minmax(0,1fr) !important;
-        gap:14px !important;
-      }
-
-      #running .running-card{
-        padding:14px !important;
-        border-radius:22px !important;
-        overflow:hidden !important;
-      }
-
-      #running .running-form{
-        display:grid !important;
-        grid-template-columns:minmax(0,1fr) !important;
-        width:100% !important;
-        max-width:100% !important;
-      }
-
-      #running .running-form label,
-      #running .running-form input,
-      #running .running-form select,
-      #running .running-form textarea,
-      #running .running-form button{
-        width:100% !important;
-        max-width:100% !important;
-        min-width:0 !important;
-        box-sizing:border-box !important;
-      }
-
-      #running .running-runner-card,
-      #running .running-entry-card{
-        padding:13px !important;
-        border-radius:18px !important;
-        align-items:flex-start !important;
-      }
-
-      #running .running-runner-card > div:first-child,
-      #running .running-entry-card > div:first-child{
-        min-width:0 !important;
-        flex:1 1 auto !important;
-      }
-
-      #running .running-stats{
-        flex:0 0 auto !important;
-      }
-    }
-
     /* BEER COUNTER VIEW */
     .beer-view{
       --beer-line:rgba(255,255,255,.12);
@@ -5378,7 +5305,7 @@ function predictionWinnerHtml(row, pr, locked){
   const ph = Number(pr?.pred_home);
   const pa = Number(pr?.pred_away);
   const savedDraw = hasHome && hasAway && Number.isFinite(ph) && Number.isFinite(pa) && ph === pa;
-  const show = savedDraw || !!selected;
+  const show = savedDraw;
 
   return `
     <div class="winner-pick${show ? "" : " hide"}" data-winner-box="${row.id}" data-saved-winner="${selected}">
@@ -5410,8 +5337,7 @@ function updateWinnerVisibility(mid){
   const pa = Number(aRaw);
 
   const drawNow = hasHome && hasAway && Number.isFinite(ph) && Number.isFinite(pa) && ph === pa;
-  const hasSavedWinner = !!String(box.dataset.savedWinner || "").trim();
-  const show = drawNow || hasSavedWinner;
+  const show = drawNow;
 
   box.classList.toggle("hide", !show);
 
@@ -5878,10 +5804,11 @@ tbody.querySelectorAll(`input[name="winner_${mid}"]`).forEach(inp=>{
         const a = aInput.value;
         const ph = Number(h), pa = Number(a);
         if (!Number.isFinite(ph) || !Number.isFinite(pa)) return setMsg($("predMsg"), false, "Sisesta numbrid.");
-        const winnerInput = tbody.querySelector(`input[name="winner_${mid}"]:checked`);
-        const pred_winner = winnerInput ? winnerInput.value : null;
         const winnerBox = tbody.querySelector(`[data-winner-box="${mid}"]`);
-        if (winnerBox && !winnerBox.classList.contains("hide") && !pred_winner) return setMsg($("predMsg"), false, "Vali edasipääseja.");
+        const needsWinner = !!winnerBox && ph === pa;
+        const winnerInput = needsWinner ? tbody.querySelector(`input[name="winner_${mid}"]:checked`) : null;
+        const pred_winner = winnerInput ? winnerInput.value : null;
+        if (needsWinner && !pred_winner) return setMsg($("predMsg"), false, "Vali edasipääseja.");
         try{
           const resp = await call("predictions",{method:"POST", body: JSON.stringify({match_id: mid, pred_home: ph, pred_away: pa, pred_winner})});
           setMsg($("predMsg"), true, "Salvestatud.");

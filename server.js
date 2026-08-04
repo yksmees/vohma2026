@@ -68,7 +68,7 @@ function validateRequiredEnv() {
 }
 
 
-const SEED_MATCHES = [{"stage": "Group A", "match_no": 1, "kickoff_utc": "2026-06-11T19:00:00Z", "home": "Mexico", "away": "South Africa", "location": "Estadio Azteca, Mexico City"}, {"stage": "Group A", "match_no": 2, "kickoff_utc": "2026-06-12T02:00:00Z", "home": "South Korea", "away": "Czechia", "location": "Estadio Akron, Zapopan"}, {"stage": "Group B", "match_no": 3, "kickoff_utc": "2026-06-12T19:00:00Z", "home": "Canada", "away": "Bosnia and Herzegovina", "location": "BMO Field, Toronto"}, {"stage": "Group D", "match_no": 4, "kickoff_utc": "2026-06-13T01:00:00Z", "home": "United States", "away": "Paraguay", "location": "SoFi Stadium, Inglewood"}, {"stage": "Group C", "match_no": 5, "kickoff_utc": "2026-06-14T01:00:00Z", "home": "Haiti", "away": "Scotland", "location": "Gillette Stadium, Foxborough"}, {"stage": "Group D", "match_no": 6, "kickoff_utc": "2026-06-14T03:59:00Z", "home": "Australia", "away": "Türkiye", "location": "BC Place, Vancouver"}, {"stage": "Group C", "match_no": 7, "kickoff_utc": "2026-06-13T22:00:00Z", "home": "Brazil", "away": "Morocco", "location": "MetLife Stadium, East Rutherford"}, {"stage": "Group B", "match_no": 8, "kickoff_utc": "2026-06-13T19:00:00Z", "home": "Qatar", "away": "Switzerland", "location": "Levi's Stadium, Santa Clara"}, {"stage": "Group E", "match_no": 9, "kickoff_utc": "2026-06-14T23:00:00Z", "home": "Ivory Coast", "away": "Ecuador", "location": "Lincoln Financial Field, Philadelphia"}, {"stage": "Group E", "match_no": 10, "kickoff_utc": "2026-06-14T17:00:00Z", "home": "Germany", "away": "Curacao", "location": "NRG Stadium, Houston"}, {"stage": "Group F", "match_no": 11, "kickoff_utc": "2026-06-14T20:00:00Z", "home": "Netherlands", "away": "Japan", "location": "AT&T Stadium, Arlington"}, {"stage": "Group F", "match_no": 12, "kickoff_utc": "2026-06-15T02:00:00Z", "home": "Sweden", "away": "Tunisia", "location": "Estadio BBVA, Guadalupe"}, {"stage": "Group H", "match_no": 13, "kickoff_utc": "2026-06-15T22:00:00Z", "home": "Saudi Arabia", "away": "Uruguay", "location": "Hard Rock Stadium, Miami Gardens"}, {"stage": "Group H", "match_no": 14, "kickoff_utc": "2026-06-15T16:00:00Z", "home": "Spain", "away": "Cape Verde", "location": "Mercedes-Benz Stadium, Atlanta"}, {"stage": "Group G", "match_no": 15, "kickoff_utc": "2026-06-16T01:00:00Z", "home": "Iran", "away": "New Zealand", "location": "SoFi Stadium, Inglewood"}, {"stage": "Group G", "match_no": 16, "kickoff_utc": "2026-06-15T19:00:00Z", "home": "Belgium", "away": "Egypt", "location": "Lumen Field, Seattle"}, {"stage": "Group I", "match_no": 17, "kickoff_utc": "2026-06-16T19:00:00Z", "home": "France", "away": "Senegal", "location": "MetLife Stadium, East Rutherford"}, {"stage": "Group I", "match_no": 18, "kickoff_utc": "2026-06-16T22:00:00Z", "home": "Iraq", "away": "Norway", "location": "Gillette Stadium, Foxborough"}, {"stage": "Group J", "match_no": 19, "kickoff_utc": "2026-06-17T01:00:00Z", "home": "Argentina", "away": "Algeria", "location": "Arrowhead Stadium, Kansas City"}, {"stage": "Group J", "match_no": 20, "kickoff_utc": "2026-06-17T03:59:00Z", "home": "Austria", "away": "Jordan", "location": "Levi's Stadium, Santa Clara"}, {"stage": "Group L", "match_no": 21, "kickoff_utc": "2026-06-17T20:00:00Z", "home": "England", "away": "Croatia", "location": "AT&T Stadium, Arlington"}, {"stage": "Group L", "match_no": 22, "kickoff_utc": "2026-06-17T23:00:00Z", "home": "Ghana", "away": "Panama", "location": "BMO Field, Toronto"}, {"stage": "Group K", "match_no": 23, "kickoff_utc": "2026-06-17T17:00:00Z", "home": "Portugal", "away": "Congo DR", "location": "NRG Stadium, Houston"}, {"stage": "Group K", "match_no": 24, "kickoff_utc": "2026-06-18T02:00:00Z", "home": "Uzbekistan", "away": "Colombia", "location": "Estadio Azteca, Mexico City"}, {"stage": "Group A", "match_no": 25, "kickoff_utc": "2026-06-18T16:00:00Z", "home": "Czechia", "away": "South Africa", "location": "Mercedes-Benz Stadium, Atlanta"}, {"stage": "Group B", "match_no": 26, "kickoff_utc": "2026-06-18T19:00:00Z", "home": "Switzerland", "away": "Bosnia and Herzegovina", "location": "SoFi Stadium, Inglewood"}, {"stage": "Group B", "match_no": 27, "kickoff_utc": "2026-06-18T22:00:00Z", "home": "Canada", "away": "Qatar", "location": "BC Place, Vancouver"}, {"stage": "Group A", "match_no": 28, "kickoff_utc": "2026-06-19T01:00:00Z", "home": "Mexico", "away": "South Korea", "location": "Estadio Akron, Zapopan"}, {"stage": "Group C", "match_no": 29, "kickoff_utc": "2026-06-20T01:00:00Z", "home": "Brazil", "away": "Haiti", "location": "Lincoln Financial Field, Philadelphia"}, {"stage": "Group C", "match_no": 30, "kickoff_utc": "2026-06-19T22:00:00Z", "home": "Scotland", "away": "Morocco", "location": "Gillette Stadium, Foxborough"}, {"stage": "Group D", "match_no": 31, "kickoff_utc": "2026-06-20T03:59:00Z", "home": "Türkiye", "away": "Paraguay", "location": "Levi's Stadium, Santa Clara"}, {"stage": "Group D", "match_no": 32, "kickoff_utc": "2026-06-19T19:00:00Z", "home": "United States", "away": "Australia", "location": "Lumen Field, Seattle"}, {"stage": "Group E", "match_no": 33, "kickoff_utc": "2026-06-20T20:00:00Z", "home": "Germany", "away": "Ivory Coast", "location": "BMO Field, Toronto"}, {"stage": "Group E", "match_no": 34, "kickoff_utc": "2026-06-21T00:00:00Z", "home": "Ecuador", "away": "Curacao", "location": "Arrowhead Stadium, Kansas City"}, {"stage": "Group F", "match_no": 35, "kickoff_utc": "2026-06-20T17:00:00Z", "home": "Netherlands", "away": "Sweden", "location": "NRG Stadium, Houston"}, {"stage": "Group F", "match_no": 36, "kickoff_utc": "2026-06-21T03:59:00Z", "home": "Tunisia", "away": "Japan", "location": "Estadio BBVA, Guadalupe"}, {"stage": "Group H", "match_no": 37, "kickoff_utc": "2026-06-21T22:00:00Z", "home": "Uruguay", "away": "Cape Verde", "location": "Hard Rock Stadium, Miami Gardens"}, {"stage": "Group H", "match_no": 38, "kickoff_utc": "2026-06-21T16:00:00Z", "home": "Spain", "away": "Saudi Arabia", "location": "Mercedes-Benz Stadium, Atlanta"}, {"stage": "Group G", "match_no": 39, "kickoff_utc": "2026-06-21T19:00:00Z", "home": "Belgium", "away": "Iran", "location": "Sofi Stadium, Inglewood"}, {"stage": "Group G", "match_no": 40, "kickoff_utc": "2026-06-22T01:00:00Z", "home": "New Zealand", "away": "Egypt", "location": "BC Place, Vancouver"}, {"stage": "Group I", "match_no": 41, "kickoff_utc": "2026-06-23T00:00:00Z", "home": "Norway", "away": "Senegal", "location": "MetLife Stadium, East Rutherford"}, {"stage": "Group I", "match_no": 42, "kickoff_utc": "2026-06-22T21:00:00Z", "home": "France", "away": "Iraq", "location": "Lincoln Financial Field, Philadelphia"}, {"stage": "Group J", "match_no": 43, "kickoff_utc": "2026-06-22T17:00:00Z", "home": "Argentina", "away": "Austria", "location": "AT&T Stadium, Arlington"}, {"stage": "Group J", "match_no": 44, "kickoff_utc": "2026-06-23T03:00:00Z", "home": "Jordan", "away": "Algeria", "location": "Levi's Stadium, Santa Clara"}, {"stage": "Group L", "match_no": 45, "kickoff_utc": "2026-06-23T20:00:00Z", "home": "England", "away": "Ghana", "location": "Gillette Stadium, Foxborough"}, {"stage": "Group L", "match_no": 46, "kickoff_utc": "2026-06-23T23:00:00Z", "home": "Panama", "away": "Croatia", "location": "BMO Field, Toronto"}, {"stage": "Group K", "match_no": 47, "kickoff_utc": "2026-06-23T17:00:00Z", "home": "Portugal", "away": "Uzbekistan", "location": "NRG Stadium, Houston"}, {"stage": "Group K", "match_no": 48, "kickoff_utc": "2026-06-24T02:00:00Z", "home": "Colombia", "away": "Congo DR", "location": "Estadio Akron, Zapopan"}, {"stage": "Group C", "match_no": 49, "kickoff_utc": "2026-06-24T22:00:00Z", "home": "Scotland", "away": "Brazil", "location": "Hard Rock Stadium, Miami Gardens"}, {"stage": "Group C", "match_no": 50, "kickoff_utc": "2026-06-24T22:00:00Z", "home": "Morocco", "away": "Haiti", "location": "Mercedes-Benz Stadium, Atlanta"}, {"stage": "Group B", "match_no": 51, "kickoff_utc": "2026-06-24T19:00:00Z", "home": "Switzerland", "away": "Canada", "location": "BC Place, Vancouver"}, {"stage": "Group B", "match_no": 52, "kickoff_utc": "2026-06-24T19:00:00Z", "home": "Bosnia and Herzegovina", "away": "Qatar", "location": "Lumen Field, Seattle"}, {"stage": "Group A", "match_no": 53, "kickoff_utc": "2026-06-25T01:00:00Z", "home": "Czechia", "away": "Mexico", "location": "Estadio Azteca, Mexico City"}, {"stage": "Group A", "match_no": 54, "kickoff_utc": "2026-06-25T01:00:00Z", "home": "South Africa", "away": "South Korea", "location": "Estadio BBVA, Guadalupe"}, {"stage": "Group E", "match_no": 55, "kickoff_utc": "2026-06-25T20:00:00Z", "home": "Curacao", "away": "Ivory Coast", "location": "Lincoln Financial Field, Philadelphia"}, {"stage": "Group E", "match_no": 56, "kickoff_utc": "2026-06-25T20:00:00Z", "home": "Ecuador", "away": "Germany", "location": "MetLife Stadium, East Rutherford"}, {"stage": "Group F", "match_no": 57, "kickoff_utc": "2026-06-25T23:00:00Z", "home": "Japan", "away": "Sweden", "location": "AT&T Stadium, Arlington"}, {"stage": "Group F", "match_no": 58, "kickoff_utc": "2026-06-25T23:00:00Z", "home": "Tunisia", "away": "Netherlands", "location": "Arrowhead Stadium, Kansas City"}, {"stage": "Group D", "match_no": 59, "kickoff_utc": "2026-06-26T02:00:00Z", "home": "Türkiye", "away": "United States", "location": "SoFi Stadium, Inglewood"}, {"stage": "Group D", "match_no": 60, "kickoff_utc": "2026-06-26T02:00:00Z", "home": "Paraguay", "away": "Australia", "location": "Levi's Stadium, Santa Clara"}, {"stage": "Group I", "match_no": 61, "kickoff_utc": "2026-06-26T19:00:00Z", "home": "Norway", "away": "France", "location": "Gillette Stadium, Foxborough"}, {"stage": "Group I", "match_no": 62, "kickoff_utc": "2026-06-26T19:00:00Z", "home": "Senegal", "away": "Iraq", "location": "BMO Field, Toronto"}, {"stage": "Group G", "match_no": 63, "kickoff_utc": "2026-06-27T03:00:00Z", "home": "Egypt", "away": "Iran", "location": "Lumen Field, Seattle"}, {"stage": "Group G", "match_no": 64, "kickoff_utc": "2026-06-27T03:00:00Z", "home": "New Zealand", "away": "Belgium", "location": "BC Place, Vancouver"}, {"stage": "Group H", "match_no": 65, "kickoff_utc": "2026-06-27T00:00:00Z", "home": "Cape Verde", "away": "Saudi Arabia", "location": "NRG Stadium, Houston"}, {"stage": "Group H", "match_no": 66, "kickoff_utc": "2026-06-27T00:00:00Z", "home": "Uruguay", "away": "Spain", "location": "Estadio Akron, Zapopan"}, {"stage": "Group L", "match_no": 67, "kickoff_utc": "2026-06-27T21:00:00Z", "home": "Panama", "away": "England", "location": "MetLife Stadium, East Rutherford"}, {"stage": "Group L", "match_no": 68, "kickoff_utc": "2026-06-27T21:00:00Z", "home": "Croatia", "away": "Ghana", "location": "Lincoln Financial Field, Philadelphia"}, {"stage": "Group J", "match_no": 69, "kickoff_utc": "2026-06-28T02:00:00Z", "home": "Algeria", "away": "Austria", "location": "Arrowhead Stadium, Kansas City"}, {"stage": "Group J", "match_no": 70, "kickoff_utc": "2026-06-28T02:00:00Z", "home": "Jordan", "away": "Argentina", "location": "AT&T Stadium, Arlington"}, {"stage": "Group K", "match_no": 71, "kickoff_utc": "2026-06-27T23:30:00Z", "home": "Colombia", "away": "Portugal", "location": "Hard Rock Stadium, Miami Gardens"}, {"stage": "Group K", "match_no": 72, "kickoff_utc": "2026-06-27T23:30:00Z", "home": "Congo DR", "away": "Uzbekistan", "location": "Mercedes-Benz Stadium, Atlanta"}, {"stage": "Round of 32", "match_no": 73, "kickoff_utc": "2026-06-28T19:00:00Z", "home": "2A", "away": "2B", "location": "Sofi Stadium, Inglewood"}, {"stage": "Round of 32", "match_no": 74, "kickoff_utc": "2026-06-29T20:30:00Z", "home": "1E", "away": "3ABCDF", "location": "Gillette Stadium, Foxborough"}, {"stage": "Round of 32", "match_no": 75, "kickoff_utc": "2026-06-30T01:00:00Z", "home": "1F", "away": "2C", "location": "Estadio BBVA, Guadalupe"}, {"stage": "Round of 32", "match_no": 76, "kickoff_utc": "2026-06-29T17:00:00Z", "home": "1C", "away": "2F", "location": "NRG Stadium, Houston"}, {"stage": "Round of 32", "match_no": 77, "kickoff_utc": "2026-06-30T21:00:00Z", "home": "1I", "away": "3CDFGH", "location": "MetLife Stadium, East Rutherford"}, {"stage": "Round of 32", "match_no": 78, "kickoff_utc": "2026-06-30T17:00:00Z", "home": "2E", "away": "2I", "location": "AT&T Stadium, Arlington"}, {"stage": "Round of 32", "match_no": 79, "kickoff_utc": "2026-07-01T01:00:00Z", "home": "1A", "away": "3CEFHI", "location": "Estadio Azteca, Mexico City"}, {"stage": "Round of 32", "match_no": 80, "kickoff_utc": "2026-07-01T16:00:00Z", "home": "1L", "away": "3EHIJK", "location": "Mercedes-Benz Stadium, Atlanta"}, {"stage": "Round of 32", "match_no": 81, "kickoff_utc": "2026-07-02T00:00:00Z", "home": "1D", "away": "3BEFIJ", "location": "Levi's Stadium, Santa Clara"}, {"stage": "Round of 32", "match_no": 82, "kickoff_utc": "2026-07-01T20:00:00Z", "home": "1G", "away": "3AEHIJ", "location": "Lumen Field, Seattle"}, {"stage": "Round of 32", "match_no": 83, "kickoff_utc": "2026-07-02T23:00:00Z", "home": "2K", "away": "2L", "location": "BMO Field, Toronto"}, {"stage": "Round of 32", "match_no": 84, "kickoff_utc": "2026-07-02T19:00:00Z", "home": "1H", "away": "2J", "location": "Sofi Stadium, Inglewood"}, {"stage": "Round of 32", "match_no": 85, "kickoff_utc": "2026-07-03T03:00:00Z", "home": "2B", "away": "3EFGIJ", "location": "BC Place, Vancouver"}, {"stage": "Round of 32", "match_no": 86, "kickoff_utc": "2026-07-03T22:00:00Z", "home": "1J", "away": "2H", "location": "Hard Rock Stadium, Miami Gardens"}, {"stage": "Round of 32", "match_no": 87, "kickoff_utc": "2026-07-04T01:30:00Z", "home": "1K", "away": "3DEIJL", "location": "Arrowhead Stadium, Kansas City"}, {"stage": "Round of 32", "match_no": 88, "kickoff_utc": "2026-07-03T18:00:00Z", "home": "2D", "away": "2G", "location": "AT&T Stadium, Arlington"}, {"stage": "Round of 16", "match_no": 89, "kickoff_utc": "2026-07-04T21:00:00Z", "home": "W74", "away": "W77", "location": "Lincoln Financial Field, Philadelphia"}, {"stage": "Round of 16", "match_no": 90, "kickoff_utc": "2026-07-04T17:00:00Z", "home": "W73", "away": "W75", "location": "NRG Stadium, Houston"}, {"stage": "Round of 16", "match_no": 91, "kickoff_utc": "2026-07-05T20:00:00Z", "home": "W76", "away": "W78", "location": "MetLife Stadium, East Rutherford"}, {"stage": "Round of 16", "match_no": 92, "kickoff_utc": "2026-07-06T00:00:00Z", "home": "W79", "away": "W80", "location": "Estadio Azteca, Mexico City"}, {"stage": "Round of 16", "match_no": 93, "kickoff_utc": "2026-07-06T19:00:00Z", "home": "W83", "away": "W84", "location": "AT&T Stadium, Arlington"}, {"stage": "Round of 16", "match_no": 94, "kickoff_utc": "2026-07-07T00:00:00Z", "home": "W81", "away": "W82", "location": "Lumen Field, Seattle"}, {"stage": "Round of 16", "match_no": 95, "kickoff_utc": "2026-07-07T16:00:00Z", "home": "W86", "away": "W88", "location": "Mercedes-Benz Stadium, Atlanta"}, {"stage": "Round of 16", "match_no": 96, "kickoff_utc": "2026-07-07T20:00:00Z", "home": "W85", "away": "W87", "location": "BC Place, Vancouver"}, {"stage": "Quarterfinals", "match_no": 97, "kickoff_utc": "2026-07-09T20:00:00Z", "home": "W89", "away": "W90", "location": "Gillette Stadium, Foxborough"}, {"stage": "Quarterfinals", "match_no": 98, "kickoff_utc": "2026-07-10T19:00:00Z", "home": "W93", "away": "W94", "location": "Sofi Stadium, Inglewood"}, {"stage": "Quarterfinals", "match_no": 99, "kickoff_utc": "2026-07-11T21:00:00Z", "home": "W91", "away": "W92", "location": "Hard Rock Stadium, Miami Gardens"}, {"stage": "Quarterfinals", "match_no": 100, "kickoff_utc": "2026-07-12T01:00:00Z", "home": "W95", "away": "W96", "location": "Arrowhead Stadium, Kansas City"}, {"stage": "Semifinals", "match_no": 101, "kickoff_utc": "2026-07-14T19:00:00Z", "home": "W97", "away": "W98", "location": "AT&T Stadium, Arlington"}, {"stage": "Semifinals", "match_no": 102, "kickoff_utc": "2026-07-15T19:00:00Z", "home": "W99", "away": "W100", "location": "Mercedes-Benz Stadium, Atlanta"}, {"stage": "Third Place", "match_no": 103, "kickoff_utc": "2026-07-18T21:00:00Z", "home": "L101", "away": "L102", "location": "Hard Rock Stadium, Miami Gardens"}, {"stage": "Final", "match_no": 104, "kickoff_utc": "2026-07-19T19:00:00Z", "home": "W101", "away": "W102", "location": "MetLife Stadium, East Rutherford"}];
+const SEED_MATCHES = [{"stage": "Group A", "match_no": 1, "kickoff_utc": "2026-06-11T19:00:00Z", "home": "Mexico", "away": "South Africa", "location": "Estadio Azteca, Mexico City"}, {"stage": "Group A", "match_no": 2, "kickoff_utc": "2026-06-12T02:00:00Z", "home": "South Korea", "away": "Czechia", "location": "Estadio Akron, Zapopan"}, {"stage": "Group B", "match_no": 3, "kickoff_utc": "2026-06-12T19:00:00Z", "home": "Canada", "away": "Bosnia and Herzegovina", "location": "BMO Field, Toronto"}, {"stage": "Group D", "match_no": 4, "kickoff_utc": "2026-06-13T01:00:00Z", "home": "United States", "away": "Paraguay", "location": "SoFi Stadium, Inglewood"}, {"stage": "Group C", "match_no": 5, "kickoff_utc": "2026-06-14T01:00:00Z", "home": "Haiti", "away": "Scotland", "location": "Gillette Stadium, Foxborough"}, {"stage": "Group D", "match_no": 6, "kickoff_utc": "2026-06-14T03:59:00Z", "home": "Australia", "away": "Türkiye", "location": "BC Place, Vancouver"}, {"stage": "Group C", "match_no": 7, "kickoff_utc": "2026-06-13T22:00:00Z", "home": "Brazil", "away": "Morocco", "location": "MetLife Stadium, East Rutherford"}, {"stage": "Group B", "match_no": 8, "kickoff_utc": "2026-06-13T19:00:00Z", "home": "Qatar", "away": "Switzerland", "location": "Levi's Stadium, Santa Clara"}, {"stage": "Group E", "match_no": 9, "kickoff_utc": "2026-06-14T23:00:00Z", "home": "Ivory Coast", "away": "Ecuador", "location": "Lincoln Financial Field, Philadelphia"}, {"stage": "Group E", "match_no": 10, "kickoff_utc": "2026-06-14T17:00:00Z", "home": "Germany", "away": "Curacao", "location": "NRG Stadium, Houston"}, {"stage": "Group F", "match_no": 11, "kickoff_utc": "2026-06-14T20:00:00Z", "home": "Netherlands", "away": "Japan", "location": "AT&T Stadium, Arlington"}, {"stage": "Group F", "match_no": 12, "kickoff_utc": "2026-06-15T02:00:00Z", "home": "Sweden", "away": "Tunisia", "location": "Estadio BBVA, Guadalupe"}, {"stage": "Group H", "match_no": 13, "kickoff_utc": "2026-06-15T22:00:00Z", "home": "Saudi Arabia", "away": "Uruguay", "location": "Hard Rock Stadium, Miami Gardens"}, {"stage": "Group H", "match_no": 14, "kickoff_utc": "2026-06-15T16:00:00Z", "home": "Spain", "away": "Cape Verde", "location": "Mercedes-Benz Stadium, Atlanta"}, {"stage": "Group G", "match_no": 15, "kickoff_utc": "2026-06-16T01:00:00Z", "home": "Iran", "away": "New Zealand", "location": "SoFi Stadium, Inglewood"}, {"stage": "Group G", "match_no": 16, "kickoff_utc": "2026-06-15T19:00:00Z", "home": "Belgium", "away": "Egypt", "location": "Lumen Field, Seattle"}, {"stage": "Group I", "match_no": 17, "kickoff_utc": "2026-06-16T19:00:00Z", "home": "France", "away": "Senegal", "location": "MetLife Stadium, East Rutherford"}, {"stage": "Group I", "match_no": 18, "kickoff_utc": "2026-06-16T22:00:00Z", "home": "Iraq", "away": "Norway", "location": "Gillette Stadium, Foxborough"}, {"stage": "Group J", "match_no": 19, "kickoff_utc": "2026-06-17T01:00:00Z", "home": "Argentina", "away": "Algeria", "location": "Arrowhead Stadium, Kansas City"}, {"stage": "Group J", "match_no": 20, "kickoff_utc": "2026-06-17T03:59:00Z", "home": "Austria", "away": "Jordan", "location": "Levi's Stadium, Santa Clara"}, {"stage": "Group L", "match_no": 21, "kickoff_utc": "2026-06-17T20:00:00Z", "home": "England", "away": "Croatia", "location": "AT&T Stadium, Arlington"}, {"stage": "Group L", "match_no": 22, "kickoff_utc": "2026-06-17T23:00:00Z", "home": "Ghana", "away": "Panama", "location": "BMO Field, Toronto"}, {"stage": "Group K", "match_no": 23, "kickoff_utc": "2026-06-17T17:00:00Z", "home": "Portugal", "away": "Congo DR", "location": "NRG Stadium, Houston"}, {"stage": "Group K", "match_no": 24, "kickoff_utc": "2026-06-18T02:00:00Z", "home": "Uzbekistan", "away": "Colombia", "location": "Estadio Azteca, Mexico City"}, {"stage": "Group A", "match_no": 25, "kickoff_utc": "2026-06-18T16:00:00Z", "home": "Czechia", "away": "South Africa", "location": "Mercedes-Benz Stadium, Atlanta"}, {"stage": "Group B", "match_no": 26, "kickoff_utc": "2026-06-18T19:00:00Z", "home": "Switzerland", "away": "Bosnia and Herzegovina", "location": "SoFi Stadium, Inglewood"}, {"stage": "Group B", "match_no": 27, "kickoff_utc": "2026-06-18T22:00:00Z", "home": "Canada", "away": "Qatar", "location": "BC Place, Vancouver"}, {"stage": "Group A", "match_no": 28, "kickoff_utc": "2026-06-19T01:00:00Z", "home": "Mexico", "away": "South Korea", "location": "Estadio Akron, Zapopan"}, {"stage": "Group C", "match_no": 29, "kickoff_utc": "2026-06-20T01:00:00Z", "home": "Brazil", "away": "Haiti", "location": "Lincoln Financial Field, Philadelphia"}, {"stage": "Group C", "match_no": 30, "kickoff_utc": "2026-06-19T22:00:00Z", "home": "Scotland", "away": "Morocco", "location": "Gillette Stadium, Foxborough"}, {"stage": "Group D", "match_no": 31, "kickoff_utc": "2026-06-20T03:59:00Z", "home": "Türkiye", "away": "Paraguay", "location": "Levi's Stadium, Santa Clara"}, {"stage": "Group D", "match_no": 32, "kickoff_utc": "2026-06-19T19:00:00Z", "home": "United States", "away": "Australia", "location": "Lumen Field, Seattle"}, {"stage": "Group E", "match_no": 33, "kickoff_utc": "2026-06-20T20:00:00Z", "home": "Germany", "away": "Ivory Coast", "location": "BMO Field, Toronto"}, {"stage": "Group E", "match_no": 34, "kickoff_utc": "2026-06-21T00:00:00Z", "home": "Ecuador", "away": "Curacao", "location": "Arrowhead Stadium, Kansas City"}, {"stage": "Group F", "match_no": 35, "kickoff_utc": "2026-06-20T17:00:00Z", "home": "Netherlands", "away": "Sweden", "location": "NRG Stadium, Houston"}, {"stage": "Group F", "match_no": 36, "kickoff_utc": "2026-06-21T03:59:00Z", "home": "Tunisia", "away": "Japan", "location": "Estadio BBVA, Guadalupe"}, {"stage": "Group H", "match_no": 37, "kickoff_utc": "2026-06-21T22:00:00Z", "home": "Uruguay", "away": "Cape Verde", "location": "Hard Rock Stadium, Miami Gardens"}, {"stage": "Group H", "match_no": 38, "kickoff_utc": "2026-06-21T16:00:00Z", "home": "Spain", "away": "Saudi Arabia", "location": "Mercedes-Benz Stadium, Atlanta"}, {"stage": "Group G", "match_no": 39, "kickoff_utc": "2026-06-21T19:00:00Z", "home": "Belgium", "away": "Iran", "location": "Sofi Stadium, Inglewood"}, {"stage": "Group G", "match_no": 40, "kickoff_utc": "2026-06-22T01:00:00Z", "home": "New Zealand", "away": "Egypt", "location": "BC Place, Vancouver"}, {"stage": "Group I", "match_no": 41, "kickoff_utc": "2026-06-23T00:00:00Z", "home": "Norway", "away": "Senegal", "location": "MetLife Stadium, East Rutherford"}, {"stage": "Group I", "match_no": 42, "kickoff_utc": "2026-06-22T21:00:00Z", "home": "France", "away": "Iraq", "location": "Lincoln Financial Field, Philadelphia"}, {"stage": "Group J", "match_no": 43, "kickoff_utc": "2026-06-22T17:00:00Z", "home": "Argentina", "away": "Austria", "location": "AT&T Stadium, Arlington"}, {"stage": "Group J", "match_no": 44, "kickoff_utc": "2026-06-23T03:00:00Z", "home": "Jordan", "away": "Algeria", "location": "Levi's Stadium, Santa Clara"}, {"stage": "Group L", "match_no": 45, "kickoff_utc": "2026-06-23T20:00:00Z", "home": "England", "away": "Ghana", "location": "Gillette Stadium, Foxborough"}, {"stage": "Group L", "match_no": 46, "kickoff_utc": "2026-06-23T23:00:00Z", "home": "Panama", "away": "Croatia", "location": "BMO Field, Toronto"}, {"stage": "Group K", "match_no": 47, "kickoff_utc": "2026-06-23T17:00:00Z", "home": "Portugal", "away": "Uzbekistan", "location": "NRG Stadium, Houston"}, {"stage": "Group K", "match_no": 48, "kickoff_utc": "2026-06-24T02:00:00Z", "home": "Colombia", "away": "Congo DR", "location": "Estadio Akron, Zapopan"}, {"stage": "Group C", "match_no": 49, "kickoff_utc": "2026-06-24T22:00:00Z", "home": "Scotland", "away": "Brazil", "location": "Hard Rock Stadium, Miami Gardens"}, {"stage": "Group C", "match_no": 50, "kickoff_utc": "2026-06-24T22:00:00Z", "home": "Morocco", "away": "Haiti", "location": "Mercedes-Benz Stadium, Atlanta"}, {"stage": "Group B", "match_no": 51, "kickoff_utc": "2026-06-24T19:00:00Z", "home": "Switzerland", "away": "Canada", "location": "BC Place, Vancouver"}, {"stage": "Group B", "match_no": 52, "kickoff_utc": "2026-06-24T19:00:00Z", "home": "Bosnia and Herzegovina", "away": "Qatar", "location": "Lumen Field, Seattle"}, {"stage": "Group A", "match_no": 53, "kickoff_utc": "2026-06-25T01:00:00Z", "home": "Czechia", "away": "Mexico", "location": "Estadio Azteca, Mexico City"}, {"stage": "Group A", "match_no": 54, "kickoff_utc": "2026-06-25T01:00:00Z", "home": "South Africa", "away": "South Korea", "location": "Estadio BBVA, Guadalupe"}, {"stage": "Group E", "match_no": 55, "kickoff_utc": "2026-06-25T20:00:00Z", "home": "Curacao", "away": "Ivory Coast", "location": "Lincoln Financial Field, Philadelphia"}, {"stage": "Group E", "match_no": 56, "kickoff_utc": "2026-06-25T20:00:00Z", "home": "Ecuador", "away": "Germany", "location": "MetLife Stadium, East Rutherford"}, {"stage": "Group F", "match_no": 57, "kickoff_utc": "2026-06-25T23:00:00Z", "home": "Japan", "away": "Sweden", "location": "AT&T Stadium, Arlington"}, {"stage": "Group F", "match_no": 58, "kickoff_utc": "2026-06-25T23:00:00Z", "home": "Tunisia", "away": "Netherlands", "location": "Arrowhead Stadium, Kansas City"}, {"stage": "Group D", "match_no": 59, "kickoff_utc": "2026-06-26T02:00:00Z", "home": "Türkiye", "away": "United States", "location": "SoFi Stadium, Inglewood"}, {"stage": "Group D", "match_no": 60, "kickoff_utc": "2026-06-26T02:00:00Z", "home": "Paraguay", "away": "Australia", "location": "Levi's Stadium, Santa Clara"}, {"stage": "Group I", "match_no": 61, "kickoff_utc": "2026-06-26T19:00:00Z", "home": "Norway", "away": "France", "location": "Gillette Stadium, Foxborough"}, {"stage": "Group I", "match_no": 62, "kickoff_utc": "2026-06-26T19:00:00Z", "home": "Senegal", "away": "Iraq", "location": "BMO Field, Toronto"}, {"stage": "Group G", "match_no": 63, "kickoff_utc": "2026-06-27T03:00:00Z", "home": "Egypt", "away": "Iran", "location": "Lumen Field, Seattle"}, {"stage": "Group G", "match_no": 64, "kickoff_utc": "2026-06-27T03:00:00Z", "home": "New Zealand", "away": "Belgium", "location": "BC Place, Vancouver"}, {"stage": "Group H", "match_no": 65, "kickoff_utc": "2026-06-27T00:00:00Z", "home": "Cape Verde", "away": "Saudi Arabia", "location": "NRG Stadium, Houston"}, {"stage": "Group H", "match_no": 66, "kickoff_utc": "2026-06-27T00:00:00Z", "home": "Uruguay", "away": "Spain", "location": "Estadio Akron, Zapopan"}, {"stage": "Group L", "match_no": 67, "kickoff_utc": "2026-06-27T21:00:00Z", "home": "Panama", "away": "England", "location": "MetLife Stadium, East Rutherford"}, {"stage": "Group L", "match_no": 68, "kickoff_utc": "2026-06-27T21:00:00Z", "home": "Croatia", "away": "Ghana", "location": "Lincoln Financial Field, Philadelphia"}, {"stage": "Group J", "match_no": 69, "kickoff_utc": "2026-06-28T02:00:00Z", "home": "Algeria", "away": "Austria", "location": "Arrowhead Stadium, Kansas City"}, {"stage": "Group J", "match_no": 70, "kickoff_utc": "2026-06-28T02:00:00Z", "home": "Jordan", "away": "Argentina", "location": "AT&T Stadium, Arlington"}, {"stage": "Group K", "match_no": 71, "kickoff_utc": "2026-06-27T23:30:00Z", "home": "Colombia", "away": "Portugal", "location": "Hard Rock Stadium, Miami Gardens"}, {"stage": "Group K", "match_no": 72, "kickoff_utc": "2026-06-27T23:30:00Z", "home": "Congo DR", "away": "Uzbekistan", "location": "Mercedes-Benz Stadium, Atlanta"}, {"stage": "Round of 32", "match_no": 73, "kickoff_utc": "2026-06-28T19:00:00Z", "home": "2A", "away": "2B", "location": "Sofi Stadium, Inglewood"}, {"stage": "Round of 32", "match_no": 74, "kickoff_utc": "2026-06-29T20:30:00Z", "home": "1E", "away": "3ABCDF", "location": "Gillette Stadium, Foxborough"}, {"stage": "Round of 32", "match_no": 75, "kickoff_utc": "2026-06-30T01:00:00Z", "home": "1F", "away": "2C", "location": "Estadio BBVA, Guadalupe"}, {"stage": "Round of 32", "match_no": 76, "kickoff_utc": "2026-06-29T17:00:00Z", "home": "1C", "away": "2F", "location": "NRG Stadium, Houston"}, {"stage": "Round of 32", "match_no": 77, "kickoff_utc": "2026-06-30T21:00:00Z", "home": "1I", "away": "3CDFGH", "location": "MetLife Stadium, East Rutherford"}, {"stage": "Round of 32", "match_no": 78, "kickoff_utc": "2026-06-30T17:00:00Z", "home": "2E", "away": "2I", "location": "AT&T Stadium, Arlington"}, {"stage": "Round of 32", "match_no": 79, "kickoff_utc": "2026-07-01T01:00:00Z", "home": "1A", "away": "3CEFHI", "location": "Estadio Azteca, Mexico City"}, {"stage": "Round of 32", "match_no": 80, "kickoff_utc": "2026-07-01T16:00:00Z", "home": "1L", "away": "3EHIJK", "location": "Mercedes-Benz Stadium, Atlanta"}, {"stage": "Round of 32", "match_no": 81, "kickoff_utc": "2026-07-02T00:00:00Z", "home": "1D", "away": "3BEFIJ", "location": "Levi's Stadium, Santa Clara"}, {"stage": "Round of 32", "match_no": 82, "kickoff_utc": "2026-07-01T20:00:00Z", "home": "1G", "away": "3AEHIJ", "location": "Lumen Field, Seattle"}, {"stage": "Round of 32", "match_no": 83, "kickoff_utc": "2026-07-02T23:00:00Z", "home": "2K", "away": "2L", "location": "BMO Field, Toronto"}, {"stage": "Round of 32", "match_no": 84, "kickoff_utc": "2026-07-02T19:00:00Z", "home": "1H", "away": "2J", "location": "Sofi Stadium, Inglewood"}, {"stage": "Round of 32", "match_no": 85, "kickoff_utc": "2026-07-03T03:00:00Z", "home": "1B", "away": "3EFGIJ", "location": "BC Place, Vancouver"}, {"stage": "Round of 32", "match_no": 86, "kickoff_utc": "2026-07-03T22:00:00Z", "home": "1J", "away": "2H", "location": "Hard Rock Stadium, Miami Gardens"}, {"stage": "Round of 32", "match_no": 87, "kickoff_utc": "2026-07-04T01:30:00Z", "home": "1K", "away": "3DEIJL", "location": "Arrowhead Stadium, Kansas City"}, {"stage": "Round of 32", "match_no": 88, "kickoff_utc": "2026-07-03T18:00:00Z", "home": "2D", "away": "2G", "location": "AT&T Stadium, Arlington"}, {"stage": "Round of 16", "match_no": 89, "kickoff_utc": "2026-07-04T21:00:00Z", "home": "W74", "away": "W77", "location": "Lincoln Financial Field, Philadelphia"}, {"stage": "Round of 16", "match_no": 90, "kickoff_utc": "2026-07-04T17:00:00Z", "home": "W73", "away": "W75", "location": "NRG Stadium, Houston"}, {"stage": "Round of 16", "match_no": 91, "kickoff_utc": "2026-07-05T20:00:00Z", "home": "W76", "away": "W78", "location": "MetLife Stadium, East Rutherford"}, {"stage": "Round of 16", "match_no": 92, "kickoff_utc": "2026-07-06T00:00:00Z", "home": "W79", "away": "W80", "location": "Estadio Azteca, Mexico City"}, {"stage": "Round of 16", "match_no": 93, "kickoff_utc": "2026-07-06T19:00:00Z", "home": "W83", "away": "W84", "location": "AT&T Stadium, Arlington"}, {"stage": "Round of 16", "match_no": 94, "kickoff_utc": "2026-07-07T00:00:00Z", "home": "W81", "away": "W82", "location": "Lumen Field, Seattle"}, {"stage": "Round of 16", "match_no": 95, "kickoff_utc": "2026-07-07T16:00:00Z", "home": "W86", "away": "W88", "location": "Mercedes-Benz Stadium, Atlanta"}, {"stage": "Round of 16", "match_no": 96, "kickoff_utc": "2026-07-07T20:00:00Z", "home": "W85", "away": "W87", "location": "BC Place, Vancouver"}, {"stage": "Quarterfinals", "match_no": 97, "kickoff_utc": "2026-07-09T20:00:00Z", "home": "W89", "away": "W90", "location": "Gillette Stadium, Foxborough"}, {"stage": "Quarterfinals", "match_no": 98, "kickoff_utc": "2026-07-10T19:00:00Z", "home": "W93", "away": "W94", "location": "Sofi Stadium, Inglewood"}, {"stage": "Quarterfinals", "match_no": 99, "kickoff_utc": "2026-07-11T21:00:00Z", "home": "W91", "away": "W92", "location": "Hard Rock Stadium, Miami Gardens"}, {"stage": "Quarterfinals", "match_no": 100, "kickoff_utc": "2026-07-12T01:00:00Z", "home": "W95", "away": "W96", "location": "Arrowhead Stadium, Kansas City"}, {"stage": "Semifinals", "match_no": 101, "kickoff_utc": "2026-07-14T19:00:00Z", "home": "W97", "away": "W98", "location": "AT&T Stadium, Arlington"}, {"stage": "Semifinals", "match_no": 102, "kickoff_utc": "2026-07-15T19:00:00Z", "home": "W99", "away": "W100", "location": "Mercedes-Benz Stadium, Atlanta"}, {"stage": "Third Place", "match_no": 103, "kickoff_utc": "2026-07-18T21:00:00Z", "home": "L101", "away": "L102", "location": "Hard Rock Stadium, Miami Gardens"}, {"stage": "Final", "match_no": 104, "kickoff_utc": "2026-07-19T19:00:00Z", "home": "W101", "away": "W102", "location": "MetLife Stadium, East Rutherford"}];
 
 // Ametlikud ajaparandused, mida API-Football ei tohi tagasi valeks kirjutada.
 // Võti on MM mängunumber ja väärtus on UTC aeg.
@@ -544,6 +544,16 @@ function isGroupMatchForLeaderboard(match){
   return Number.isFinite(n) && n >= 1 && n <= 72;
 }
 
+function isFinishedGroupStageScoreLocked(match){
+  // Alagrupimängude tulemused ei tohi hilisemate API sync'idega enam muutuda.
+  // Kui parandust on vaja, teeb admin selle käsitsi tulemuse sisestusega.
+  const n = Number(match?.match_no);
+  if (!Number.isFinite(n) || n < 1 || n > 72) return false;
+  const h = Number(match?.final_home);
+  const a = Number(match?.final_away);
+  return !!match?.is_finished && Number.isFinite(h) && Number.isFinite(a);
+}
+
 function isPlayoffMatchForLeaderboard(match){
   const n = Number(match?.match_no);
   return Number.isFinite(n) && n >= 73 && n <= 104;
@@ -670,6 +680,111 @@ async function addRankMovementWithSnapshot(sb, leaderboardType, current){
       rank_direction: movement > 0 ? "up" : movement < 0 ? "down" : "same"
     };
   });
+}
+
+
+// FIFA ametliku scores-fixtures/match-centre põhjal lukustatud Round of 32 tegelikud paarid.
+// Neid kasutatakse ainult kuvamiseks ja play-off ridade home/away parandamiseks.
+// Punktiarvestuse 90 minuti loogika jääb endiselt final_home/final_away väljade peale.
+const OFFICIAL_R32_ACTUAL_FIXTURES = new Map([
+  [73, { home: "South Africa", away: "Canada" }],
+  [74, { home: "Germany", away: "Paraguay" }],
+  [75, { home: "Netherlands", away: "Morocco" }],
+  [76, { home: "Brazil", away: "Japan" }],
+  [77, { home: "France", away: "Sweden" }],
+  [78, { home: "Ivory Coast", away: "Norway" }],
+  [79, { home: "Mexico", away: "Ecuador" }],
+  [80, { home: "England", away: "Congo DR" }],
+  [81, { home: "United States", away: "Bosnia and Herzegovina" }],
+  [82, { home: "Belgium", away: "Senegal" }],
+  [83, { home: "Portugal", away: "Croatia" }],
+  [84, { home: "Spain", away: "Austria" }],
+  [85, { home: "Switzerland", away: "Algeria" }],
+  [86, { home: "Argentina", away: "Cape Verde" }],
+  [87, { home: "Colombia", away: "Ghana" }],
+  [88, { home: "Australia", away: "Egypt" }]
+]);
+
+function officialR32ActualFixtureForMatchNo(matchNo){
+  const no = Number(matchNo);
+  if (!Number.isFinite(no)) return null;
+  return OFFICIAL_R32_ACTUAL_FIXTURES.get(no) || null;
+}
+
+// Alagrupiturniir on lõppenud. Hoia ametlikud 90 minuti tulemused koodis eraldi
+// kaitsekihina, et hilisem API sync või vale fixture ei saaks edetabeli kuvamist rikkuda.
+// Seda kasutatakse ainult põhivõistluse #1-#72 kontrolliks ja usaldatud kuvamiseks.
+const OFFICIAL_GROUP_RESULTS = new Map([
+  [1, { home: 2, away: 0 }], [2, { home: 2, away: 1 }], [3, { home: 1, away: 1 }],
+  [4, { home: 4, away: 1 }], [5, { home: 0, away: 1 }], [6, { home: 2, away: 0 }],
+  [7, { home: 1, away: 1 }], [8, { home: 1, away: 1 }], [9, { home: 1, away: 0 }],
+  [10, { home: 7, away: 1 }], [11, { home: 2, away: 2 }], [12, { home: 5, away: 1 }],
+  [13, { home: 1, away: 1 }], [14, { home: 0, away: 0 }], [15, { home: 2, away: 2 }],
+  [16, { home: 1, away: 1 }], [17, { home: 3, away: 1 }], [18, { home: 1, away: 4 }],
+  [19, { home: 3, away: 0 }], [20, { home: 3, away: 1 }], [21, { home: 4, away: 2 }],
+  [22, { home: 1, away: 0 }], [23, { home: 1, away: 1 }], [24, { home: 1, away: 3 }],
+  [25, { home: 1, away: 1 }], [26, { home: 4, away: 1 }], [27, { home: 6, away: 0 }],
+  [28, { home: 1, away: 0 }], [29, { home: 3, away: 0 }], [30, { home: 0, away: 1 }],
+  [31, { home: 0, away: 1 }], [32, { home: 2, away: 0 }], [33, { home: 2, away: 1 }],
+  [34, { home: 0, away: 0 }], [35, { home: 5, away: 1 }], [36, { home: 0, away: 4 }],
+  [37, { home: 2, away: 2 }], [38, { home: 4, away: 0 }], [39, { home: 0, away: 0 }],
+  [40, { home: 1, away: 3 }], [41, { home: 3, away: 2 }], [42, { home: 3, away: 0 }],
+  [43, { home: 2, away: 0 }], [44, { home: 1, away: 2 }], [45, { home: 0, away: 0 }],
+  [46, { home: 0, away: 1 }], [47, { home: 5, away: 0 }], [48, { home: 1, away: 0 }],
+  [49, { home: 0, away: 3 }], [50, { home: 4, away: 2 }], [51, { home: 2, away: 1 }],
+  [52, { home: 3, away: 1 }], [53, { home: 0, away: 3 }], [54, { home: 1, away: 0 }],
+  [55, { home: 0, away: 2 }], [56, { home: 2, away: 1 }], [57, { home: 1, away: 1 }],
+  [58, { home: 1, away: 3 }], [59, { home: 3, away: 2 }], [60, { home: 0, away: 0 }],
+  [61, { home: 1, away: 4 }], [62, { home: 5, away: 0 }], [63, { home: 1, away: 1 }],
+  [64, { home: 1, away: 5 }], [65, { home: 0, away: 0 }], [66, { home: 0, away: 1 }],
+  [67, { home: 0, away: 2 }], [68, { home: 2, away: 1 }], [69, { home: 3, away: 3 }],
+  [70, { home: 1, away: 3 }], [71, { home: 0, away: 0 }], [72, { home: 3, away: 1 }]
+]);
+
+function officialGroupResultForMatchNo(matchNo){
+  const no = Number(matchNo);
+  if (!Number.isFinite(no)) return null;
+  return OFFICIAL_GROUP_RESULTS.get(no) || null;
+}
+
+function officialWinnerFromScore(home, away){
+  const h = Number(home);
+  const a = Number(away);
+  if (!Number.isFinite(h) || !Number.isFinite(a)) return null;
+  if (h > a) return "home";
+  if (h < a) return "away";
+  return null;
+}
+
+function applyOfficialGroupResultForTrustedDisplay(match){
+  const official = officialGroupResultForMatchNo(match?.match_no);
+  if (!official || !isMainWorldCupMatch(match)) return match;
+  return {
+    ...match,
+    final_home: official.home,
+    final_away: official.away,
+    winner: officialWinnerFromScore(official.home, official.away),
+    is_finished: true,
+    official_group_result_guard: true
+  };
+}
+
+function fixtureTeamsMatchExpectedPair(expected, fx){
+  if (!expected || !fx) return false;
+  return (
+    teamNamesMatch(expected.home, fx?.teams?.home?.name) &&
+    teamNamesMatch(expected.away, fx?.teams?.away?.name)
+  );
+}
+
+function fixtureTeamsMatchOfficialR32(matchNo, fx){
+  return fixtureTeamsMatchExpectedPair(officialR32ActualFixtureForMatchNo(matchNo), fx);
+}
+
+function applyOfficialR32ActualTeams(match){
+  const actual = officialR32ActualFixtureForMatchNo(match?.match_no);
+  if (!actual) return match;
+  return { ...match, home: actual.home, away: actual.away, official_r32_actual_fixture: true };
 }
 
 const API_FOOTBALL_BASE_URL = "https://v3.football.api-sports.io";
@@ -1178,6 +1293,10 @@ function sanitizeWorldCupMatchForDisplay(match){
   if (String(clean.home || "").trim() && !isExpectedWorldCupTeamName(clean.home)) clean.home = seed.home;
   if (String(clean.away || "").trim() && !isExpectedWorldCupTeamName(clean.away)) clean.away = seed.away;
 
+  // Lõppenud alagrupiturniiri avalikud vaated kasutavad kontrollitud ametlikke tulemusi.
+  // See kaitseb edetabelit ka siis, kui DB-s olev skoor on kunagi vale sync'i tõttu rikutud.
+  clean = applyOfficialGroupResultForTrustedDisplay(clean);
+
   const trustedKickoff = trustedKickoffUtcForLock(clean);
   if (trustedKickoff) clean.kickoff_utc = trustedKickoff;
 
@@ -1188,13 +1307,78 @@ function sanitizeWorldCupMatchForDisplay(match){
   return clean;
 }
 
+function stripUnsafeRepairedPlayoffResultForDisplay(original, repaired){
+  // Kui play-off rea tiimid tuli avaliku vaate jaoks seed/bracket loogika järgi ümber parandada,
+  // siis sama rea vana skoor võib pärineda valelt API fixture'ilt. Sellist skoori ei tohi
+  // teiste ennustuste vaates ega edetabeli kuvamisel kasutada. Sync kirjutab õige fixture'i
+  // järgi tulemuse uuesti peale.
+  if (!original || !repaired || !isMainWorldCupPlayoffMatch(repaired)) return repaired;
+  if (!matchHasUsableResult(repaired)) return repaired;
+  if (repaired.manual_result_override || original.manual_result_override) return repaired;
+
+  const originalHome = String(original.home || "").trim();
+  const originalAway = String(original.away || "").trim();
+  const repairedHome = String(repaired.home || "").trim();
+  const repairedAway = String(repaired.away || "").trim();
+
+  const homeChanged = originalHome && repairedHome && !teamNamesMatch(originalHome, repairedHome);
+  const awayChanged = originalAway && repairedAway && !teamNamesMatch(originalAway, repairedAway);
+
+  if (!homeChanged && !awayChanged) return repaired;
+
+  return {
+    ...repaired,
+    final_home: null,
+    final_away: null,
+    winner: null,
+    is_finished: false,
+    went_extra: false,
+    api_status_short: "",
+    unsafe_result_hidden: true
+  };
+}
+
 function sanitizeWorldCupMatchesForDisplay(matches){
-  // Kõigepealt puhastame rikutud tiiminimed tagasi seed tabeli kujule ja alles siis filtreerime.
-  // Lisaks kontrollime 1/8 finaalist alates päris bracketi eelmiste mängude võitjaid/kaotajaid.
-  // See väldib olukorda, kus halb API sync on jätnud #91 külge kaks päris nime ja fake skoori.
-  const cleaned = (matches || []).map(sanitizeWorldCupMatchForDisplay);
-  const byNo = new Map(cleaned.map(m => [Number(m.match_no), m]));
-  return cleaned.filter(m => isVisiblePredictionMatchInContext(m, byNo));
+  // Avalikud ennustusvaated ei tohi usaldada play-off ridade home/away väärtusi pimesi.
+  // Varem võis halb API vaste kirjutada play-off reale päris, aga vale alagrupimängu nimed
+  // näiteks Belgium - Egypt. Ennustused ise on seotud matches.id külge, seega kuvamiseks
+  // taastame play-off tiimid alati ametliku seed-slot/bracket loogika järgi.
+  const sourceById = new Map((matches || []).map(m => [m.id, m]));
+  const baseCleaned = (matches || []).map(sanitizeWorldCupMatchForDisplay);
+  const groupStandings = buildGroupStandingsFromMatches(baseCleaned);
+  const byNo = new Map();
+
+  const repairedSorted = baseCleaned
+    .slice()
+    .sort((a, b) => (Number(a?.match_no) || 0) - (Number(b?.match_no) || 0))
+    .map(match => {
+      const no = Number(match?.match_no);
+      const seed = seedMatchByNoMap().get(no);
+      let clean = { ...match };
+
+      if (seed && Number.isFinite(no) && no >= 73 && no <= 104) {
+        const officialActual = officialR32ActualFixtureForMatchNo(no);
+        if (officialActual) {
+          // Round of 32 tegelikud paarid tulevad ametlikust FIFA fixture'ist.
+          // Ära tuleta neid enam vigaseks muutunud grupitabelist, sest see tekitas nt #83 Congo DR-Croatia ja #85 Canada-Algeria.
+          clean.home = officialActual.home;
+          clean.away = officialActual.away;
+          clean.official_r32_actual_fixture = true;
+        } else {
+          clean.home = resolveSeededPlayoffSlotTeamName(seed.home, clean.home, byNo, groupStandings);
+          clean.away = resolveSeededPlayoffSlotTeamName(seed.away, clean.away, byNo, groupStandings);
+        }
+        clean = stripUnsafeRepairedPlayoffResultForDisplay(sourceById.get(clean.id), clean);
+      }
+
+      byNo.set(no, clean);
+      return clean;
+    });
+
+  const repairedById = new Map(repairedSorted.map(m => [m.id, m]));
+  const repaired = baseCleaned.map(m => repairedById.get(m.id) || m);
+
+  return repaired.filter(m => isVisiblePredictionMatchInContext(m, byNo));
 }
 
 function isApiRealTeamName(name){
@@ -1210,6 +1394,14 @@ function apiTeamPatchForMatch(match, fx){
   // Tiiminimede automaatne asendamine on vajalik ainult play-offis.
   // Ennustused on seotud matches.id külge, seega muudame ainult kodu/võõrsil nimevälju.
   if (!isPlayoffMatch(match)) return {};
+
+  const officialActual = officialR32ActualFixtureForMatchNo(match?.match_no);
+  if (officialActual) {
+    const patch = {};
+    if (!teamNamesMatch(match?.home, officialActual.home)) patch.home = officialActual.home;
+    if (!teamNamesMatch(match?.away, officialActual.away)) patch.away = officialActual.away;
+    if (Object.keys(patch).length) return patch;
+  }
 
   const no = Number(match?.match_no);
   if (Number.isFinite(no) && no >= 89 && no <= 104) {
@@ -1329,15 +1521,87 @@ function choosePlayoffFixtureByRoundOrder(dbMatch, fixtures){
   return null;
 }
 
+function isMainWorldCupPlayoffMatch(match){
+  const no = Number(match?.match_no);
+  return isMainWorldCupMatch(match) && Number.isFinite(no) && no >= 73 && no <= 104;
+}
+
+function playoffFixtureMatchesTrustedKickoff(dbMatch, fx, toleranceMinutes = 150){
+  if (!isMainWorldCupPlayoffMatch(dbMatch)) return false;
+
+  const expectedRaw = trustedKickoffUtcForLock(dbMatch);
+  const expected = expectedRaw ? new Date(expectedRaw).getTime() : null;
+  const actual = fixtureKickoffMs(fx);
+  if (!Number.isFinite(expected) || !Number.isFinite(actual)) return false;
+
+  const diffMin = Math.abs(expected - actual) / 60000;
+  if (diffMin > toleranceMinutes) return false;
+
+  const dbRound = playoffRoundKeyFromMatch(dbMatch);
+  const fxRound = playoffRoundKeyFromFixture(fx);
+  if (dbRound && fxRound && dbRound !== fxRound) return false;
+
+  return true;
+}
+
+function choosePlayoffFixtureByTrustedKickoff(dbMatch, fixtures){
+  if (!isMainWorldCupPlayoffMatch(dbMatch)) return null;
+
+  const expectedRaw = trustedKickoffUtcForLock(dbMatch);
+  const expected = expectedRaw ? new Date(expectedRaw).getTime() : null;
+  if (!Number.isFinite(expected)) return null;
+
+  const candidates = (fixtures || [])
+    .filter(fx => fixtureAllowedForMatch(dbMatch, fx))
+    .filter(fx => playoffFixtureMatchesTrustedKickoff(dbMatch, fx))
+    .map(fx => ({ fx, diff: Math.abs(expected - fixtureKickoffMs(fx)) }))
+    .sort((a, b) => {
+      if (a.diff !== b.diff) return a.diff - b.diff;
+      return Number(a.fx?.fixture?.id || 0) - Number(b.fx?.fixture?.id || 0);
+    });
+
+  return candidates[0]?.fx || null;
+}
+
 function chooseFixtureForMatch(dbMatch, fixtures){
   const hasPlaceholder = matchHasPlaceholderTeam(dbMatch);
   const needsRepair = matchNeedsWorldCupTeamRepair(dbMatch);
   const allowTeamFallback = hasPlaceholder || needsRepair;
 
+  if (isMainWorldCupPlayoffMatch(dbMatch)) {
+    const officialR32 = officialR32ActualFixtureForMatchNo(dbMatch?.match_no);
+    if (officialR32) {
+      // Round of 32 puhul ei piisa enam ainult kellaajast. Sama kuupäeva API vastuses võib olla
+      // mitu põhivõistluse mängu ja varem tekkisid valed paarid. Siin peab klappima nii
+      // ametlik match_no kellaaeg/ring kui ka mõlemad tiimid.
+      const expectedRaw = trustedKickoffUtcForLock(dbMatch);
+      const expected = expectedRaw ? new Date(expectedRaw).getTime() : null;
+      const strictCandidates = (fixtures || [])
+        .filter(fx => fixtureAllowedForMatch(dbMatch, fx))
+        .filter(fx => playoffFixtureMatchesTrustedKickoff(dbMatch, fx, 30))
+        .filter(fx => fixtureTeamsMatchExpectedPair(officialR32, fx))
+        .map(fx => ({ fx, diff: Math.abs((fixtureKickoffMs(fx) || 0) - (expected || 0)) }))
+        .sort((a, b) => a.diff - b.diff);
+      if (strictCandidates[0]?.fx) return strictCandidates[0].fx;
+
+      // Kui API-s pole ametlike tiimidega fixture'it, ära vali R32 mängule ainult aja põhjal
+      // mõnda muud mängu. Jätame pigem sobitamata kui kirjutame vale mängu ja valed punktid.
+      return null;
+    }
+
+    // Hilisemates play-off ringides valitakse vaste ametliku W/L seed-kellaaja järgi.
+    // Vana api_football_fixture_id võib olla jäänud alagrupimängust külge, seega seda ei
+    // tohi esimesena usaldada.
+    const trustedPlayoffFixture = choosePlayoffFixtureByTrustedKickoff(dbMatch, fixtures);
+    if (trustedPlayoffFixture) return trustedPlayoffFixture;
+  }
+
   if (dbMatch.api_football_fixture_id){
     const exact = fixtures.find(fx => Number(fx?.fixture?.id) === Number(dbMatch.api_football_fixture_id));
     // MM mängude puhul ei kasuta kunagi muu liiga fixture'it, isegi kui vana fixture_id on varem valesti salvestunud.
-    if (exact && fixtureAllowedForMatch(dbMatch, exact) && (allowTeamFallback || fixtureHasTeamNameOverlap(dbMatch, exact))) return exact;
+    // Play-offis peab vana fixture_id lisaks klappima ametliku seed-kella ja ringiga.
+    const exactAllowedByPlayoffTime = !isMainWorldCupPlayoffMatch(dbMatch) || playoffFixtureMatchesTrustedKickoff(dbMatch, exact);
+    if (exact && exactAllowedByPlayoffTime && fixtureAllowedForMatch(dbMatch, exact) && (allowTeamFallback || fixtureHasTeamNameOverlap(dbMatch, exact))) return exact;
   }
 
   let best = null;
@@ -1712,6 +1976,70 @@ function resolveGroupSlotTeamName(value, groupStandings){
   return null;
 }
 
+function groupStandingRankForTeam(team, groupStandings){
+  const raw = String(team || "").trim();
+  if (!raw) return null;
+
+  for (const [group, standing] of groupStandings.entries()) {
+    if (!standing?.complete) continue;
+    for (let i = 0; i < (standing.ranked || []).length; i += 1) {
+      const row = standing.ranked[i];
+      if (row?.team && teamNamesMatch(row.team, raw)) {
+        return { group, pos: i + 1, team: row.team };
+      }
+    }
+  }
+
+  return null;
+}
+
+function groupSlotAllowsCurrentTeam(slot, currentTeam, groupStandings){
+  const token = String(slot || "").trim().toUpperCase();
+  const team = String(currentTeam || "").trim();
+  if (!token || !team || isPlaceholderTeam(team)) return false;
+
+  const direct = token.match(/^([12])([A-L])$/);
+  if (direct) {
+    const pos = Number(direct[1]);
+    const group = direct[2];
+    const standing = groupStandings.get(group);
+    const expected = standing?.complete ? standing.ranked?.[pos - 1]?.team : null;
+    return !!expected && teamNamesMatch(expected, team);
+  }
+
+  const third = token.match(/^3([A-L]+)$/);
+  if (third) {
+    const allowed = new Set(third[1].split(""));
+    const rank = groupStandingRankForTeam(team, groupStandings);
+    if (!rank || rank.pos !== 3 || !allowed.has(rank.group)) return false;
+
+    // 3ABC... sloti tohib täita ainult turniiri tegeliku parima kolmanda koha tiimiga.
+    // See väldib olukorda, kus vale API vaste paneb play-off reale suvalise sama MM-i tiimi
+    // nagu näiteks alagrupimängu Belgium - Egypt.
+    return bestThirdPlaceGroups(groupStandings).some(item =>
+      item.group === rank.group && item.team && teamNamesMatch(item.team, team)
+    );
+  }
+
+  return false;
+}
+
+function resolveSeededPlayoffSlotTeamName(slot, currentTeam, byMatchNo, groupStandings){
+  const token = String(slot || "").trim();
+  if (!token) return String(currentTeam || "").trim();
+
+  const resolved = resolvePlaceholderTeamName(token, byMatchNo) || resolveGroupSlotTeamName(token, groupStandings);
+  if (resolved) return resolved;
+
+  // Kui andmebaasis on juba päris tiiminimi ja see sobib täpselt selle seed-slotiga,
+  // võib selle alles jätta. Kui ei sobi, läheme tagasi placeholderi peale ja avalik vaade peidab mängu.
+  if (groupSlotAllowsCurrentTeam(token, currentTeam, groupStandings)) {
+    return String(currentTeam || "").trim();
+  }
+
+  return token;
+}
+
 function resolveAnyPlayoffPlaceholderTeamName(value, byMatchNo, groupStandings){
   return resolvePlaceholderTeamName(value, byMatchNo) || resolveGroupSlotTeamName(value, groupStandings);
 }
@@ -1882,21 +2210,22 @@ async function updateDerivedPlayoffMatches(sb){
     const seed = seedMatchByNoMap().get(Number(match.match_no));
     const no = Number(match.match_no);
 
-    if (seed && no >= 89 && no <= 104) {
-      // Later knockout rounds must always be derived from the official local W/L bracket.
-      // Do not trust current real-looking names here, because a bad API sync can set #91 to Brazil - Morocco.
-      home = seed.home;
-      away = seed.away;
+    if (seed && no >= 73 && no <= 104) {
+      const officialActual = officialR32ActualFixtureForMatchNo(no);
+      if (officialActual) {
+        // Round of 32 tegelikud paarid on nüüd teada. Kirjutame need DB reale,
+        // mitte ei tuleta neid võimalikust rikutud grupitabelist.
+        home = officialActual.home;
+        away = officialActual.away;
+      } else {
+        // Hilisemad play-off read tuletame W/L bracketi põhjal.
+        home = resolveSeededPlayoffSlotTeamName(seed.home, home, byNo, groupStandings);
+        away = resolveSeededPlayoffSlotTeamName(seed.away, away, byNo, groupStandings);
+      }
     } else if (seed) {
       if (String(home || "").trim() && !isExpectedWorldCupTeamName(home)) home = seed.home;
       if (String(away || "").trim() && !isExpectedWorldCupTeamName(away)) away = seed.away;
     }
-
-    const resolvedHome = resolveAnyPlayoffPlaceholderTeamName(home, byNo, groupStandings);
-    const resolvedAway = resolveAnyPlayoffPlaceholderTeamName(away, byNo, groupStandings);
-
-    if (resolvedHome) home = resolvedHome;
-    if (resolvedAway) away = resolvedAway;
 
     // U17 testfinaal: võitjad poolfinaalidest -3 ja -2.
     if (Number(match.match_no) === -1) {
@@ -1924,6 +2253,8 @@ async function updateDerivedPlayoffMatches(sb){
       if (semi2?.winnerName) away = semi2.winnerName;
     }
 
+    byNo.set(Number(match.match_no), { ...match, home, away });
+
     if (home !== match.home || away !== match.away) {
       const upd = await sb
         .from("matches")
@@ -1943,8 +2274,11 @@ async function updateDerivedPlayoffMatches(sb){
 function shouldClearUnresolvedWorldCupResult(match, byNo = null){
   if (!isMainWorldCupMatch(match)) return false;
 
-  // Tulevase mängu küljes olev skoor/tulemus on alati varasema vale sync'i jääk,
-  // välja arvatud juhul, kui admin on tulemuse käsitsi override'inud.
+  // Admini käsitsi sisestatud tulemust ei puhastata automaatse cleanupiga.
+  // Kui käsitsi tulemus on vale, parandab admin selle eraldi käsitsi.
+  if (truthyDbBool(match?.manual_result_override)) return false;
+
+  // Tulevase mängu küljes olev skoor/tulemus on alati varasema vale sync'i jääk.
   if (isPrematureWorldCupResult(match)) return true;
 
   const sanitized = sanitizeWorldCupMatchForDisplay(match);
@@ -2003,13 +2337,61 @@ async function clearUnresolvedWorldCupResults(sb, matches = null){
   };
 }
 
+async function fetchAllRowsForIntegrity(queryFactory, pageSize = 1000){
+  const rows = [];
+  let from = 0;
+
+  while (true) {
+    const to = from + pageSize - 1;
+    const res = await queryFactory().range(from, to);
+    if (res.error) return { data: rows, error: res.error };
+
+    const chunk = res.data || [];
+    rows.push(...chunk);
+    if (chunk.length < pageSize) break;
+
+    from += pageSize;
+    if (from > 200000) {
+      return { data: rows, error: { message: "Liiga palju ridu usalduskontrolliks." } };
+    }
+  }
+
+  return { data: rows, error: null };
+}
+
 async function recalcPointsForMatch(sb, matchId){
   const matchRes = await sb.from("matches").select("*").eq("id", matchId).single();
   if (matchRes.error || !matchRes.data) {
     return { updated_predictions: 0, skipped: true, error: matchRes.error?.message || "Mängu ei leitud." };
   }
 
-  const match = matchRes.data;
+  let match = matchRes.data;
+
+  // Püsiv punktide ümberarvutus peab kasutama sama usaldatud mänguandmete kihti nagu avalikud vaated.
+  // See hoiab ära olukorra, kus admini üldine recalc kirjutab DB-sse tagasi vale fixture'i või
+  // tulevase fake skoori põhjal punktid.
+  if (isMainWorldCupMatch(match)) {
+    const allMatchesRes = await fetchAllRowsForIntegrity(() => sb
+      .from("matches")
+      .select("id,match_no,stage,home,away,kickoff_utc,final_home,final_away,winner,is_finished,went_extra,api_status_short,manual_result_override")
+      .order("match_no", { ascending: true }));
+
+    if (!allMatchesRes.error) {
+      const trustedMatches = sanitizeWorldCupMatchesForDisplay(allMatchesRes.data || []);
+      const trusted = trustedMatches.find(x => Number(x.id) === Number(matchId));
+      if (trusted) match = trusted;
+      else {
+        const predReset = await sb.from("predictions").update({ points: 0 }, { count: "exact" }).eq("match_id", matchId);
+        return {
+          updated_predictions: 0,
+          reset_predictions: predReset.error ? 0 : (predReset.count || 0),
+          skipped: true,
+          reason: "Mäng ei läbinud MM bracketi/fixture usalduskontrolli.",
+          error: predReset.error?.message || null
+        };
+      }
+    }
+  }
 
   // Turvakaitse: tulevase MM mängu küljes olev skoor ei tohi kunagi punkte anda.
   // See ei muuda õigete lõppenud mängude punkte, vaid nullib ainult varasema vale sync/testi jäägi.
@@ -2026,8 +2408,8 @@ async function recalcPointsForMatch(sb, matchId){
 
   const fh = match.final_home;
   const fa = match.final_away;
-  if (fh===null || fa===null || fh===undefined || fa===undefined) {
-    return { updated_predictions: 0, skipped: true, reason: "Tulemus puudub." };
+  if (fh===null || fa===null || fh===undefined || fa===undefined || !matchHasUsableResult(match)) {
+    return { updated_predictions: 0, skipped: true, reason: "Usaldatud tulemus puudub." };
   }
 
   const inferredWentExtra = inferWentExtraFromResult(match, fh, fa, match.winner);
@@ -2091,11 +2473,12 @@ async function syncApiFootballResults(sb, { force=false } = {}){
   const matchDates = (matchesRes.data || [])
     .filter(m => !m.manual_result_override)
     .filter(m => {
-      if (!m.kickoff_utc) return false;
-      const t = new Date(m.kickoff_utc).getTime();
+      const trustedKickoff = trustedKickoffUtcForLock(m) || m.kickoff_utc;
+      if (!trustedKickoff) return false;
+      const t = new Date(trustedKickoff).getTime();
       return Number.isFinite(t) && t <= Date.now() + 24 * 60 * 60 * 1000;
     })
-    .map(m => apiFootballDateOnly(m.kickoff_utc));
+    .map(m => apiFootballDateOnly(trustedKickoffUtcForLock(m) || m.kickoff_utc));
 
   const fetched = await fetchApiFootballFixtures(matchDates);
   if (!fetched.ok){
@@ -2109,6 +2492,7 @@ async function syncApiFootballResults(sb, { force=false } = {}){
   let matched = 0;
   let finished_found = 0;
   let skipped_manual = 0;
+  let skipped_locked_group_results = 0;
   let update_errors = 0;
   let updated_playoff_teams = 0;
   const unmatched = [];
@@ -2116,6 +2500,8 @@ async function syncApiFootballResults(sb, { force=false } = {}){
   const updated_matches = [];
   const updated_playoff_team_matches = [];
   const update_error_examples = [];
+  let blocked_result_overwrites = 0;
+  const blocked_result_overwrite_examples = [];
 
   for (const rawMatch of matchesRes.data || []){
     let match = { ...rawMatch };
@@ -2141,6 +2527,13 @@ async function syncApiFootballResults(sb, { force=false } = {}){
 
     if (hasManualResultOverride) {
       skipped_manual += 1;
+    }
+
+    if (isFinishedGroupStageScoreLocked(match)) {
+      // Kaitse: group stage on läbi ja tulemus juba olemas.
+      // Ära lase API-Footballil hiljem final_home/final_away väärtusi ega kasutajate punkte muuta.
+      skipped_locked_group_results += 1;
+      continue;
     }
 
     const no = Number(match.match_no);
@@ -2245,6 +2638,34 @@ async function syncApiFootballResults(sb, { force=false } = {}){
 
         const runningGoalScore = apiPlayingTimeScoreWithoutPenalties(fx);
 
+        // Hard guard: once a main World Cup row already has a finished stored score,
+        // API sync must not silently overwrite it with a different score or winner.
+        // This prevents future "points disappeared/changed" incidents caused by late API corrections,
+        // stale fixture ids or accidental wrong fixture matches. Admin/manual override remains the only way
+        // to change an already-finished score deliberately.
+        const hasStoredFinishedScore = !!match.is_finished &&
+          match.final_home !== null && match.final_home !== undefined &&
+          match.final_away !== null && match.final_away !== undefined &&
+          Number.isFinite(Number(match.final_home)) &&
+          Number.isFinite(Number(match.final_away));
+        const storedWinner = normalizeWinner(match.winner);
+        const incomingWinner = normalizeWinner(apiWinner);
+        const incomingDiffersFromStored = hasStoredFinishedScore && (
+          Number(match.final_home) !== Number(homeGoals) ||
+          Number(match.final_away) !== Number(awayGoals) ||
+          (storedWinner && incomingWinner && storedWinner !== incomingWinner)
+        );
+
+        if (isMainWorldCupMatch(match) && incomingDiffersFromStored && !truthyDbBool(match.manual_result_override)) {
+          blocked_result_overwrites += 1;
+          if (blocked_result_overwrite_examples.length < 20) {
+            blocked_result_overwrite_examples.push(
+              `#${match.match_no} ${match.home} - ${match.away}: DB ${match.final_home}:${match.final_away}${storedWinner ? ` ${storedWinner}` : ""}, API ${homeGoals}:${awayGoals}${incomingWinner ? ` ${incomingWinner}` : ""}`
+            );
+          }
+          continue;
+        }
+
         const upd = await sb.from("matches").update(resultPatch).eq("id", match.id).select("*").single();
 
         if (!upd.error){
@@ -2284,7 +2705,10 @@ async function syncApiFootballResults(sb, { force=false } = {}){
     matched,
     finished_found,
     skipped_manual,
+    skipped_locked_group_results,
     update_errors,
+    blocked_result_overwrites,
+    blocked_result_overwrite_examples,
     updated_playoff_teams,
     cleanup_before: cleanupBefore,
     cleanup_after: cleanupAfter,
@@ -2508,7 +2932,7 @@ if (event.httpMethod === "GET" && route === "me") {
       const matchRes = await sb.from("matches").select("*").eq("match_no", no).single();
       if (matchRes.error) return json(500, { error: matchRes.error.message });
 
-      const date = apiFootballDateOnly(matchRes.data.kickoff_utc);
+      const date = apiFootballDateOnly(trustedKickoffUtcForLock(matchRes.data) || matchRes.data.kickoff_utc);
       const fetched = await fetchApiFootballFixtures(date ? [date] : []);
       if (!fetched.ok) return json(500, { error: fetched.error || "API-Football viga" });
 
@@ -3111,7 +3535,14 @@ if (event.httpMethod === "GET" && route === "predictions/matrix") {
       .order("id", { ascending: true }));
 
     if (predsRes.error) return json(500, { error: predsRes.error.message });
-    predictions = predsRes.data || [];
+    const visibleMatchMap = new Map(visibleMatches.map(m => [m.id, m]));
+    predictions = (predsRes.data || []).map(p => {
+      const match = visibleMatchMap.get(p.match_id);
+      const correctedPoints = matchHasUsableResult(match)
+        ? calcPoints(p.pred_home, p.pred_away, match.final_home, match.final_away, { match, pred_winner: p.pred_winner })
+        : 0;
+      return { ...p, points: correctedPoints, stored_points: Number(p.points) || 0 };
+    });
   }
 
   return json(200, {
@@ -3692,11 +4123,178 @@ async function fetchAllRows(queryFactory, pageSize = 1000){
   return { data: rows, error: null };
 }
 
+async function buildWorldCupIntegrityAudit(sb){
+  const matchesRes = await fetchAllRows(() => sb
+    .from("matches")
+    .select("id,match_no,stage,home,away,kickoff_utc,final_home,final_away,winner,is_finished,went_extra,api_status_short,manual_result_override,api_football_fixture_id")
+    .gte("match_no", 1)
+    .lte("match_no", 104)
+    .order("match_no", { ascending: true }));
+
+  if (matchesRes.error) throw new Error(matchesRes.error.message);
+
+  const rawMatches = matchesRes.data || [];
+  const trustedMatches = sanitizeWorldCupMatchesForDisplay(rawMatches);
+  const trustedById = new Map(trustedMatches.map(m => [m.id, m]));
+
+  const byNoCounts = new Map();
+  for (const m of rawMatches) byNoCounts.set(Number(m.match_no), (byNoCounts.get(Number(m.match_no)) || 0) + 1);
+
+  const duplicate_match_no = Array.from(byNoCounts.entries())
+    .filter(([, count]) => count > 1)
+    .map(([match_no, count]) => ({ match_no, count }));
+
+  const group_result_mismatches = [];
+  const r32_team_mismatches = [];
+  const future_result_rows = [];
+  const hidden_trusted_rows_with_stored_result = [];
+  const unlocked_finished_results = [];
+
+  for (const m of rawMatches) {
+    const no = Number(m.match_no);
+    const officialGroup = officialGroupResultForMatchNo(no);
+    if (officialGroup) {
+      const currentHome = Number(m.final_home);
+      const currentAway = Number(m.final_away);
+      if (currentHome !== Number(officialGroup.home) || currentAway !== Number(officialGroup.away)) {
+        group_result_mismatches.push({
+          match_no: no,
+          home: m.home,
+          away: m.away,
+          current: `${m.final_home ?? ""}:${m.final_away ?? ""}`,
+          expected: `${officialGroup.home}:${officialGroup.away}`,
+          manual_result_override: !!m.manual_result_override
+        });
+      }
+    }
+
+    const officialR32 = officialR32ActualFixtureForMatchNo(no);
+    if (officialR32 && (!teamNamesMatch(m.home, officialR32.home) || !teamNamesMatch(m.away, officialR32.away))) {
+      r32_team_mismatches.push({
+        match_no: no,
+        current: `${m.home} - ${m.away}`,
+        expected: `${officialR32.home} - ${officialR32.away}`,
+        manual_result_override: !!m.manual_result_override
+      });
+    }
+
+    if (isPrematureWorldCupResult(m) && !truthyDbBool(m.manual_result_override)) {
+      future_result_rows.push({
+        match_no: no,
+        home: m.home,
+        away: m.away,
+        kickoff_utc: trustedKickoffUtcForLock(m) || m.kickoff_utc,
+        stored_result: `${m.final_home ?? ""}:${m.final_away ?? ""}`,
+        is_finished: !!m.is_finished
+      });
+    }
+
+    if (!trustedById.has(m.id) && worldCupMatchHasStoredResultFields(m)) {
+      hidden_trusted_rows_with_stored_result.push({
+        match_no: no,
+        home: m.home,
+        away: m.away,
+        stored_result: `${m.final_home ?? ""}:${m.final_away ?? ""}`,
+        is_finished: !!m.is_finished,
+        manual_result_override: !!m.manual_result_override
+      });
+    }
+
+    // Informational hardening warning: a finished score without manual_result_override is still eligible
+    // for normal API sync metadata handling. The sync has an overwrite block, but locking verified results
+    // gives an extra database-level safety net against future score changes.
+    const trustedRow = trustedById.get(m.id);
+    if (trustedRow && matchHasUsableResult(trustedRow) && !truthyDbBool(m.manual_result_override)) {
+      unlocked_finished_results.push({
+        match_no: no,
+        home: trustedRow.home,
+        away: trustedRow.away,
+        stored_result: `${trustedRow.final_home ?? ""}:${trustedRow.final_away ?? ""}`,
+        winner: normalizeWinner(trustedRow.winner) || null,
+        went_extra: !!truthyDbBool(trustedRow.went_extra)
+      });
+    }
+  }
+
+  const predsRes = await fetchAllRows(() => sb
+    .from("predictions")
+    .select("id,player_id,match_id,pred_home,pred_away,pred_winner,points")
+    .order("id", { ascending: true }));
+
+  if (predsRes.error) throw new Error(predsRes.error.message);
+
+  const playersRes = await fetchAllRows(() => sb
+    .from("players")
+    .select("id,display_name,is_admin")
+    .order("display_name", { ascending: true }));
+
+  if (playersRes.error) throw new Error(playersRes.error.message);
+
+  const playerName = new Map((playersRes.data || []).map(p => [p.id, p.display_name]));
+  const prediction_point_mismatches = [];
+  let prediction_point_mismatch_count = 0;
+
+  for (const p of predsRes.data || []) {
+    const match = trustedById.get(p.match_id);
+    if (!match || !matchHasUsableResult(match)) continue;
+    const expected = calcPoints(p.pred_home, p.pred_away, match.final_home, match.final_away, { match, pred_winner: p.pred_winner });
+    const stored = Number(p.points) || 0;
+    if (stored !== expected) {
+      prediction_point_mismatch_count += 1;
+      if (prediction_point_mismatches.length < 50) {
+        prediction_point_mismatches.push({
+          player: playerName.get(p.player_id) || p.player_id,
+          match_no: match.match_no,
+          match: `${match.home} - ${match.away}`,
+          prediction: `${p.pred_home}:${p.pred_away}`,
+          stored_points: stored,
+          expected_points: expected,
+          delta: expected - stored
+        });
+      }
+    }
+  }
+
+  const ok = !duplicate_match_no.length &&
+    !group_result_mismatches.length &&
+    !r32_team_mismatches.length &&
+    !future_result_rows.length &&
+    !hidden_trusted_rows_with_stored_result.length &&
+    prediction_point_mismatch_count === 0;
+
+  return {
+    ok,
+    checked_at: new Date().toISOString(),
+    matches_checked: rawMatches.length,
+    trusted_matches_visible: trustedMatches.length,
+    duplicate_match_no,
+    group_result_mismatches,
+    r32_team_mismatches,
+    future_result_rows,
+    hidden_trusted_rows_with_stored_result: hidden_trusted_rows_with_stored_result.slice(0, 50),
+    unlocked_finished_results: unlocked_finished_results.slice(0, 80),
+    unlocked_finished_result_count: unlocked_finished_results.length,
+    prediction_point_mismatch_count,
+    prediction_point_mismatches
+  };
+}
+
+if (event.httpMethod === "GET" && route === "admin/audit/worldcup-integrity") {
+  const u = await requireAdmin(sb, event);
+  if (!u) return json(403, { error: "Admini õigused puuduvad." });
+
+  try {
+    const audit = await buildWorldCupIntegrityAudit(sb);
+    return json(200, audit);
+  } catch (err) {
+    return json(500, { error: err.message || String(err) });
+  }
+}
 
 // Leaderboard
 if (event.httpMethod === "GET" && route === "leaderboard") {
   const players = await fetchAllRows(() => sb.from("players").select("id,display_name,is_admin").order("created_at", { ascending: true }));
-  const preds = await fetchAllRows(() => sb.from("predictions").select("player_id,match_id,points").order("id", { ascending: true }));
+  const preds = await fetchAllRows(() => sb.from("predictions").select("player_id,match_id,pred_home,pred_away,pred_winner,points").order("id", { ascending: true }));
   const matches = await fetchAllRows(() => sb.from("matches").select("id,match_no,stage,home,away,kickoff_utc,is_finished,final_home,final_away,winner,went_extra,api_status_short,manual_result_override").order("match_no", { ascending: true }));
   const bonus = await fetchAllRows(() => sb.from("bonus_answers").select("player_id,points").order("id", { ascending: true }));
 
@@ -3716,11 +4314,13 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
   }
 
   // Edetabeli põhireegel:
-  // - predictions.points on andmebaasis juba arvutatud tõde mängupunktide kohta.
-  // - Üldtabel kasutab seetõttu ALATI otse kõigi predictions.points summat + lisaküsimused.
+  // - Kuvamisel arvutame mängupunktid uuesti praeguse usaldatud tulemuse järgi.
+  // - See väldib vanu stale predictions.points ridu, mis võisid tekkida vale API fixture'i või vana recalc'i ajal.
+  // - DB ridu siin ei muudeta; püsiv ümberarvutus on eraldi admin/recalc-points.
   // - Play-off tabel algab nullist ja kasutab ainult play-off mängude punkte + lisaküsimused.
   // - Alagrupi tabel kasutab ainult alagrupimängude punkte.
   const predictionTotalMap = new Map();
+  const storedPredictionTotalMap = new Map();
   const groupPointsMap = new Map();
   const playoffPointsMap = new Map();
 
@@ -3728,11 +4328,19 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
     const match = matchMap.get(pr.match_id);
     if (!match) continue;
 
-    // Tulevase või fake tulemusega mängu punktid ei tohi edetabelisse jõuda.
-    // Tavalise ennustuse points on enne tulemust niikuinii 0, aga see kaitseb vana vigase sync'i eest.
+    // Edetabel arvutab punktid kuvamisel alati uuesti praeguse usaldatud mängu tulemuse järgi.
+    // See parandab olukorra, kus predictions.points jäi varasema vale API fixture'i või vana recalc'i tõttu seisma.
+    // DB-s olevaid ennustusi ega punkte siin ei muudeta.
     if (!matchHasUsableResult(match)) continue;
 
-    const pts = Number(pr.points) || 0;
+    const storedPts = Number(pr.points) || 0;
+    storedPredictionTotalMap.set(pr.player_id, (storedPredictionTotalMap.get(pr.player_id) || 0) + storedPts);
+
+    const pts = calcPoints(pr.pred_home, pr.pred_away, match.final_home, match.final_away, {
+      match,
+      pred_winner: pr.pred_winner
+    });
+
     predictionTotalMap.set(pr.player_id, (predictionTotalMap.get(pr.player_id) || 0) + pts);
 
     if (isGroupMatchForLeaderboard(match)) {
@@ -3749,6 +4357,7 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
       const groupPoints = Number(groupPointsMap.get(p.id) || 0);
       const playoffMatchPoints = Number(playoffPointsMap.get(p.id) || 0);
       const dbPredictionPoints = Number(predictionTotalMap.get(p.id) || 0);
+      const storedPredictionPoints = Number(storedPredictionTotalMap.get(p.id) || 0);
       const bonusPoints = kind === "group" ? 0 : Number(bonusMap.get(p.id) || 0);
 
       const row = {
@@ -3759,6 +4368,7 @@ if (event.httpMethod === "GET" && route === "leaderboard") {
         playoff_match_points: 0,
         bonus_points: bonusPoints,
         db_prediction_points: dbPredictionPoints,
+        stored_prediction_points: storedPredictionPoints,
         points: 0
       };
 
