@@ -1,3 +1,14 @@
+# Dokumentatsiooni indeks
+
+Rakenduse täielik tehniline ja funktsionaalne dokumentatsioon:
+
+- [`docs/AI_HANDOFF_AND_SYSTEM_DOCUMENTATION.md`](docs/AI_HANDOFF_AND_SYSTEM_DOCUMENTATION.md) – põhjalik süsteemi kirjeldus, praegune arhiiviloogika, API-d, andmemudel, turvanõuded ja tõrkeotsing.
+- [`docs/EM2028_ADAPTATION_CHECKLIST.md`](docs/EM2028_ADAPTATION_CHECKLIST.md) – kohustuslik kontrollnimekiri enne EM 2028 või järgmise turniiri loomist.
+
+> **Kriitiline:** praegune MM 2026 arhiiv on frontend'is ainult vaatamiseks, kuid loeb endiselt olemasolevast Supabase andmestikust. Enne uue turniiri andmete lisamist tuleb MM 2026 arhiiv staatiliselt külmutada või turniiride andmed füüsiliselt eraldada.
+
+---
+
 # Võhma Lihakombinaadi ennustusvõistlus, MM 2026
 
 Vaata juhendit failist `VOHMA_DEPLOY.md`.
@@ -483,3 +494,9 @@ Admin saab lisaküsimuste vaates uusi küsimusi juurde lisada ning olemasolevaid
 Admin vaates saab tulemusi sisestada ka korraga plokina: iga rida kujul `mängu_nr skoor`, näiteks `-3 1:2`. Play-off viigi puhul lisa `home` või `away`, näiteks `-2 0:0 home`.
 
 Admin vaates saab ühe mängu tulemuse sisestada dropdownist mängu valides. Dropdownis on eespool juba lukus või alanud mängud, millel tulemus puudub.
+
+
+## Tulevaste turniiride eraldatus
+
+EM 2028 ja iga järgmine ennustusvõistlus peab kasutama uut eraldatud andmebaasi ning uut, selle turniiri jaoks kontrollitud skooride/mängukava API lahendust. MM 2026 production-andmebaasi, mängu-ID-sid ega API konfiguratsiooni ei tohi taaskasutada või üle kirjutada. MM 2026 arhiiv peab jääma staatiliseks ja ainult vaatamiseks. Täpsem juhis: `docs/EM2028_ADAPTATION_CHECKLIST.md`.
+
