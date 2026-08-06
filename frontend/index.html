@@ -4571,6 +4571,36 @@
         display:grid !important;
       }
     }
+
+
+    /* MM 2026 arhiiv: sama olemasolev kujundus, kuid ainult vaatamiseks */
+    .archive-home{margin-top:10px}
+    .archive-hero{border:1px solid rgba(104,139,255,.28);background:linear-gradient(135deg,rgba(21,37,78,.96),rgba(10,18,42,.96));border-radius:18px;padding:20px}
+    .archive-hero-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+    .archive-title{font-size:1.35rem;font-weight:800}
+    .archive-badge{display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(91,145,255,.45);background:rgba(29,80,176,.32);color:#dce8ff;border-radius:999px;padding:7px 11px;font-weight:800;font-size:.82rem}
+    .archive-entry{margin-top:14px;border:1px solid rgba(255,255,255,.12);background:rgba(7,13,30,.55);border-radius:16px;padding:16px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+    .archive-entry h3{margin:0 0 4px;font-size:1.08rem}
+    .archive-subtabs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 10px;padding:10px;border:1px solid rgba(255,255,255,.10);border-radius:15px;background:rgba(5,11,28,.55)}
+    .archive-subtab{padding:8px 11px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer}
+    .archive-subtab.active{background:#0d1430;color:var(--text);border-color:rgba(91,145,255,.45)}
+    .archive-readonly-note{margin:10px 0;padding:11px 13px;border-radius:13px;border:1px solid rgba(91,145,255,.28);background:rgba(20,50,105,.22);color:#dbe7ff}
+    .active-empty-view{margin-top:12px;border:1px solid rgba(104,139,255,.22);background:linear-gradient(145deg,rgba(14,25,55,.82),rgba(7,14,32,.88));border-radius:18px;padding:26px 20px;text-align:center}
+    .active-empty-icon{font-size:2.2rem;line-height:1;margin-bottom:12px}
+    .active-empty-title{font-size:1.28rem;font-weight:850;margin-bottom:8px}
+    .active-empty-text{max-width:680px;margin:0 auto;color:var(--muted);line-height:1.55}
+    .active-empty-action{margin-top:16px}
+    body.archive-mode #viewsCard input,
+    body.archive-mode #viewsCard select,
+    body.archive-mode #viewsCard textarea{pointer-events:none;opacity:.88}
+    body.archive-mode #viewsCard .archive-write-control{display:none!important}
+    @media(max-width:700px){
+      .archive-hero{padding:15px}
+      .archive-entry{align-items:stretch}
+      .archive-entry .primary{width:100%}
+      .archive-subtabs{gap:6px;padding:8px}
+      .archive-subtab{font-size:.9rem;padding:8px 9px}
+    }
 </style>
 </head>
 <body>
@@ -4643,6 +4673,7 @@
             <button class="tab" data-tab="bonus">Lisaküsimused</button>
             <button class="tab" data-tab="others">Teiste ennustused</button>
             <button class="tab" data-tab="rules">Reeglid</button>
+            <button class="tab" data-tab="archive">Arhiiv</button>
             <button class="tab" data-tab="account">Minu konto</button>
             <button class="tab hide" data-tab="admin">Admin</button>
           </div>
@@ -4652,7 +4683,14 @@
         </div>
       </div>
 
-      <div id="pred" style="margin-top:8px">
+      <div id="activeEmpty" class="active-empty-view">
+        <div class="active-empty-icon">🏟️</div>
+        <div id="activeEmptyTitle" class="active-empty-title">Uus ennustusvõistlus pole veel avatud</div>
+        <div id="activeEmptyText" class="active-empty-text">MM 2026 on lõpetatud ja tõstetud külmutatud kujul Arhiivi. Selle vaate uue võistluse andmed lisatakse hiljem.</div>
+        <div class="active-empty-action"><button type="button" id="btnGoArchive2026" class="primary">Ava Arhiiv → MM 2026</button></div>
+      </div>
+
+      <div id="pred" class="hide" style="margin-top:8px">
         <div class="sub">Sisesta oma ennustus. Ennustus lukustub 1 tund enne mängu algust. Punktid: õige võitja või viik 2p, õige kodutiimi väravad 1p, õige võõrsiltiimi väravad 1p. Täpne skoor kokku 4p. Play-offis ennustatakse 90 minuti skoori; edasipääseja valik ilmub ainult viigilise ennustuse korral ja õige valik annab +1p.</div>
         <div id="predMsg" class="msg"></div>
         <button id="btnToggleFinishedMobile" type="button" class="mobile-finished-toggle">Näita lõppenud mänge</button>
@@ -4906,6 +4944,48 @@
 </div>
 
 
+
+
+<div id="archive" class="hide archive-home">
+  <div id="archiveLanding" class="archive-hero">
+    <div class="archive-hero-head">
+      <div>
+        <div class="archive-title">🗄️ Arhiiv</div>
+        <div class="sub" style="margin-top:5px">Lõppenud ennustusvõistlused ainult vaatamiseks.</div>
+      </div>
+      <span class="archive-badge">❄ KÜLMUTATUD</span>
+    </div>
+    <div class="archive-entry">
+      <div>
+        <h3>Jalgpalli MM 2026</h3>
+        <div class="sub">Kogu MM 2026 leht lõppseisus: ennustused, edetabel, jooks, Beer Counter, lisaküsimused ja teiste ennustused.</div>
+      </div>
+      <button type="button" id="btnOpenArchive2026" class="primary">Ava MM 2026 arhiiv</button>
+    </div>
+  </div>
+
+  <div id="archiveViewer" class="hide">
+    <div class="archive-hero" style="padding:15px 17px">
+      <div class="archive-hero-head">
+        <div>
+          <div class="archive-title">🏆 Jalgpalli MM 2026</div>
+          <div class="sub" style="margin-top:4px">Kõik andmed on ainult vaatamiseks. Midagi muuta ega kustutada ei saa.</div>
+        </div>
+        <button type="button" id="btnCloseArchive2026">← Arhiivi avaleht</button>
+      </div>
+    </div>
+    <div class="archive-subtabs">
+      <button type="button" class="archive-subtab active" data-archive-tab="pred">Ennustused</button>
+      <button type="button" class="archive-subtab" data-archive-tab="lb">Edetabel</button>
+      <button type="button" class="archive-subtab" data-archive-tab="running">Jooks</button>
+      <button type="button" class="archive-subtab" data-archive-tab="beer">Beer Counter</button>
+      <button type="button" class="archive-subtab" data-archive-tab="bonus">Lisaküsimused</button>
+      <button type="button" class="archive-subtab" data-archive-tab="others">Teiste ennustused</button>
+      <button type="button" class="archive-subtab" data-archive-tab="rules">Reeglid</button>
+    </div>
+    <div class="archive-readonly-note">🔒 MM 2026 arhiivirežiim: andmeid saab sirvida, kuid salvestamine ja muud muudatused on blokeeritud.</div>
+  </div>
+</div>
 
 <div id="account" class="hide" style="margin-top:8px">
   <div class="sub">Siin saad muuta enda parooli pärast sisselogimist.</div>
@@ -5312,10 +5392,15 @@
 const api = (p)=>`/api/${p}`;
 let token = localStorage.getItem("token") || "";
 let me = null;
+let archiveMode = false;
 
 const $ = (id)=>document.getElementById(id);
 
 async function call(path, opts={}) {
+  const method = String(opts.method || "GET").toUpperCase();
+  if (archiveMode && !["GET", "HEAD", "OPTIONS"].includes(method)) {
+    throw new Error("MM 2026 arhiiv on ainult vaatamiseks.");
+  }
   const headers = Object.assign({"content-type":"application/json; charset=utf-8"}, opts.headers||{});
   if (token) headers.authorization = "Bearer " + token;
   const res = await fetch(api(path), Object.assign({}, opts, { headers }));
@@ -5878,7 +5963,7 @@ function doLogout(){
 
   if ($("viewsCard")) $("viewsCard").classList.add("hide");
   if ($("adminRunningActivitiesCard")) $("adminRunningActivitiesCard").classList.add("hide");
-  ["pred","lb","running","beer","bonus","others","rules","account","admin"].forEach(id=>{
+  ["activeEmpty","pred","lb","running","beer","bonus","others","rules","archive","account","admin"].forEach(id=>{
     const el = $(id);
     if (el) el.classList.add("hide");
   });
@@ -5977,15 +6062,151 @@ function toggleAdminTab(){
       document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
       const predTab = document.querySelector('[data-tab="pred"]');
       if (predTab) predTab.classList.add("active");
-      ["pred","lb","running","beer","bonus","others","rules","account"].forEach(id=>{
+      ["activeEmpty","pred","lb","running","beer","bonus","others","rules","account"].forEach(id=>{
         const el = $(id);
         if (el) el.classList.add("hide");
       });
-      if ($("pred")) $("pred").classList.remove("hide");
+      showActiveEmpty("pred");
     }
   }
 }
 
+
+
+const ARCHIVE_VIEW_IDS = ["pred","lb","running","beer","bonus","others","rules"];
+const EMPTY_ACTIVE_TABS = ["pred","lb","running","beer","bonus","others","rules"];
+const EMPTY_ACTIVE_COPY = {
+  pred: ["Ennustused", "Uue ennustusvõistluse mängud ja ennustusväljad lisatakse siia hiljem."],
+  lb: ["Edetabel", "Uue ennustusvõistluse edetabel alustab tühjalt."],
+  running: ["Jooks", "Uue ennustusvõistluse liikumise challenge alustab tühjalt."],
+  beer: ["Beer Counter", "Uue ennustusvõistluse Beer Counter alustab tühjalt."],
+  bonus: ["Lisaküsimused", "Uue ennustusvõistluse lisaküsimused lisatakse siia hiljem."],
+  others: ["Teiste ennustused", "Uue ennustusvõistluse mängijate ennustused ilmuvad siia pärast võistluse avamist."],
+  rules: ["Reeglid", "Uue ennustusvõistluse reeglid lisatakse siia hiljem."]
+};
+
+function showActiveEmpty(name){
+  hideAllMainViews();
+  const box = $("activeEmpty");
+  if (box) box.classList.remove("hide");
+  const copy = EMPTY_ACTIVE_COPY[name] || ["Uus ennustusvõistlus", "Andmed lisatakse siia hiljem."];
+  if ($("activeEmptyTitle")) $("activeEmptyTitle").textContent = copy[0];
+  if ($("activeEmptyText")) $("activeEmptyText").textContent = copy[1] + " MM 2026 täielik lõppseis on vaatamiseks Arhiivis.";
+  if ($("btnReload")) $("btnReload").classList.add("hide");
+}
+
+
+function setArchiveReadOnlyControls(){
+  const allowButtonIds = new Set(["btnToggleFinishedMobile"]);
+  for (const viewId of ARCHIVE_VIEW_IDS) {
+    const view = $(viewId);
+    if (!view) continue;
+    view.querySelectorAll("input, select, textarea").forEach(el => {
+      if (!(el.dataset.archiveWasDisabled === "1")) {
+        el.dataset.archiveWasDisabled = el.disabled ? "already" : "1";
+      }
+      el.disabled = true;
+      el.setAttribute("aria-disabled", "true");
+    });
+    view.querySelectorAll("button").forEach(btn => {
+      if (allowButtonIds.has(btn.id)) return;
+      if (!btn.dataset.archivePrevDisplay) btn.dataset.archivePrevDisplay = btn.style.display || "__empty__";
+      btn.classList.add("archive-write-control");
+    });
+  }
+}
+
+function clearArchiveReadOnlyControls(){
+  for (const viewId of ARCHIVE_VIEW_IDS) {
+    const view = $(viewId);
+    if (!view) continue;
+    view.querySelectorAll("input, select, textarea").forEach(el => {
+      if (el.dataset.archiveWasDisabled === "1") el.disabled = false;
+      delete el.dataset.archiveWasDisabled;
+      el.removeAttribute("aria-disabled");
+    });
+    view.querySelectorAll("button.archive-write-control").forEach(btn => btn.classList.remove("archive-write-control"));
+  }
+}
+
+function hideAllMainViews(){
+  ["activeEmpty","pred","lb","running","beer","bonus","others","rules","account","admin"].forEach(id => {
+    const el = $(id); if (el) el.classList.add("hide");
+  });
+}
+
+async function showArchiveSection(name){
+  if (!ARCHIVE_VIEW_IDS.includes(name)) name = "pred";
+  hideAllMainViews();
+  const target = $(name); if (target) target.classList.remove("hide");
+  if ($("btnReload")) $("btnReload").classList.remove("hide");
+  document.querySelectorAll(".archive-subtab").forEach(btn => btn.classList.toggle("active", btn.dataset.archiveTab === name));
+  if (name === "bonus" && typeof loadBonusQuestions === "function") await loadBonusQuestions();
+  if (name === "running" && typeof loadRunningChallenge === "function") await loadRunningChallenge();
+  if (name === "beer" && typeof loadBeerCounter === "function") await loadBeerCounter();
+  if (name === "others" && typeof loadOthersView === "function") await loadOthersView();
+  if (name === "rules" && typeof loadRulesView === "function") await loadRulesView();
+  setArchiveReadOnlyControls();
+}
+
+async function openArchive2026(){
+  archiveMode = true;
+  document.body.classList.add("archive-mode");
+  if ($("archiveLanding")) $("archiveLanding").classList.add("hide");
+  if ($("archiveViewer")) $("archiveViewer").classList.remove("hide");
+  await loadAll();
+  await showArchiveSection("pred");
+}
+
+function closeArchive2026(){
+  archiveMode = false;
+  document.body.classList.remove("archive-mode");
+  clearArchiveReadOnlyControls();
+  hideAllMainViews();
+  if ($("archive")) $("archive").classList.remove("hide");
+  if ($("archiveLanding")) $("archiveLanding").classList.remove("hide");
+  if ($("archiveViewer")) $("archiveViewer").classList.add("hide");
+  if ($("btnReload")) $("btnReload").classList.add("hide");
+}
+
+function leaveArchiveMode(){
+  if (!archiveMode) return;
+  archiveMode = false;
+  document.body.classList.remove("archive-mode");
+  clearArchiveReadOnlyControls();
+  if ($("archiveLanding")) $("archiveLanding").classList.remove("hide");
+  if ($("archiveViewer")) $("archiveViewer").classList.add("hide");
+}
+
+function bindArchiveView(){
+  const openBtn = $("btnOpenArchive2026");
+  if (openBtn && openBtn.dataset.boundArchive !== "1") {
+    openBtn.dataset.boundArchive = "1";
+    openBtn.addEventListener("click", openArchive2026);
+  }
+  const goBtn = $("btnGoArchive2026");
+  if (goBtn && goBtn.dataset.boundArchive !== "1") {
+    goBtn.dataset.boundArchive = "1";
+    goBtn.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+      const archiveTab = document.querySelector('[data-tab="archive"]');
+      if (archiveTab) archiveTab.classList.add("active");
+      hideAllMainViews();
+      if ($("archive")) $("archive").classList.remove("hide");
+      openArchive2026();
+    });
+  }
+  const closeBtn = $("btnCloseArchive2026");
+  if (closeBtn && closeBtn.dataset.boundArchive !== "1") {
+    closeBtn.dataset.boundArchive = "1";
+    closeBtn.addEventListener("click", closeArchive2026);
+  }
+  document.querySelectorAll(".archive-subtab").forEach(btn => {
+    if (btn.dataset.boundArchive === "1") return;
+    btn.dataset.boundArchive = "1";
+    btn.addEventListener("click", () => showArchiveSection(btn.dataset.archiveTab));
+  });
+}
 
 function sortMatchesByKickoffForPredictions(matches){
   return [...(matches || [])].sort((a, b)=>{
@@ -8825,19 +9046,35 @@ function bindBeerCounter(){
 }
 
 
-$("btnReload").onclick = loadAll;
+$("btnReload").onclick = async ()=>{
+  await loadAll();
+  if (archiveMode) setArchiveReadOnlyControls();
+};
 
 document.querySelectorAll(".tab").forEach(t=>{
   t.addEventListener("click", ()=>{
+    const name = t.getAttribute("data-tab");
+    if (name !== "archive") leaveArchiveMode();
     document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
     t.classList.add("active");
-    const name = t.getAttribute("data-tab");
     if (name === "admin" && !(me && me.is_admin)) {
       toggleAdminTab();
       return;
     }
-    ["pred","lb","running","beer","bonus","others","rules","account","admin"].forEach(id=>{ const el=$(id); if (el) el.classList.add("hide"); });
+    ["activeEmpty","pred","lb","running","beer","bonus","others","rules","archive","account","admin"].forEach(id=>{ const el=$(id); if (el) el.classList.add("hide"); });
+    if (EMPTY_ACTIVE_TABS.includes(name)) {
+      showActiveEmpty(name);
+      updateImportTimesVisibility(name);
+      return;
+    }
     const target = $(name); if (target) target.classList.remove("hide");
+    if ($("btnReload")) $("btnReload").classList.toggle("hide", name !== "admin");
+    if (name === "archive") {
+      if (archiveMode) showArchiveSection(document.querySelector(".archive-subtab.active")?.dataset.archiveTab || "pred");
+      else closeArchive2026();
+      updateImportTimesVisibility(name);
+      return;
+    }
     if (name === "bonus") loadBonusQuestions();
     if (name === "running") loadRunningChallenge();
     if (name === "beer") loadBeerCounter();
@@ -8866,8 +9103,10 @@ bindRulesButtons();
 bindAdminRunningActivities();
 bindRunningButtons();
 bindBeerCounter();
+bindArchiveView();
 bindAuthButtons();
 bindLogoutButtons();
+showActiveEmpty("pred");
 loadAll();
 </script>
 </body>
